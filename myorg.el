@@ -232,15 +232,17 @@ entries from the file."
         (sequence "NEW" "|")))
 ;; TODO keywords used to mark entry types. Such entries are _not_ tasks, so
 ;; "TODO" keywords is a misnomer. Not sure it is a good idea to use TODO
-;; keywords to mark the type of an entry.
-(push '(type "EXPLORE" "SOURCE" "PROBLEM"
-             "QUESTION" "LIST" "ANSWER"
-             "ACTION" "FACT" "EXAMPLES"
-             "HOOK" "CONCEPT" "TEMP"
-             "HEAP" "DECISION" "IDEA"
-             "DECL" "REMINDER" "READ"
-             "|"
-             "DONE" "ANSWERED" "SOLVED")
+;; keywords to mark the type of an entry. "Done" keywords serve just to mark the
+;; type of the entry, whereas "TODO" keywords serve to attract may attention as
+;; well.
+(push '(type "|" "SOURCE" "LIST" "ANSWER" "CONCEPT" "HEAP" "DECISION" "DECL"
+             "FACT" "EXAMPLES" "HEAP" "TEMP")
+      org-todo-keywords)
+(push '(type "QUESTION(q)" "|" "ANSWERED")
+      org-todo-keywords)
+(push '(type "PROBLEM" "|" "SOLVED")
+      org-todo-keywords)
+(push '(type "EXPLORE" "ACTION" "HOOK" "HEAP" "DECISION" "IDEA" "READ" "|")
       org-todo-keywords)
 
 ;; so that level 2 entries are also considered when refiling
@@ -399,3 +401,7 @@ entries from the file."
   (interactive)
   (goto-char (+ (point-min)
                 (1+ (random (1+ (- (point-max) (point-min))))))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(setq-default org-fontify-done-headline nil)
+

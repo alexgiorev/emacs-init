@@ -1,19 +1,20 @@
 (defun shuffled-number-sequence (low high)
-  ;; not very efficient but then again I'm not sure I will use it that much, so
-  ;; I won't bother making it more efficient right now. Also, this function is
-  ;; kind of flawed. Consider having (1 2) as arguments. The probability that
-  ;; they will be swapped is 1/4, whereas it should be 1/2
+  "Returns a list of the numbers in the interval [LOW HIGH] but shuffled
+randomly"
   (if (> low high)
       (error "LOW (%s) must be less than or equal to HIGH (%s)" low high))
   (let* ((vec (vector-number-sequence low high))
          (size (length vec))
-         index1 index2 val1 val2)
-    (dotimes (_ (length vec))
-      (setq index1 (random size) index2 (random size)
-            val1 (aref vec index1) val2 (aref vec index2))
-      (aset vec index1 val2) (aset vec index2 val1))
+         random-index)
+    (dotimes (N (1- (length vec)))
+      (setq random-index (random (- size N)))
+      (vector-swap vec random-index (- size 1 N)))
     (append vec nil)))
 
+(defsubst vector-swap (vec i1 i2)
+  (let ((v1 (aref vec i1)) (v2 (aref vec i2)))
+    (aset vec i1 v2) (aset vec i2 v1)))
+    
 (defun vector-number-sequence (low high)
   (if (> low high)
       (error "LOW (%s) must be less than or equal to HIGH (%s)" low high))
