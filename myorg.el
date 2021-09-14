@@ -2,7 +2,6 @@
 (require 'ol)
 (require 'org-id)
 
-(define-key global-map "\C-cl" 'org-store-link)
 (define-key global-map "\C-ca" 'org-agenda)
 (setq org-log-done nil)
 
@@ -398,18 +397,41 @@ entries from the file."
 (setq-default org-fontify-done-headline nil)
 (setq org-blank-before-new-entry '((heading . nil) (plain-list-item . nil)))
 (setq org-cycle-separator-lines 0)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; links
+
 (setq org-id-link-to-org-use-id t)
 
-(defun my/refile-link ()
+(defun my/org-refile-link ()
   "Creates a link to the current entry and refiles it."
   (interactive)
   (save-excursion
     (let (link)
-      (org-back-to-heading)
+      (org-back-to-heading t)
       (setq link (org-store-link 1))
       (org-insert-heading)
       (insert link)
-      (org-refile))))  
+      (org-refile))))
+
+(defun my/org-kill-link ()
+  (interactive)
+  (save-excursion
+    (org-back-to-heading t)
+    (kill-new (org-store-link 1))))
+
+;;; link bindings
+(define-key global-map (kbd "C-c l") 'org-store-link)
+(with-eval-after-load 'org
+  ;; first make sure C-c C-l is not bound so that it can serve as a prefix
+  (define-key org-mode-map (kbd "C-c C-l") nil)
+  (define-key org-mode-map (kbd "C-c C-l i") 'org-insert-link)
+  (define-key org-mode-map (kbd "C-c C-l s") 'org-store-link)
+  (define-key org-mode-map (kbd "C-c C-l n") 'org-next-link)
+  (define-key org-mode-map (kbd "C-c C-l p") 'org-previous-link)
+  (define-key org-mode-map (kbd "C-c C-l r") 'my/org-refile-link)
+  (define-key org-mode-map (kbd "C-c C-l k") 'my/org-kill-link))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defun my/org-codify-region (start end)
   (interactive "r")
