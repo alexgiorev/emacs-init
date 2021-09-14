@@ -19,22 +19,4 @@
    (define-key python-mode-map (kbd "M-}") 'python-nav-forward-block)
    (define-key python-mode-map (kbd "M-h") 'python-mark-defun)))
 
-;; useful for copying functions into Anki
-(defun my/python-kill-for-anki (beg end)
-  "This addresses the problem taht indented functions come out funny in Anki's
-code generation tool"
-  (interactive "r")
-  (let ((func (buffer-substring beg end))
-        indent)
-    (with-temp-buffer
-      (insert func)
-      (goto-char (point-min))
-      (setq indent (current-indentation))
-      (my/maplines (point-min) (point-max)
-                   (lambda () (my/reduce-indentation indent)))
-      (kill-region (point-min) (point-max)))))
-
-(with-eval-after-load 'python
-  (define-key python-mode-map (kbd "C-c M-w")
-    'my/python-kill-for-anki))
   

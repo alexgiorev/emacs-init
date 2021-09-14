@@ -1,4 +1,6 @@
 (require 'org)
+(require 'ol)
+(require 'org-id)
 
 (define-key global-map "\C-cl" 'org-store-link)
 (define-key global-map "\C-ca" 'org-agenda)
@@ -48,12 +50,12 @@
             (define-key org-mode-map (kbd "C-c w p") 'my/widen-to-parent)))
 
 ;; ----------------------------------------
-(defun my/new-entry-today ()
+(defun my/new-entry-today (&optional arg)
   "Assumes the top-level headlines are timestamps. Inserts a new child in
 today's entry. If there is no entry for today, creates it."
-  (interactive)
+  (interactive "P")
   (widen)
-  (org-cycle '(16)) ;; startup visibility
+  (org-overview) ;; startup visibility
   (my/last-top-heading)
   ;; move point to the beginning of today's headline;
   ;; if no headline for today, create it
@@ -63,18 +65,18 @@ today's entry. If there is no entry for today, creates it."
         ;; create a sibling, insert today's time stamp and move to the beginning of the heading
         (progn (org-insert-heading-respect-content)
                (org-insert-time-stamp (current-time) nil 'inactive)
-               (beginning-of-line)))
-    ;; point is at the beginning of the today's headline
-    (org-show-children)
-    (org-insert-heading-respect-content)
-    (org-demote)))
+               (beginning-of-line))))
+  ;; point is at the beginning of the today's headline
+  (org-show-children)
+  (funcall (if arg 'org-insert-todo-heading-respect-content
+             'org-insert-heading-respect-content))
+  (org-demote)
+  (org-show-set-visibility 'canonical))
 
-(defun my/last-top-heading ()
+(defsubst my/last-top-heading ()
   "Moves point to the beginning of the last heading at level 1"
   (end-of-buffer)
-  (outline-previous-heading)
-  (while (> (car (org-heading-components)) 1)
-    (outline-previous-heading)))
+  (while (org-up-heading-safe)))
 
 (defun my/timestamp-ymd (timestamp)
   "Returns a list (YEAR MONTH DAY) for an org timestamp object"
@@ -226,24 +228,21 @@ entries from the file."
                     (funcall 'org-timer-start))))
 
 ;; org-todo-keywords
+;; Some TODO keywords are used to mark entry types. Such entries are _not_
+;; tasks, so "TODO" keywords is a misnomer. Not sure it is a good idea to use
+;; TODO keywords to mark the type of an entry. "Done" keywords serve just to
+;; mark the type of the entry, whereas "TODO" keywords serve to attract may
+;; attention as well.
 (setq org-todo-keywords
       '((sequence "TODO" "|" "DONE")
         (sequence "PROCESS" "|" "TEMPDONE" "DONE")
-        (sequence "NEW" "|")))
-;; TODO keywords used to mark entry types. Such entries are _not_ tasks, so
-;; "TODO" keywords is a misnomer. Not sure it is a good idea to use TODO
-;; keywords to mark the type of an entry. "Done" keywords serve just to mark the
-;; type of the entry, whereas "TODO" keywords serve to attract may attention as
-;; well.
-(push '(type "|" "SOURCE" "LIST" "ANSWER" "CONCEPT" "HEAP" "DECISION" "DECL"
-             "FACT" "EXAMPLES" "HEAP" "TEMP")
-      org-todo-keywords)
-(push '(type "QUESTION(q)" "|" "ANSWERED")
-      org-todo-keywords)
-(push '(type "PROBLEM" "|" "SOLVED")
-      org-todo-keywords)
-(push '(type "EXPLORE" "ACTION" "HOOK" "HEAP" "DECISION" "IDEA" "READ" "|")
-      org-todo-keywords)
+        (sequence "NEW" "|")
+        (type "|" "SOURCE" "LIST" "ANSWER" "CONCEPT" "HEAP" "DECISION" "DECL"
+              "FACT" "EXAMPLES" "HEAP" "TEMP")
+        (type "QUESTION(q)" "|" "ANSWERED")
+        (type "PROBLEM(p)" "|" "SOLVED" "SOLUTION")
+        (type "EXPLORE" "EXPERIMENT" "ACTION" "HOOK" "LATER" "HEAP" "DECISION"
+              "IDEA" "READ" "|")))
 
 ;; so that level 2 entries are also considered when refiling
 (setq org-refile-targets
@@ -251,7 +250,8 @@ entries from the file."
         (nil . (:tag . "refileTarget"))
         ("~/notes/org" . (:level . 1))
         ("~/notes/leng/leng" . (:level . 1))
-        ("~/notes/leng/heaps" . (:level . 1))))
+        ("~/notes/leng/heaps" . (:level . 1))
+        ("~/notes/leng/blog" . (:level . 1))))
 
 ;; so that indentation is not changed when demoting/promoting
 (setq org-adapt-indentation nil)
@@ -353,6 +353,18 @@ entries from the file."
           (delete-region delete-start delete-end)
           (forward-line))))))
 
+(setq my/cloze-regexp "{{c[[:digit:]]*::\\(.*?\\)\\(?:::\\(.*?\\)\\)?}}")
+(defun my/strip-cloze ()
+  (interactive)
+  (let (beginning end)
+    (yank)
+    ;; region beginning is before the yanked text
+    (setq beginning (region-beginning) end (region-end))
+    (goto-char beginning)
+    (while (re-search-forward my/cloze-regexp end nil)
+      (replace-match (match-string 1)))
+    (goto-char end)))
+
 (defun my/yank ()
   (interactive)
   (funcall my/yank-function))
@@ -366,25 +378,6 @@ entries from the file."
 (setq my/yank-function 'my/yank-from-pdf)
 (define-key org-mode-map "\C-\M-y" 'my/yank)
 (define-key org-mode-map "\C-\M-g" 'my/yank-kill)
-
-;; inserting blocks
-(defun my/org-block (block-type start end)
-  (goto-char end)
-  (forward-line)
-  (if (eolp) (insert "\n"))
-  (insert (format "#+END_%s\n" block-type))
-  (goto-char start)
-  (beginning-of-line)
-  (insert (format "#+BEGIN_%s\n" block-type))
-  (forward-char -1))
-
-(defun my/org-block-example ()
-  (interactive)
-  (my/org-block "EXAMPLE" (region-beginning) (region-end)))
-
-(define-key org-mode-map (kbd "C-c b e") 'my/org-block-example)
-
-(define-key org-mode-map (kbd "C-c b s") 'org-babel-demarcate-block)
 
 ;; random entry
 (defun my/random-entry ()
@@ -402,6 +395,38 @@ entries from the file."
   (goto-char (+ (point-min)
                 (1+ (random (1+ (- (point-max) (point-min))))))))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (setq-default org-fontify-done-headline nil)
+(setq org-blank-before-new-entry '((heading . nil) (plain-list-item . nil)))
+(setq org-cycle-separator-lines 0)
+(setq org-id-link-to-org-use-id t)
 
+(defun my/refile-link ()
+  "Creates a link to the current entry and refiles it."
+  (interactive)
+  (save-excursion
+    (let (link)
+      (org-back-to-heading)
+      (setq link (org-store-link 1))
+      (org-insert-heading)
+      (insert link)
+      (org-refile))))  
+
+(defun my/org-codify-region (start end)
+  (interactive "r")
+  (if (region-active-p)
+      (progn (goto-char start) (insert "~")
+             (goto-char (1+ end)) (insert "~"))
+    (insert "~~") (backward-char)))
+
+(with-eval-after-load 'org
+  (define-key org-mode-map (kbd "C-M-c") 'my/org-codify-region))
+
+(defun my/org-code (start end)
+  (interactive "r")
+  (if (not (region-active-p))
+      (save-excursion
+        (yank) (activate-mark) (org-babel-demarcate-block))
+    (org-babel-demarcate-block)))
+
+(with-eval-after-load
+    (define-key org-mode-map (kbd "C-c b s") 'my/org-code))
