@@ -44,9 +44,8 @@
   (outline-up-heading 1)
   (org-narrow-to-subtree))
 
-(add-hook 'org-mode-hook
-          (lambda ()
-            (define-key org-mode-map (kbd "C-c w p") 'my/widen-to-parent)))
+(with-eval-after-load 'org
+  (define-key org-mode-map (kbd "C-c w p") 'my/widen-to-parent))
 
 ;; ----------------------------------------
 (defun my/new-entry-today (&optional arg)
@@ -84,13 +83,8 @@ today's entry. If there is no entry for today, creates it."
           (plist-get plist :month-start)
           (plist-get plist :day-start))))
 
-(add-hook
- 'org-mode-hook
- (lambda ()
-   (define-key
-     org-mode-map
-     (kbd "C-c n")
-     'my/new-entry-today)))
+(with-eval-after-load 'org
+  (define-key org-mode-map (kbd "C-c n") 'my/new-entry-today))
 
 ;; ----------------------------------------
 (defun my/org-paste-list ()
@@ -107,8 +101,8 @@ today's entry. If there is no entry for today, creates it."
                (forward-line)
                (not (eobp)))))))
 
-(add-hook 'org-mode-hook
-          (lambda () (define-key org-mode-map "\C-cyl" 'my/org-paste-list)))
+(with-eval-after-load 'org
+  (define-key org-mode-map "\C-cyl" 'my/org-paste-list))
 
 ;; ----------------------------------------
 
@@ -126,7 +120,8 @@ today's entry. If there is no entry for today, creates it."
   "----------------------------------------"
   "The title of the heading which is to wrap the entry of the current heading")
 
-(my/define-key 'org-mode "\C-ch" 'my/wrap-entry)
+(with-eval-after-load 'org
+  (define-key org-mode-map "\C-ch" 'my/wrap-entry))
 
 ;; ----------------------------------------
 
@@ -164,7 +159,8 @@ result in faster runtime."
              (setq list-of-posns (cons (point) list-of-posns)))))
       (unless dont-reverse (reverse list-of-posns)))))
 
-(my/define-key 'org-mode "\C-cyr" 'my/paste-random-child)
+(with-eval-after-load 'org
+  (define-key org-mode-map "\C-cyr" 'my/paste-random-child))
 
 ;; ----------------------------------------
 
@@ -300,8 +296,9 @@ entries from the file."
    (file+headline nil nil) ; set dynamically
    "%i" :empty-lines 1 :immediate-finish t))
 
-(define-key org-mode-map (kbd "C-c c x")
-  (lambda () (interactive) (org-capture nil "x")))
+(with-eval-after-load 'org
+  (define-key org-mode-map (kbd "C-c c x")
+    (lambda () (interactive) (org-capture nil "x"))))
 
 (defun my/set-extract-target ()
   (interactive)
@@ -314,9 +311,10 @@ entries from the file."
     (setcar (nthcdr 3 entry) new-target)))
 
 ;;----------------------------------------
-(define-key org-mode-map "\C-a" 'org-beginning-of-line)
-(define-key org-mode-map "\C-e" 'org-end-of-line)
-(define-key org-mode-map "\C-k" 'org-kill-line)
+(with-eval-after-load 'org
+  (define-key org-mode-map "\C-a" 'org-beginning-of-line)
+  (define-key org-mode-map "\C-e" 'org-end-of-line)
+  (define-key org-mode-map "\C-k" 'org-kill-line))
 (setq org-special-ctrl-a/e t)
 
 ;;----------------------------------------
@@ -375,8 +373,9 @@ entries from the file."
   (kill-region (region-beginning) (region-end)))
 
 (setq my/yank-function 'my/yank-from-pdf)
-(define-key org-mode-map "\C-\M-y" 'my/yank)
-(define-key org-mode-map "\C-\M-g" 'my/yank-kill)
+(with-eval-after-load 'org
+  (define-key org-mode-map "\C-\M-y" 'my/yank)
+  (define-key org-mode-map "\C-\M-g" 'my/yank-kill))
 
 ;; random entry
 (defun my/random-entry ()
@@ -419,17 +418,22 @@ entries from the file."
     (org-back-to-heading t)
     (kill-new (org-store-link 1))))
 
+(defvar my/org-link-prefix-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "C-i") 'org-insert-link)
+    (define-key map (kbd "C-s") 'org-store-link)
+    (define-key map (kbd "C-n") 'org-next-link)
+    (define-key map (kbd "C-p") 'org-previous-link)
+    (define-key map (kbd "C-r") 'my/org-refile-link)
+    (define-key map (kbd "C-k") 'my/org-kill-link)
+    map))
+
 ;;; link bindings
 (define-key global-map (kbd "C-c l") 'org-store-link)
 (with-eval-after-load 'org
   ;; first make sure C-c C-l is not bound so that it can serve as a prefix
   (define-key org-mode-map (kbd "C-c C-l") nil)
-  (define-key org-mode-map (kbd "C-c C-l i") 'org-insert-link)
-  (define-key org-mode-map (kbd "C-c C-l s") 'org-store-link)
-  (define-key org-mode-map (kbd "C-c C-l n") 'org-next-link)
-  (define-key org-mode-map (kbd "C-c C-l p") 'org-previous-link)
-  (define-key org-mode-map (kbd "C-c C-l r") 'my/org-refile-link)
-  (define-key org-mode-map (kbd "C-c C-l k") 'my/org-kill-link))
+  (define-key org-mode-map (kbd "C-c C-l") my/org-link-prefix-map))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
