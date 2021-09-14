@@ -430,3 +430,16 @@ entries from the file."
 
 (with-eval-after-load
     (define-key org-mode-map (kbd "C-c b s") 'my/org-code))
+
+(defun my/org-paste-subtree-advice (&rest function args)
+  "I don't like that the function sometimes inserts blank lines after it pastes
+the subtree. This advice remembers the number of blank lines before the paste,
+and if the `org-paste-subtree' inserted extra, they are deleted."
+  (let ((empty-lines-before (my/count-preceding-empty-lines))
+        empty-lines-after diff)
+    (apply (car function) args)
+    (setq empty-lines-after (my/count-preceding-empty-lines)
+          diff (- empty-lines-after empty-lines-before))
+    (unless (= diff 0)
+      (backward-char diff)
+      (delete-char diff))))
