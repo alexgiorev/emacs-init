@@ -114,7 +114,7 @@ today's entry. If there is no entry for today, creates it."
   (outline-hide-subtree))
 
 (defvar my/wrap-entry-title
-  "----------------------------------------"
+  "ENTRY_TEXT"
   "The title of the heading which is to wrap the entry of the current heading")
 
 (with-eval-after-load 'org

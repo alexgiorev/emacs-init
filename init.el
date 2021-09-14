@@ -366,3 +366,12 @@
     (lambda nil
       (interactive)
       (my/dired-goto-marked-file t))))
+
+----------------------------------------
+(defvar my/global-prefix-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map "\C-t" 'my/touch-left)
+    map)
+"The map containing the bindings of my own commands in the global map")
+
+(define-key global-map "\C-\M-m" my/global-prefix-map)
