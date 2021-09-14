@@ -5,9 +5,6 @@
 (define-key global-map "\C-ca" 'org-agenda)
 (setq org-log-done nil)
 
-;; M-TAB is intercepted, use "C-c t" instead.
-(define-key org-mode-map (kbd "C-c t") 'completion-at-point)
-
 ;; ----------------------------------------
 (setq-default org-startup-folded t)
 (add-hook 'org-mode-hook (lambda () (electric-indent-local-mode -1)))
