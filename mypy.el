@@ -12,11 +12,8 @@
                   register-alist)))
 
 ;; python-mode keys
-(add-hook
- 'python-mode-hook
- (lambda ()
-   (define-key python-mode-map (kbd "M-{") 'python-nav-backward-block)
-   (define-key python-mode-map (kbd "M-}") 'python-nav-forward-block)
-   (define-key python-mode-map (kbd "M-h") 'python-mark-defun)))
+(with-eval-after-load 'python-mode
+  (define-key python-mode-map (kbd "M-{") 'python-nav-backward-block)
+  (define-key python-mode-map (kbd "M-}") 'python-nav-forward-block)
+  (define-key python-mode-map (kbd "M-h") 'python-mark-defun))
 
-  
