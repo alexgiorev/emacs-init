@@ -24,33 +24,33 @@ randomly"
       (aset result index (+ low index)))
     result))
 
-(defun my/touch-left (beg end)
+(defun my-touch-left (beg end)
   "Shifts lines in [BEG, END] to the left until a line, any line, touches the
 left margin (i.e. it is no longer indented)"
   (interactive "r")
-  (let ((mini (my/min-indentation beg end)))
-    (my/maplines beg end
-                 (lambda () (my/reduce-indentation mini)))))
+  (let ((mini (my-min-indentation beg end)))
+    (my-maplines beg end
+                 (lambda () (my-reduce-indentation mini)))))
 
-(defun my/min-indentation (beg end)
+(defun my-min-indentation (beg end)
   "Return the minimum indentation among the lines delimited by BEG and END.
 Ignores blank lines."
   (let ((result 1000))
-    (my/maplines
+    (my-maplines
      beg end
      (lambda ()
        (unless (looking-at "^[[:blank:]]*$")
          (setq result (min result (current-indentation))))))
     result))
 
-(defun my/reduce-indentation (amount)
+(defun my-reduce-indentation (amount)
   "Reduce the indentation of the current line by AMOUNT.
 Assumes that point is at the beginning of the line."
   (let ((start (point)))
     (skip-chars-forward "[[:blank:]]" (+ start amount))
     (delete-region start (point))))
 
-(defun my/maplines (beg end fun)
+(defun my-maplines (beg end fun)
   (unless (= (point-min) (point-max))
     (save-excursion
       (setq end (copy-marker end))
@@ -77,7 +77,7 @@ Assumes that point is at the beginning of the line."
     (- (progn (end-of-line) (point))
        (progn (beginning-of-line) (point)))))
 
-(defun my/count-preceding-empty-lines ()
+(defun my-count-preceding-empty-lines ()
   (save-excursion
     (let ((empty-lines 0))
       (beginning-of-line 0)

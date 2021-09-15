@@ -16,18 +16,18 @@
 ;; ----------------------------------------
 ;; makes it easier to define keys
 
-(defsubst my/mode-hook-name (mode)
+(defsubst my-mode-hook-name (mode)
   "Construct a mode-hook name based on a MODE name."
   (intern (concat (symbol-name mode) "-hook")))
 
-(defsubst my/mode-map-name (mode)
+(defsubst my-mode-map-name (mode)
   "Construct a map name based on a MODE name."
   (intern (concat (symbol-name mode) "-map")))
 
-(defun my/define-key (mode key command)
+(defun my-define-key (mode key command)
   "Adds to the hook of MODE a function which binds in MODE's map KEY to COMMAND."
-  (let ((map (symbol-value (my/mode-map-name mode)))
-        (hook (my/mode-hook-name mode)))
+  (let ((map (symbol-value (my-mode-map-name mode)))
+        (hook (my-mode-hook-name mode)))
     (add-hook
      hook
      `(lambda ()
@@ -145,7 +145,7 @@
 
 ;; ----------------------------------------
 ;; Miscellaneous commands
-(defun my/all-defuns (&optional buffer)
+(defun my-all-defuns (&optional buffer)
   "Returns all in the current buffer symbols which are defined in a defun"
   (setq buffer (if buffer (get-buffer buffer) (current-buffer)))
   (save-excursion
@@ -159,44 +159,44 @@
         (end-of-file))
       symbols)))
 
-(defun my/print-defuns (&optional buffer)
+(defun my-print-defuns (&optional buffer)
   (setq buffer (if buffer (get-buffer buffer) (current-buffer)))
   (with-output-to-temp-buffer "defuns"
-    (dolist (sym (my/all-defuns buffer))
+    (dolist (sym (my-all-defuns buffer))
       (princ (format "%s\n" sym)))))
 
 ;; ----------------------------------------
 
-(defun my/books ()
+(defun my-books ()
   (interactive)
   (find-file "~/Downloads/books"))
 
 (add-hook
  'dired-mode-hook
  (lambda ()
-   (define-key dired-mode-map "\C-cx" 'my/dired-xdg-open)))
+   (define-key dired-mode-map "\C-cx" 'my-dired-xdg-open)))
 
-(defun my/dired-xdg-open ()
+(defun my-dired-xdg-open ()
   (interactive)
   (call-process "/usr/bin/xdg-open" nil 0 nil
                 (dired-get-filename)))
 
 ;; ----------------------------------------
 
-(defun my/white-noise ()
+(defun my-white-noise ()
   (interactive)
   (start-process "white-noise" nil "xdg-open"
                  "/home/alex/Downloads/white-noise.mp3"))
 
 ;; ----------------------------------------
 
-(defun my/pomo ()
+(defun my-pomo ()
   (interactive)
   (call-process "gnome-pomodoro" nil 0))
 
 ;; ----------------------------------------
 
-(defun my/firefox ()
+(defun my-firefox ()
   (interactive)
   (start-process "firefox" nil "/usr/bin/firefox"))
 (put 'dired-find-alternate-file 'disabled nil)
@@ -218,7 +218,7 @@
 (setq dired-listing-switches "-agho --group-directories-first")
 
 ;; ----------------------------------------
-(defun my/narrow-indentation ()
+(defun my-narrow-indentation ()
   (interactive)
   (beginning-of-line)
   (let ((beginning (point))
@@ -231,10 +231,10 @@
     (narrow-to-region beginning (point))
     (goto-char beginning)))
 
-(global-set-key (kbd "C-x n i") 'my/narrow-indentation)
+(global-set-key (kbd "C-x n i") 'my-narrow-indentation)
 
 ;; ----------------------------------------
-(defun my/Info-save-heading ()
+(defun my-Info-save-heading ()
   "Saves the title of the current node into the kill ring."
   (interactive)
   (kill-new Info-current-node))
@@ -243,11 +243,11 @@
           (lambda ()
             (define-key Info-mode-map
               (kbd "C-c t")
-              'my/Info-save-heading)))
+              'my-Info-save-heading)))
 
 ;; ----------------------------------------
 
-(defun my/forward-line-no-indentation (&optional arg)
+(defun my-forward-line-no-indentation (&optional arg)
   "Move to the next line having no indentation. Skip empty lines"
   (interactive "p")
   (let ((direction (if (< arg 0) -1 1))
@@ -261,27 +261,27 @@
                (setq arg 0) nil)))))
 
 (with-eval-after-load "apropos"
-  (my/define-key 'apropos-mode "n" 'my/forward-line-no-indentation)
-  (my/define-key 'apropos-mode "p"
-                 (lambda () (interactive) (my/forward-line-no-indentation -1))))
+  (my-define-key 'apropos-mode "n" 'my-forward-line-no-indentation)
+  (my-define-key 'apropos-mode "p"
+                 (lambda () (interactive) (my-forward-line-no-indentation -1))))
 
 ;; ----------------------------------------
-(defun my/randchoice (list)
+(defun my-randchoice (list)
   (nth (random (length list)) list))
 
 ;; ----------------------------------------
 (global-set-key "\C-xf" 'find-library)
 
 ;; ----------------------------------------
-(defun my/dired-store-filename-in-kill-ring ()
+(defun my-dired-store-filename-in-kill-ring ()
   (interactive)
   (kill-new (dired-get-filename)))
 
 (with-eval-after-load 'dired
   (define-key dired-mode-map "\C-ck"
-    'my/dired-store-filename-in-kill-ring))
+    'my-dired-store-filename-in-kill-ring))
 
-(defun my/org-dired-store-link-xdg-open ()
+(defun my-org-dired-store-link-xdg-open ()
   "Stores a link which when invoked will run xdg-open on the file at point."
   (interactive)
   (let* ((file (dired-get-filename))
@@ -305,7 +305,7 @@
       link)))
 
 ;; ----------------------------------------
-(defun my/inc-region (arg start end)
+(defun my-inc-region (arg start end)
   (interactive "p\nr")
   (save-excursion
     (save-restriction
@@ -317,14 +317,14 @@
 
 ;; ----------------------------------------
 ;; Emacs sentences begin with two blanks, but mine begin with only one
-(defun my/mark-sentence ()
+(defun my-mark-sentence ()
   (interactive)
   (unless (region-active-p)
     (push-mark)
     (activate-mark))
   (re-search-forward "[.!?,;]"))
 
-(define-key global-map (kbd "M-e") 'my/mark-sentence)
+(define-key global-map (kbd "M-e") 'my-mark-sentence)
 ;; ----------------------------------------
 ;; unfill-region binding
 (global-set-key (kbd "C-c u") 'unfill-region)
@@ -336,15 +336,15 @@
 (global-set-key (kbd "C-x C-q") 'view-mode)
 
 ;; ----------------------------------------
-(defun my/dired-kill-dot-files ()
+(defun my-dired-kill-dot-files ()
   (interactive)
   (dired-mark-files-regexp "^\\.")
   (dired-do-kill-lines))
 
 (with-eval-after-load 'dired
-  (define-key dired-mode-map "\C-cd" 'my/dired-kill-dot-files))
+  (define-key dired-mode-map "\C-cd" 'my-dired-kill-dot-files))
 
-(defun my/dired-goto-marked-file (previous)
+(defun my-dired-goto-marked-file (previous)
   (let (func pos)
     (save-excursion
       (if previous
@@ -360,18 +360,18 @@
     (kbd "C-c C-n")
     (lambda nil
       (interactive)
-      (my/dired-goto-marked-file nil)))
+      (my-dired-goto-marked-file nil)))
   (define-key dired-mode-map
     (kbd "C-c C-p")
     (lambda nil
       (interactive)
-      (my/dired-goto-marked-file t))))
+      (my-dired-goto-marked-file t))))
 
 ----------------------------------------
-(defvar my/global-prefix-map
+(defvar my-global-prefix-map
   (let ((map (make-sparse-keymap)))
-    (define-key map "\C-t" 'my/touch-left)
+    (define-key map "\C-t" 'my-touch-left)
     map)
 "The map containing the bindings of my own commands in the global map")
 
-(define-key global-map "\C-\M-m" my/global-prefix-map)
+(define-key global-map "\C-\M-m" my-global-prefix-map)

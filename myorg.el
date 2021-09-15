@@ -11,29 +11,29 @@
 
 ;; ----------------------------------------
 
-(defun my/isearch-headlines ()
+(defun my-isearch-headlines ()
   (interactive)
-  (let ((isearch-filter-predicate 'my/heading-filter-predicate))
+  (let ((isearch-filter-predicate 'my-heading-filter-predicate))
     (isearch-mode t nil nil t)))
 
-(defun my/heading-filter-predicate (start end)
+(defun my-heading-filter-predicate (start end)
   (save-match-data
     (and (isearch-filter-visible start end) ;; to reveal the invisible
-         (my/same-line start end) (my/on-headline start)
+         (my-same-line start end) (my-on-headline start)
          (progn (message "after: %i" (match-beginning 0)) t))))
 
-(defun my/same-line (pos1 pos2)
+(defun my-same-line (pos1 pos2)
   (save-excursion
     (= (progn (goto-char pos1) (line-beginning-position))
        (progn (goto-char pos2) (line-beginning-position)))))
 
-(defun my/on-headline (pos)
-  (my/same-line pos (save-excursion (org-back-to-heading t) (point))))
+(defun my-on-headline (pos)
+  (my-same-line pos (save-excursion (org-back-to-heading t) (point))))
 
 ;; ----------------------------------------
 ;; widen to parent
 
-(defun my/widen-to-parent ()
+(defun my-widen-to-parent ()
   (interactive)
   (goto-char (point-min)) ;; TODO: How to go to the root node?
   (push-mark)
@@ -42,21 +42,21 @@
   (org-narrow-to-subtree))
 
 (with-eval-after-load 'org
-  (define-key org-mode-map (kbd "C-c w p") 'my/widen-to-parent))
+  (define-key org-mode-map (kbd "C-c w p") 'my-widen-to-parent))
 
 ;; ----------------------------------------
-(defun my/new-entry-today (&optional arg)
+(defun my-new-entry-today (&optional arg)
   "Assumes the top-level headlines are timestamps. Inserts a new child in
 today's entry. If there is no entry for today, creates it."
   (interactive "P")
   (widen)
   (org-overview) ;; startup visibility
-  (my/last-top-heading)
+  (my-last-top-heading)
   ;; move point to the beginning of today's headline;
   ;; if no headline for today, create it
   (let ((today (org-timestamp-from-time (current-time)))
         (headtime (org-timestamp-from-string (nth 4 (org-heading-components)))))
-    (if (not (equal (my/timestamp-ymd today) (my/timestamp-ymd headtime)))
+    (if (not (equal (my-timestamp-ymd today) (my-timestamp-ymd headtime)))
         ;; create a sibling, insert today's time stamp and move to the beginning of the heading
         (progn (org-insert-heading-respect-content)
                (org-insert-time-stamp (current-time) nil 'inactive)
@@ -68,12 +68,12 @@ today's entry. If there is no entry for today, creates it."
   (org-demote)
   (org-show-set-visibility 'canonical))
 
-(defsubst my/last-top-heading ()
+(defsubst my-last-top-heading ()
   "Moves point to the beginning of the last heading at level 1"
   (end-of-buffer)
   (while (org-up-heading-safe)))
 
-(defun my/timestamp-ymd (timestamp)
+(defun my-timestamp-ymd (timestamp)
   "Returns a list (YEAR MONTH DAY) for an org timestamp object"
   (let ((plist (cadr timestamp)))
     (list (plist-get plist :year-start)
@@ -81,10 +81,10 @@ today's entry. If there is no entry for today, creates it."
           (plist-get plist :day-start))))
 
 (with-eval-after-load 'org
-  (define-key org-mode-map (kbd "C-c n") 'my/new-entry-today))
+  (define-key org-mode-map (kbd "C-c n") 'my-new-entry-today))
 
 ;; ----------------------------------------
-(defun my/org-paste-list ()
+(defun my-org-paste-list ()
   (interactive)
   (save-restriction
     (let ((start (point))
@@ -99,34 +99,34 @@ today's entry. If there is no entry for today, creates it."
                (not (eobp)))))))
 
 (with-eval-after-load 'org
-  (define-key org-mode-map "\C-cyl" 'my/org-paste-list))
+  (define-key org-mode-map "\C-cyl" 'my-org-paste-list))
 
 ;; ----------------------------------------
 
-(defun my/wrap-entry ()
+(defun my-wrap-entry ()
   (interactive)
   (org-back-to-heading)
   (forward-line)
-  (insert my/wrap-entry-title "\n")
+  (insert my-wrap-entry-title "\n")
   (forward-line -1)
   (org-insert-heading)
   (org-demote)
   (outline-hide-subtree))
 
-(defvar my/wrap-entry-title
+(defvar my-wrap-entry-title
   "ENTRY_TEXT"
   "The title of the heading which is to wrap the entry of the current heading")
 
 (with-eval-after-load 'org
-  (define-key org-mode-map "\C-ch" 'my/wrap-entry))
+  (define-key org-mode-map "\C-ch" 'my-wrap-entry))
 
 ;; ----------------------------------------
 
-(defun my/paste-random-child ()
+(defun my-paste-random-child ()
   (interactive)
   (org-back-to-heading)
   (let* ((parent-pos (point))
-         (posns (cons parent-pos (my/child-positions)))
+         (posns (cons parent-pos (my-child-positions)))
          (pos (nth (random (length posns)) posns))
          (org-blank-before-new-entry '((heading . nil))))
     (if (= pos parent-pos)
@@ -142,7 +142,7 @@ today's entry. If there is no entry for today, creates it."
     ;; hide subtree
     (outline-hide-subtree)))
 
-(defun my/child-positions (&optional dont-reverse)
+(defun my-child-positions (&optional dont-reverse)
   "Returns a list of the positions of the children of the node at point.
 By position it is meant the position of the beginning of the heading of the
 node. If the order of the list is not important, setting DONT-REVERSE to t will
@@ -157,11 +157,11 @@ result in faster runtime."
       (unless dont-reverse (reverse list-of-posns)))))
 
 (with-eval-after-load 'org
-  (define-key org-mode-map "\C-cyr" 'my/paste-random-child))
+  (define-key org-mode-map "\C-cyr" 'my-paste-random-child))
 
 ;; ----------------------------------------
 
-(defun my/org-insert-merged-files (files)
+(defun my-org-insert-merged-files (files)
   "Merge the org files FILES and insert into the current buffer.
 To each file in FILES, there will be a top-level entry in the buffer whose
 heading will be the name of the file. For each top-level entry, the body text
@@ -182,7 +182,7 @@ entries from the file."
         (append-to-buffer buffer (point-min) (point-max))
         (erase-buffer)))))
 
-(defun my/dired-files-list ()
+(defun my-dired-files-list ()
   "Returns a list of the absolute file names shown in the Dired buffer."
   (let ((list nil))
     (dired-map-dired-file-lines
@@ -190,21 +190,21 @@ entries from the file."
     (reverse list)))
 
 ;; ----------------------------------------
-(defun my/org-narrow-random-top-entry ()
+(defun my-org-narrow-random-top-entry ()
   (interactive)
   (widen)
-  (my/random-entry)
-  (my/org-goto-root)
+  (my-random-entry)
+  (my-org-goto-root)
   (org-narrow-to-subtree)
   (outline-hide-sublevels 2))
 
-(defun my/org-goto-root ()
+(defun my-org-goto-root ()
   "Moves to the root of the current subtree"
   (interactive)
   (while (org-up-heading-safe)))
 
 (with-eval-after-load 'org
-  (define-key org-mode-map "\C-crt" 'my/org-narrow-random-top-entry))
+  (define-key org-mode-map "\C-crt" 'my-org-narrow-random-top-entry))
 
 
 
@@ -232,7 +232,7 @@ entries from the file."
         (type "|" "SOURCE" "LIST" "ANSWER" "CONCEPT" "HEAP" "DECISION" "DECL"
               "FACT" "EXAMPLES" "HEAP" "TEMP")
         (type "QUESTION(q)" "|" "ANSWERED")
-        (type "PROBLEM(p)" "|" "SOLVED" "SOLUTION")
+        (type "PROBLEM(p)" "|" "SOLVED" "SOLUTION" "PROBLEM_DEFERRED")
         (type "EXPLORE" "EXPERIMENT" "ACTION" "HOOK" "LATER" "HEAP" "DECISION"
               "IDEA" "READ" "|")))
 
@@ -249,7 +249,7 @@ entries from the file."
 (setq org-adapt-indentation nil)
 
 ;; to randomize entries
-(defun my/randomize-entries ()
+(defun my-randomize-entries ()
   (interactive)
   (org-sort-entries nil ?f (lambda (&rest args) (random)))
   (org-cycle))
@@ -297,7 +297,7 @@ entries from the file."
   (define-key org-mode-map (kbd "C-c c x")
     (lambda () (interactive) (org-capture nil "x"))))
 
-(defun my/set-extract-target ()
+(defun my-set-extract-target ()
   (interactive)
   (let ((new-target (list 'file+headline
                           (or (buffer-file-name)
@@ -317,7 +317,7 @@ entries from the file."
 ;;----------------------------------------
 ;; yanking from special sources
 
-(defun my/yank-from-pdf ()
+(defun my-yank-from-pdf ()
   (yank)
   (save-excursion
     (let ((end (region-end)))
@@ -326,12 +326,12 @@ entries from the file."
         (replace-match ""))))
   (unfill-region (region-beginning) (region-end)))
 
-(defun my/yank-from-info ()
+(defun my-yank-from-info ()
   (yank)
-  (my/strip-region (region-beginning) (region-end))
+  (my-strip-region (region-beginning) (region-end))
   (unfill-region (region-beginning) (region-end)))
 
-(defun my/strip-region (start end)
+(defun my-strip-region (start end)
   "For each line in the region, strips beginning whitespace."
   (save-excursion
     (save-restriction
@@ -347,45 +347,45 @@ entries from the file."
           (delete-region delete-start delete-end)
           (forward-line))))))
 
-(setq my/cloze-regexp "{{c[[:digit:]]*::\\(.*?\\)\\(?:::\\(.*?\\)\\)?}}")
-(defun my/strip-cloze ()
+(setq my-cloze-regexp "{{c[[:digit:]]*::\\(.*?\\)\\(?:::\\(.*?\\)\\)?}}")
+(defun my-strip-cloze ()
   (interactive)
   (let (beginning end)
     (yank)
     ;; region beginning is before the yanked text
     (setq beginning (region-beginning) end (region-end))
     (goto-char beginning)
-    (while (re-search-forward my/cloze-regexp end nil)
+    (while (re-search-forward my-cloze-regexp end nil)
       (replace-match (match-string 1)))
     (goto-char end)))
 
-(defun my/yank ()
+(defun my-yank ()
   (interactive)
-  (funcall my/yank-function))
+  (funcall my-yank-function))
 
-(defun my/yank-kill ()
+(defun my-yank-kill ()
   "This is useful to process text and then paste it somewhere else, (e.g. Anki)"
   (interactive)
-  (my/yank)
+  (my-yank)
   (kill-region (region-beginning) (region-end)))
 
-(setq my/yank-function 'my/yank-from-pdf)
+(setq my-yank-function 'my-yank-from-pdf)
 (with-eval-after-load 'org
-  (define-key org-mode-map "\C-\M-y" 'my/yank)
-  (define-key org-mode-map "\C-\M-g" 'my/yank-kill))
+  (define-key org-mode-map "\C-\M-y" 'my-yank)
+  (define-key org-mode-map "\C-\M-g" 'my-yank-kill))
 
 ;; random entry
-(defun my/random-entry ()
+(defun my-random-entry ()
   (interactive)
-  (my/random-point)
+  (my-random-point)
   (org-back-to-heading))
 
-(defun my/random-line ()
+(defun my-random-line ()
   (interactive)
-  (my/random-point)
+  (my-random-point)
   (beginning-of-line))
 
-(defun my/random-point ()
+(defun my-random-point ()
   (interactive)
   (goto-char (+ (point-min)
                 (1+ (random (1+ (- (point-max) (point-min))))))))
@@ -398,7 +398,7 @@ entries from the file."
 
 (setq org-id-link-to-org-use-id t)
 
-(defun my/org-refile-link ()
+(defun my-org-refile-link ()
   "Creates a link to the current entry and refiles it."
   (interactive)
   (save-excursion
@@ -409,20 +409,20 @@ entries from the file."
       (insert link)
       (org-refile))))
 
-(defun my/org-kill-link ()
+(defun my-org-kill-link ()
   (interactive)
   (save-excursion
     (org-back-to-heading t)
     (kill-new (org-store-link 1))))
 
-(defvar my/org-link-prefix-map
+(defvar my-org-link-prefix-map
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "C-i") 'org-insert-link)
     (define-key map (kbd "C-s") 'org-store-link)
     (define-key map (kbd "C-n") 'org-next-link)
     (define-key map (kbd "C-p") 'org-previous-link)
-    (define-key map (kbd "C-r") 'my/org-refile-link)
-    (define-key map (kbd "C-k") 'my/org-kill-link)
+    (define-key map (kbd "C-r") 'my-org-refile-link)
+    (define-key map (kbd "C-k") 'my-org-kill-link)
     map))
 
 ;;; link bindings
@@ -430,11 +430,11 @@ entries from the file."
 (with-eval-after-load 'org
   ;; first make sure C-c C-l is not bound so that it can serve as a prefix
   (define-key org-mode-map (kbd "C-c C-l") nil)
-  (define-key org-mode-map (kbd "C-c C-l") my/org-link-prefix-map))
+  (define-key org-mode-map (kbd "C-c C-l") my-org-link-prefix-map))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defun my/org-codify-region (start end)
+(defun my-org-codify-region (start end)
   (interactive "r")
   (if (region-active-p)
       (progn (goto-char start) (insert "~")
@@ -442,9 +442,9 @@ entries from the file."
     (insert "~~") (backward-char)))
 
 (with-eval-after-load 'org
-  (define-key org-mode-map (kbd "C-M-c") 'my/org-codify-region))
+  (define-key org-mode-map (kbd "C-M-c") 'my-org-codify-region))
 
-(defun my/org-code (start end)
+(defun my-org-code (start end)
   (interactive "r")
   (if (not (region-active-p))
       (save-excursion
@@ -452,16 +452,16 @@ entries from the file."
     (org-babel-demarcate-block)))
 
 (with-eval-after-load
-    (define-key org-mode-map (kbd "C-c b s") 'my/org-code))
+    (define-key org-mode-map (kbd "C-c b s") 'my-org-code))
 
-(defun my/org-paste-subtree-advice (&rest function args)
+(defun my-org-paste-subtree-advice (&rest function args)
   "I don't like that the function sometimes inserts blank lines after it pastes
 the subtree. This advice remembers the number of blank lines before the paste,
 and if the `org-paste-subtree' inserted extra, they are deleted."
-  (let ((empty-lines-before (my/count-preceding-empty-lines))
+  (let ((empty-lines-before (my-count-preceding-empty-lines))
         empty-lines-after diff)
     (apply (car function) args)
-    (setq empty-lines-after (my/count-preceding-empty-lines)
+    (setq empty-lines-after (my-count-preceding-empty-lines)
           diff (- empty-lines-after empty-lines-before))
     (unless (= diff 0)
       (backward-char diff)

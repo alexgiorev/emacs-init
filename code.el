@@ -1,5 +1,5 @@
 ;; useful for copying functions into Anki
-(defun my/kill-code-for-anki (beg end)
+(defun my-kill-code-for-anki (beg end)
   "This addresses the problem of indented functions coming out funny in Anki's
 code generation tool"
   (interactive "r")
@@ -9,9 +9,9 @@ code generation tool"
           indent)
       (with-temp-buffer
         (insert func)
-        (my/touch-left (point-min) (point-max))
+        (my-touch-left (point-min) (point-max))
         (kill-region (point-min) (point-max))))))
 
 (with-eval-after-load 'prog-mode
   (define-key prog-mode-map
-    (kbd "C-c M-w") 'my/kill-code-for-anki))
+    (kbd "C-c M-w") 'my-kill-code-for-anki))
