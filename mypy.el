@@ -17,3 +17,14 @@
   (define-key python-mode-map (kbd "M-}") 'python-nav-forward-block)
   (define-key python-mode-map (kbd "M-h") 'python-mark-defun))
 
+;; ----------------------------------------
+(defun my-rename-python-init ()
+  (interactive)
+  (let* ((dirname (car (last (split-string (buffer-file-name) "/") 2)))
+         (new-buffer-name (concat dirname "__init__.py")))
+    (rename-buffer new-buffer-name :unique)))
+
+(add-hook 'python-mode-hook
+          (lambda ()
+            (if (string-match "^__init__\\.py" (buffer-name))
+                (my-rename-python-init))))
