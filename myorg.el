@@ -466,3 +466,5 @@ and if the `org-paste-subtree' inserted extra, they are deleted."
     (unless (= diff 0)
       (backward-char diff)
       (delete-char diff))))
+
+(advice-add 'org-paste-subtree :around 'my-org-paste-subtree-advice)
