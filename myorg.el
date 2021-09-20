@@ -135,9 +135,7 @@ today's entry. If there is no entry for today, creates it."
       (goto-char pos)
       (org-insert-heading))
     (if (org-kill-is-subtree-p)
-        (progn (org-paste-subtree)
-               ;; remove blank line inserted by (org-paste-subtree)
-               (delete-backward-char 1))
+        (org-paste-subtree)
       (yank) (org-back-to-heading))
     ;; hide subtree
     (outline-hide-subtree)))
@@ -227,14 +225,13 @@ entries from the file."
 ;; attention as well.
 (setq org-todo-keywords
       '((sequence "TODO" "|" "DONE")
-        (sequence "PROCESS" "|" "TEMPDONE" "DONE")
+        (sequence "PROCESS" "|" "TEMPDONE" "PROCESSED")
         (sequence "NEW" "|")
-        (type "|" "SOURCE" "LIST" "ANSWER" "CONCEPT" "HEAP" "DECISION" "DECL"
-              "FACT" "EXAMPLES" "HEAP" "TEMP")
-        (type "QUESTION(q)" "|" "ANSWERED")
-        (type "PROBLEM(p)" "|" "SOLVED" "SOLUTION" "PROBLEM_DEFERRED")
-        (type "EXPLORE" "EXPERIMENT" "ACTION" "HOOK" "LATER" "HEAP" "DECISION"
-              "IDEA" "READ" "|")))
+        (type "|" "LIST" "HEAP")
+        (type "|" "DECL" "DECISION" "FACT" "CONCEPT" "SOURCE" "EXAMPLES" "TEMP")
+        (type "QUESTION(q)" "|" "ANSWERED" "ANSWER(a)")
+        (type "PROBLEM(p)" "|" "SOLVED(s)" "SOLUTION" "PROBLEM_DEFERRED")
+        (type "EXPLORE" "EXPERIMENT" "ACTION" "HOOK" "LATER" "IDEA(i)" "READ(r)" "|")))
 
 ;; so that level 2 entries are also considered when refiling
 (setq org-refile-targets
