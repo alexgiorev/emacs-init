@@ -47,28 +47,30 @@
 ;; ----------------------------------------
 (defun my-new-entry-today (&optional arg)
   "Assumes the top-level headlines are timestamps. Inserts a new child in
-today's entry. If there is no entry for today, creates it."
+today's entry. If there is no entry for today, creates it. When called with ARG,
+add a backlink as a BACKLINK property."
   (interactive "P")
-  (widen)
-  (org-overview) ;; startup visibility
-  (my-last-top-heading)
-  ;; move point to the beginning of today's headline;
-  ;; if no headline for today, create it
-  (let ((today (org-timestamp-from-time (current-time)))
-        (headtime (org-timestamp-from-string (nth 4 (org-heading-components)))))
+  (let (today headtime backlink)
+    (widen)
+    (org-back-to-heading t)
+    (if arg (setq backlink (org-store-link 1)))
+    (org-overview) ;; startup visibility
+    (my-goto-last-top-heading)
+    (setq today (org-timestamp-from-time (current-time))
+          headtime (org-timestamp-from-string
+                    (org-get-heading :no-tags :no-todo :no-priority)))
     (if (not (equal (my-timestamp-ymd today) (my-timestamp-ymd headtime)))
-        ;; create a sibling, insert today's time stamp and move to the beginning of the heading
         (progn (org-insert-heading-respect-content)
                (org-insert-time-stamp (current-time) nil 'inactive)
-               (beginning-of-line))))
-  ;; point is at the beginning of the today's headline
-  (org-show-children)
-  (funcall (if arg 'org-insert-todo-heading-respect-content
-             'org-insert-heading-respect-content))
-  (org-demote)
-  (org-show-set-visibility 'canonical))
+               (beginning-of-line)))
+    ;; point is at the beginning of the today's headline
+    (org-show-children)
+    (progn
+      (org-insert-heading-respect-content) (org-demote)
+      (org-show-set-visibility 'canonical))
+    (if arg (org-entry-put (point) "BACKLINK" backlink))))
 
-(defsubst my-last-top-heading ()
+(defsubst my-goto-last-top-heading ()
   "Moves point to the beginning of the last heading at level 1"
   (end-of-buffer)
   (while (org-up-heading-safe)))
