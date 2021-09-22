@@ -367,7 +367,7 @@
       (interactive)
       (my-dired-goto-marked-file t))))
 
-----------------------------------------
+;; ----------------------------------------
 (defvar my-global-prefix-map
   (let ((map (make-sparse-keymap)))
     (define-key map "\C-t" 'my-touch-left)
@@ -375,3 +375,17 @@
 "The map containing the bindings of my own commands in the global map")
 
 (define-key global-map "\C-\M-m" my-global-prefix-map)
+
+;; ----------------------------------------
+(defun my-get-defun-name ()
+  "Puts in the kill ring the name of the current defun. Useful when taking notes
+about the function."
+  (interactive)
+  (save-excursion
+    (beginning-of-defun)
+    (let ((defun-form (read (current-buffer))))
+      (kill-new (symbol-name (cadr defun-form))))))
+
+(with-eval-after-load 'elisp-mode
+  (define-key emacs-lisp-mode-map (kbd "C-c C-t") 'my-get-defun-name)
+  (define-key lisp-interaction-mode-map (kbd "C-c C-t") 'my-get-defun-name))
