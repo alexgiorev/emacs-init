@@ -32,6 +32,8 @@
 (load "~/.emacs.d/mypy")
 ;; miscellaneous functions
 (load "~/.emacs.d/misc")
+;; functions I don't want to share
+(load "~/.emacs.d/private")
 
 (custom-set-variables
  ;; custom-set-variables was added by Custom.
