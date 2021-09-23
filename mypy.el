@@ -37,5 +37,18 @@
     (looking-at "[ \t]*\\(.*\\):")
     (kill-new (match-string-no-properties 1))))
 
+(defun my-python-get-func-name ()
+  "Insert into the kill ring the name of the function at point"
+  (interactive)
+  (save-excursion
+    (beginning-of-defun)
+    (let ((case-fold-search t))
+      (looking-at "[ \t]*def[ \t]+\\([0-9a-z_]+\\)"))
+    (kill-new (match-string-no-properties 1))))
+
 (with-eval-after-load 'python-mode
-  (define-key python-mode-map (kbd "C-c t") 'my-python-get-func-signature))
+  (define-key python-mode-map (kbd "C-c t")
+    (lambda (&optional arg)
+      (interactive "P")
+      (funcall (if arg 'my-python-get-func-name
+                 'my-python-get-func-signature)))))
