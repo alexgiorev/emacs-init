@@ -28,3 +28,14 @@
           (lambda ()
             (if (string-match "^__init__\\.py" (buffer-name))
                 (my-rename-python-init))))
+
+(defun my-python-get-func-signature ()
+  "Insert into the kill ring the signature of the function at point"
+  (interactive)
+  (save-excursion
+    (beginning-of-defun)
+    (looking-at "[ \t]*\\(.*\\):")
+    (kill-new (match-string-no-properties 1))))
+
+(with-eval-after-load 'python-mode
+  (define-key python-mode-map (kbd "C-c t") 'my-python-get-func-signature))
