@@ -52,7 +52,6 @@ add a backlink as a BACKLINK property."
   (interactive "P")
   (let (today headtime backlink)
     (widen)
-    (org-back-to-heading t)
     (if arg (setq backlink (org-store-link 1)))
     (org-overview) ;; startup visibility
     (my-goto-last-top-heading)
@@ -68,7 +67,7 @@ add a backlink as a BACKLINK property."
     (progn
       (org-insert-heading-respect-content) (org-demote)
       (org-show-set-visibility 'canonical))
-    (if arg (org-entry-put (point) "BACKLINK" backlink))))
+    (if backlink (org-entry-put (point) "BACKLINK" backlink))))
 
 (defsubst my-goto-last-top-heading ()
   "Moves point to the beginning of the last heading at level 1"
@@ -230,7 +229,7 @@ entries from the file."
         (sequence "PROCESS" "|" "TEMPDONE" "PROCESSED")
         (sequence "NEW" "|")
         (type "|" "LIST" "HEAP")
-        (type "|" "DECL" "DECISION" "FACT" "CONCEPT" "SOURCE" "EXAMPLES" "TEMP")
+        (type "|" "DECL(e)" "DECISION" "FACT" "CONCEPT(c)" "SOURCE" "EXAMPLES" "TEMP")
         (type "QUESTION(q)" "|" "ANSWERED" "ANSWER(a)")
         (type "PROBLEM(p)" "|" "SOLVED(s)" "SOLUTION" "PROBLEM_DEFERRED")
         (type "EXPLORE" "EXPERIMENT" "ACTION" "HOOK" "LATER" "IDEA(i)" "READ(r)" "|")))
