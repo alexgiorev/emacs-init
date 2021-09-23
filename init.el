@@ -24,15 +24,6 @@
   "Construct a map name based on a MODE name."
   (intern (concat (symbol-name mode) "-map")))
 
-(defun my-define-key (mode key command)
-  "Adds to the hook of MODE a function which binds in MODE's map KEY to COMMAND."
-  (let ((map (symbol-value (my-mode-map-name mode)))
-        (hook (my-mode-hook-name mode)))
-    (add-hook
-     hook
-     `(lambda ()
-        (define-key (quote ,map) (quote ,key) (quote ,command))))))
-
 ;; org-mode configuration
 (load "~/.emacs.d/myorg")
 ;; programming configuration
@@ -261,9 +252,9 @@
                (setq arg 0) nil)))))
 
 (with-eval-after-load "apropos"
-  (my-define-key 'apropos-mode "n" 'my-forward-line-no-indentation)
-  (my-define-key 'apropos-mode "p"
-                 (lambda () (interactive) (my-forward-line-no-indentation -1))))
+  (define-key apropos-mode-map "n" 'my-forward-line-no-indentation)
+  (define-key apropos-mode-map "p"
+    (lambda nil (interactive) (my-forward-line-no-indentation -1))))
 
 ;; ----------------------------------------
 (defun my-randchoice (list)
