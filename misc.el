@@ -25,14 +25,11 @@ randomly"
     result))
 
 (defun my-touch-left (beg end)
-  "Shifts lines in [BEG, END] to the left until a line, any line, touches the
-left margin (i.e. it is no longer indented)"
   (interactive "r")
   (let ((mini (my-min-indentation beg end)))
-    (my-maplines beg end
-                 (lambda () (my-reduce-indentation mini)))))
+    (indent-rigidly beg end (- mini))))
 
-(defun my-min-indentation (beg end)
+(defsubst my-min-indentation (beg end)
   "Return the minimum indentation among the lines delimited by BEG and END.
 Ignores blank lines."
   (let ((result 1000))

@@ -1,17 +1,16 @@
 ;; useful for copying functions into Anki
-(defun my-kill-code-for-anki (beg end)
-  "This addresses the problem of indented functions coming out funny in Anki's
-code generation tool"
+(defun my-kill-code-remove-indent (beg end)
   (interactive "r")
   (save-excursion
     (goto-char beg) (beginning-of-line) (setq beg (point))  
-    (let ((func (buffer-substring beg end))
-          indent)
+    (let ((code (buffer-substring beg end)))
       (with-temp-buffer
-        (insert func)
+        (insert code)
+        (untabify (point-min) (point-max))
         (my-touch-left (point-min) (point-max))
-        (kill-region (point-min) (point-max))))))
+        (kill-region (point-min) (point-max)))
+      (deactivate-mark))))
 
 (with-eval-after-load 'prog-mode
   (define-key prog-mode-map
-    (kbd "C-c M-w") 'my-kill-code-for-anki))
+    (kbd "C-c M-w") 'my-kill-code-remove-indent))
