@@ -526,3 +526,11 @@ subtree of the entry."
                      (outline-next-heading))))))
         (with-current-buffer temp-buffer
           (buffer-string)))))
+
+(defun my-org-has-TODO-descendant (kwd)
+  "Returns t when a descendant of the current subtree has a todo keyword KWD"
+  (save-excursion
+    (org-back-to-heading t)
+    (let ((regexp (format org-heading-keyword-regexp-format kwd))
+          (end (save-excursion (org-end-of-subtree t t) (point))))
+      (not (null (re-search-forward regexp end t))))))
