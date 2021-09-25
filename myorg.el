@@ -123,7 +123,16 @@ add a backlink as a BACKLINK property."
 
 ;; ----------------------------------------
 
-(defun my-paste-random-child ()
+(defun my-org-paste-random-child ()
+  (interactive)
+  (my-org-insert-random-child)
+  (if (org-kill-is-subtree-p)
+      (org-paste-subtree)
+    (yank) (org-back-to-heading))
+  ;; hide subtree
+  (outline-hide-subtree))
+
+(defun my-org-insert-random-child ()
   (interactive)
   (org-back-to-heading)
   (let* ((parent-pos (point))
@@ -134,14 +143,9 @@ add a backlink as a BACKLINK property."
         (progn (org-insert-heading-respect-content)
                (org-demote))
       (goto-char pos)
-      (org-insert-heading))
-    (if (org-kill-is-subtree-p)
-        (org-paste-subtree)
-      (yank) (org-back-to-heading))
-    ;; hide subtree
-    (outline-hide-subtree)))
+      (org-insert-heading))))
 
-(defun my-child-positions (&optional dont-reverse)
+(defun my-org-child-positions (&optional dont-reverse)
   "Returns a list of the positions of the children of the node at point.
 By position it is meant the position of the beginning of the heading of the
 node. If the order of the list is not important, setting DONT-REVERSE to t will
@@ -156,7 +160,7 @@ result in faster runtime."
       (unless dont-reverse (reverse list-of-posns)))))
 
 (with-eval-after-load 'org
-  (define-key org-mode-map "\C-cyr" 'my-paste-random-child))
+  (define-key org-mode-map "\C-cyr" 'my-org-paste-random-child))
 
 ;; ----------------------------------------
 
@@ -320,7 +324,7 @@ entries from the file."
   (save-excursion
     (let ((end (region-end)))
       (goto-char (region-beginning))
-      (while (re-search-forward "[-­]\n" end t)
+      (while (re-search-forward "[-­‐]\n" end t)
         (replace-match ""))))
   (unfill-region (region-beginning) (region-end)))
 
