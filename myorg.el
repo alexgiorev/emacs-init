@@ -470,3 +470,59 @@ and if the `org-paste-subtree' inserted extra, they are deleted."
       (delete-char diff))))
 
 (advice-add 'org-paste-subtree :around 'my-org-paste-subtree-advice)
+
+;; ----------------------------------------
+
+(defun my-org-meta-return-advice (FUN &optional arg)
+  (if (equal arg '(64))
+      (my-org-insert-random-child)
+    (funcall FUN arg)))
+
+(advice-add 'org-meta-return :around 'my-org-meta-return-advice)
+
+;; ----------------------------------------
+
+(defun my-org-set-subtree-level (level)
+  "Promote/demote the subtree at point so that its root has level LEVEL"
+  (save-excursion
+    (org-back-to-heading t)
+    (let* ((tree-level (funcall outline-level))
+           (diff (- level tree-level))
+           ;; READ If the diff is zero, this computation is wasteful
+           (set-level-func (if (> diff 0)
+                               (lambda nil (insert (make-string diff ?*)))
+                             (lambda nil (delete-char (- diff))))))
+      (when (/= diff 0)
+        (org-map-tree set-level-func)))))
+
+(defun my-org-collect-entries (pred)
+  "Collect all entries which pass PRED and return them as a string.
+PRED is a predicate function called at the beginning of each entry in the
+buffer, except that if an entry passes PRED the search continues past the
+subtree of the entry."
+  (let ((buffer (current-buffer))
+        temp-buffer)
+    (with-temp-buffer
+      (setq temp-buffer (current-buffer)) (set-buffer buffer)
+      (save-excursion
+        (beginning-of-buffer)
+        (when (or (org-on-heading-p) (outline-next-heading))
+          (while (progn
+                   (if (save-excursion (funcall pred))
+                       (progn
+                         ;; Move the subtree to the temp buffer and position point
+                         ;; at its end so that the search continues after it.
+                         (let ((subtree
+                                (buffer-substring
+                                 (point)
+                                 (progn (org-end-of-subtree t t) (point)))))
+                           (with-current-buffer temp-buffer
+                             (save-excursion (insert subtree))
+                             (my-org-set-subtree-level 1)
+                             (end-of-buffer)))
+                         ;; only continue the loop if on a heading after the
+                         ;; subtree
+                         (and (not (eobp)) (org-on-heading-p)))
+                     (outline-next-heading))))))
+        (with-current-buffer temp-buffer
+          (buffer-string)))))
