@@ -382,3 +382,32 @@ about the function."
 (with-eval-after-load 'elisp-mode
   (define-key emacs-lisp-mode-map (kbd "C-c C-t") 'my-get-defun-name)
   (define-key lisp-interaction-mode-map (kbd "C-c C-t") 'my-get-defun-name))
+
+;; ----------------------------------------
+
+(defun my-read-buffer (&optional buffer)
+  "Return a list of the top-level forms in the current buffer"
+  (let ((buffer (or buffer (current-buffer)))
+        result)
+    (with-current-buffer buffer
+      (save-excursion
+        (beginning-of-buffer)
+        (condition-case nil
+            (while t
+              (setq result (cons (read buffer) result)))
+          (end-of-file nil))))
+    (reverse result)))
+
+(defun my-collect-symbol-definitions ()
+  "Returns a list of the symbols which are in a top-level definition in the
+current buffer"
+  (seq-filter 'identity
+              (mapcar (lambda (form)
+                        (when (memq (car-safe form) '(defvar defun))
+                          (cadr form)))
+                      (my-read-buffer))))
+
+(defun my-apropos-current-buffer ()
+  (interactive)
+  (require 'apropos)
+  (apropos-symbols-internal (my-collect-symbol-definitions) nil))
