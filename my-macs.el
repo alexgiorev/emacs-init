@@ -87,7 +87,8 @@ Assumes that point is at the beginning of the line."
 
 ;; ----------------------------------------
 (defun my-read-buffer (&optional buffer)
-  "Return a list of the top-level forms in the current buffer"
+  "Return a list of the top-level forms in the current buffer. When omitted or
+nil, use the current buffer."
   (let ((buffer (or buffer (current-buffer)))
         result)
     (with-current-buffer buffer
