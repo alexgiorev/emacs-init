@@ -136,7 +136,7 @@ add a backlink as a BACKLINK property."
   (interactive)
   (org-back-to-heading)
   (let* ((parent-pos (point))
-         (posns (cons parent-pos (my-child-positions)))
+         (posns (cons parent-pos (my-org-child-positions)))
          (pos (nth (random (length posns)) posns))
          (org-blank-before-new-entry '((heading . nil))))
     (if (= pos parent-pos)
@@ -232,10 +232,11 @@ entries from the file."
       '((sequence "TODO" "|" "DONE")
         (sequence "PROCESS" "|" "TEMPDONE" "PROCESSED")
         (sequence "NEW" "|")
+        (type "PASSIVE(s)" "|")
         (type "|" "LIST" "HEAP")
         (type "|" "DECL(e)" "DECISION" "FACT" "CONCEPT(c)" "SOURCE" "EXAMPLES" "TEMP")
         (type "QUESTION(q)" "|" "ANSWERED" "ANSWER(a)")
-        (type "PROBLEM(p)" "|" "SOLVED(s)" "SOLUTION" "PROBLEM_DEFERRED")
+        (type "PROBLEM(p)" "|" "SOLVED" "SOLUTION" "PROBLEM_DEFERRED")
         (type "EXPLORE" "EXPERIMENT" "ACTION" "HOOK" "LATER" "IDEA(i)" "READ(r)" "|")))
 
 ;; so that level 2 entries are also considered when refiling
