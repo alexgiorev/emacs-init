@@ -411,3 +411,6 @@ current buffer"
   (interactive)
   (require 'apropos)
   (apropos-symbols-internal (my-collect-symbol-definitions) nil))
+
+;; ----------------------------------------
+(global-set-key "\C-ha" 'apropos)
