@@ -84,3 +84,23 @@ Assumes that point is at the beginning of the line."
                  (beginning-of-line 0)
                  :continue-loop)))
       empty-lines)))
+
+;; ----------------------------------------
+(defun my-read-buffer (&optional buffer)
+  "Return a list of the top-level forms in the current buffer"
+  (let ((buffer (or buffer (current-buffer)))
+        result)
+    (with-current-buffer buffer
+      (save-excursion
+        (beginning-of-buffer)
+        (ignore-error end-of-file
+          (while t
+            (setq result (cons (read buffer) result))))))
+    (reverse result)))
+
+(defun my-read-file (file)
+  "Read the file at FILE and return the list of top-level forms"
+  (with-temp-buffer
+    (insert-file-contents file)
+    (my-read-buffer)))
+

@@ -385,18 +385,6 @@ about the function."
 
 ;; ----------------------------------------
 
-(defun my-read-buffer (&optional buffer)
-  "Return a list of the top-level forms in the current buffer"
-  (let ((buffer (or buffer (current-buffer)))
-        result)
-    (with-current-buffer buffer
-      (save-excursion
-        (beginning-of-buffer)
-        (condition-case nil
-            (while t
-              (setq result (cons (read buffer) result)))
-          (end-of-file nil))))
-    (reverse result)))
 
 (defun my-collect-symbol-definitions ()
   "Returns a list of the symbols which are in a top-level definition in the
