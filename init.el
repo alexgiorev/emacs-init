@@ -31,7 +31,7 @@
 ;; python-configuration
 (load "~/.emacs.d/mypy")
 ;; miscellaneous functions
-(load "~/.emacs.d/misc")
+(require 'my-macs "~/.emacs.d/my-macs.el")
 ;; functions I don't want to share
 (load "~/.emacs.d/private")
 

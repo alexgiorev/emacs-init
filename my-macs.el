@@ -105,3 +105,4 @@ nil, use the current buffer."
     (insert-file-contents file)
     (my-read-buffer)))
 
+(provide 'my-macs)

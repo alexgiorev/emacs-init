@@ -237,7 +237,7 @@ entries from the file."
         (type "|" "DECISION" "PAST_DECISION")
         (type "|" "DECL(e)" "FACT" "CONCEPT(c)" "SOURCE" "EXAMPLES" "TEMP")
         (type "QUESTION(q)" "|" "ANSWERED" "ANSWER(a)")
-        (type "PROBLEM(p)" "|" "SOLVED" "SOLUTION" "PROBLEM_DEFERRED")
+        (type "PROBLEM(p)" "|" "SOLVED" "SOLUTION(o)" "PROBLEM_DEFERRED")
         (type "EXPLORE" "EXPERIMENT" "ACTION" "HOOK" "LATER" "IDEA(i)" "READ(r)" "|")))
 
 ;; so that level 2 entries are also considered when refiling
