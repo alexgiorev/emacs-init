@@ -58,12 +58,6 @@ the entry having EID as its id."
 ;; ----------------------------------------
 ;; Scheduling
 
-(defun my-sched-schedule nil
-  "Ask the user for a number and schedule the entry at point for that many days
-into the future"
-  (interactive)
-  TODO)
-
 (defun my-sched--get-sched-create (eid)
   "Return the scheduling record for the entry having id EID. If a record under
 that id doesn't exist, create one, attach it to the scheduling data and return
@@ -91,6 +85,57 @@ it. This function does not flush the data."
     (seq-filter
      (lambda (record) (<= (plist-get record :due) today))
      my-sched--data)))
+
+;; ----------------------------------------
+;; commands
+
+(defun my-sched-schedule nil
+  "Ask the user for a number and schedule the entry at point for that many days
+into the future"
+  (interactive)
+  TODO)
+
+(defvar my-sched-ring nil
+  "A ring of entry ids.
+Typically holds the ids of due entries so that the user can read what is due for
+today.")
+
+(defun my-sched-ring-init nil
+  (interactive)
+  (let ((ids (mapcar (lambda (sched) (plist-get sched :id))
+                     (my-sched--due-today))))
+    (when ids
+      (my-circlist-make ids))
+    (setq my-sched-ring ids)))
+
+(defun my-sched-ring--check nil
+  (if (not my-sched-ring)
+      (user-error "Scheduling ring is empty")))
+  
+(defun my-sched-ring-goto-current nil
+  (interactive)
+  (my-sched-ring--check)
+  (org-id-open (car my-sched-ring) nil))
+
+(defun my-sched-ring-goto-next nil
+  (interactive)
+  (my-sched-ring--check)
+  (setq my-sched-ring (cdr my-sched-ring))
+  (my-sched-ring-goto-current))
+
+(defun my-sched-ring-goto-prev nil
+  (interactive)
+  (my-sched-ring--check)
+  (setq my-sched-ring (my-circlist-prev my-sched-ring))
+  (my-sched-ring-goto-current))
+
+(defun my-sched-ring-remove-current nil
+  (interactive)
+  (let ((prev (my-circlist-prev my-sched-ring)))
+    (if (eq prev my-sched-ring)
+        (setq my-sched-ring nil)
+      (setcdr prev (cdr my-sched-ring))
+      (setq my-sched-ring (cdr prev)))))
 
 ;; ----------------------------------------
 ;; initialization
