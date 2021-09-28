@@ -122,10 +122,4 @@ nil, use the current buffer."
         ((= low high) low)
         (t (+ low (random (- high low -1))))))
 
-;; ----------------------------------------
-(defun my-ring-from-list (list)
-  "Creates a ring from LIST. The ring will have the same size and order as LIST"
-  (let ((result (make-ring (length list))))
-    (dolist (x list)
-      (ring-insert result x))
-    result))
+
