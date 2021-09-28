@@ -122,4 +122,15 @@ nil, use the current buffer."
         ((= low high) low)
         (t (+ low (random (- high low -1))))))
 
+;; ----------------------------------------
+;; circular lists
 
+(defun my-circlist-make (list)
+  "Turns LIST into a circular lists"
+  (setcdr (last list) list))
+
+(defun my-circlist-prev (list)
+  (let ((current list))
+    (while (not (eq (cdr current) list))
+      (setq current (cdr current)))
+    current))
