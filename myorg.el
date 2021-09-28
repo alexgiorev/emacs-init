@@ -536,3 +536,10 @@ subtree of the entry."
     (let ((regexp (format org-heading-keyword-regexp-format kwd))
           (end (save-excursion (org-end-of-subtree t t) (point))))
       (not (null (re-search-forward regexp end t))))))
+
+;; ----------------------------------------
+;; opening ID links should visit them in the same buffer
+
+(with-eval-after-load 'org
+  (setcdr (assoc 'file org-link-frame-setup)
+          'find-file))
