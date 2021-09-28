@@ -106,3 +106,8 @@ nil, use the current buffer."
     (my-read-buffer)))
 
 (provide 'my-macs)
+
+;; ----------------------------------------
+
+(defsubst my-int-time nil
+  (time-convert (current-time) 'integer))
