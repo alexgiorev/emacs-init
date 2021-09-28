@@ -111,3 +111,13 @@ nil, use the current buffer."
 
 (defsubst my-int-time nil
   (time-convert (current-time) 'integer))
+
+;; ----------------------------------------
+(defsubst my-randint (low high)
+  "Return a random number from the interval [low high] (i.e. from low to high inclusive)"
+  (cond ((> low high)
+         (error (concat "LOW must be less than or equal to HIGH, "
+                        "but was given %s for LOW and %s for HIGH)")
+                low high))
+        ((= low high) low)
+        (t (+ low (random (- high low -1))))))
