@@ -37,7 +37,8 @@ the entry having EID as its id."
                (prin1 sched (current-buffer)))
       (end-of-buffer)
       (prin1 sched (current-buffer)))
-    (save-buffer)))
+    (save-buffer))
+  (bury-buffer my-sched--data-buffer))
 
 (defun my-sched--load-maybe nil
   "Load scheduling data from the file if they are not already loaded"
