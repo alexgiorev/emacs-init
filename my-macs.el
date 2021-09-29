@@ -134,3 +134,12 @@ nil, use the current buffer."
     (while (not (eq (cdr current) list))
       (setq current (cdr current)))
     current))
+
+;; ----------------------------------------
+(defun my-jump-to-marker (marker)
+  (unless (marker-buffer marker)
+    (error "Cannot jump to a marker whose buffer is nil"))
+  (unless (marker-position marker)
+    (error "Cannot jump to a marker whose position is nil"))
+  (switch-to-buffer (marker-buffer marker))
+  (goto-char marker))
