@@ -137,12 +137,16 @@ nil, use the current buffer."
 
 (defun my-circlist-pop (var)
   "Remove the head of the circluar list stored at VAR and position VAR on the next element."
-  (let* ((clist (symbol-value var))
-         (prev (my-circlist-prev clist)))
+  (let (clist prev value)
+    (unless (setq clist (symbol-value var))
+      (error "Cannot pop from an empty circular list"))
+    (setq prev (my-circlist-prev clist)
+          head (car clist))
     (if (eq prev clist)
         (set var nil)
       (setcdr prev (cdr clist))
-      (set var (cdr prev)))))
+      (set var (cdr prev)))
+    head))
       
 (defun my-circlist-add-after (pair element)
   "Insert ELEMENT after PAIR and return the new cons"
