@@ -135,6 +135,15 @@ nil, use the current buffer."
       (setq current (cdr current)))
     current))
 
+(defun my-circlist-pop (var)
+  "Remove the head of the circluar list stored at VAR and position VAR on the next element."
+  (let* ((clist (symbol-value var))
+         (prev (my-circlist-prev clist)))
+    (if (eq prev clist)
+        (set var nil)
+      (setcdr prev (cdr clist))
+      (set var (cdr prev)))))
+      
 (defun my-circlist-add-after (pair element)
   "Insert ELEMENT after PAIR and return the new cons"
   (let* ((next (cdr pair))
