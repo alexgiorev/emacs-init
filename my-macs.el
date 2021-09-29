@@ -127,7 +127,7 @@ nil, use the current buffer."
 
 (defun my-circlist-make (list)
   "Turns LIST into a circular lists"
-  (setcdr (last list) list))
+  (when list (setcdr (last list) list)))
 
 (defun my-circlist-prev (list)
   (let ((current list))
