@@ -1,6 +1,7 @@
 (require 'org)
 (require 'ol)
 (require 'org-id)
+(require 'my-macs "~/.emacs.d/my-macs")
 
 (define-key global-map "\C-ca" 'org-agenda)
 (setq org-log-done nil)
@@ -197,19 +198,10 @@ entries from the file."
   (interactive)
   (widen)
   (my-random-entry)
-  (my-org-goto-root)
+  ;; goto root
+  (while (org-up-heading-safe))
   (org-narrow-to-subtree)
   (outline-hide-sublevels 2))
-
-(defun my-org-goto-root ()
-  "Moves to the root of the current subtree"
-  (interactive)
-  (while (org-up-heading-safe)))
-
-(with-eval-after-load 'org
-  (define-key org-mode-map "\C-crt" 'my-org-narrow-random-top-entry))
-
-
 
 ;; for the benefit of capture templates
 (setq org-directory "~/notes")
@@ -543,3 +535,80 @@ subtree of the entry."
 (with-eval-after-load 'org
   (setcdr (assoc 'file org-link-frame-setup)
           'find-file))
+
+;; ----------------------------------------
+;; my-org-ring
+
+(defvar my-org-ring nil
+  "A ring of org-mode entry positions which I want to use for myself.
+Many commands use the org-mark-ring, but I want a ring that I am in total control of
+and whose positions are always explictily set.")
+
+(defun my-org-ring-empty nil
+  (interactive)
+  (setq my-org-ring nil))
+
+(defun my-org-ring--check nil
+  (if (not my-org-ring)
+      (user-error "Ring is empty")))
+
+(defun my-org-ring-push nil
+  (interactive)
+  (save-excursion
+    (org-back-to-heading)
+    (let ((marker (point-marker)))
+      (put-text-property (point) (1+ (point)) :my-org-ring-marker marker)
+      (if my-org-ring
+          (setq my-org-ring (my-circlist-add-after my-org-ring marker))
+        (setq my-org-ring (list marker))
+        (my-circlist-make my-org-ring)))))
+
+(defun my-org-ring-jump nil
+  (interactive)
+  (let (jump? marker)
+    (while (and my-org-ring (not jump?))
+      (setq marker (car my-org-ring))
+      (ignore-errors
+        (with-current-buffer (marker-buffer marker)
+          (save-excursion
+            (goto-char marker)
+            (when (eq marker (get-text-property (point) :my-org-ring-marker))
+              (setq jump? t)))))
+      (unless jump?
+        (my-circlist-pop 'my-org-ring)))
+    (if my-org-ring
+        (progn
+          (my-jump-to-marker marker)
+          (when (org-invisible-p)
+            (org-show-set-visibility 'canonical)))
+      (my-org-ring--check))))
+
+(defun my-org-ring-next nil
+  (interactive)
+  (my-org-ring--check)
+  (setq my-org-ring (cdr my-org-ring))
+  (my-org-ring-jump))
+
+(defun my-org-ring-prev nil
+  (interactive)
+  (my-org-ring--check)
+  (setq my-org-ring (my-circlist-prev my-org-ring))
+  (my-org-ring-jump))
+
+(defun my-org-ring-remove nil
+  (interactive)
+  (my-org-ring--check)
+  (my-circlist-pop 'my-org-ring))
+
+(defvar my-org-ring-map)
+(setq my-org-ring-map
+      (let ((map (make-sparse-keymap)))
+        (define-key map "e" 'my-org-ring-empty)
+        (define-key map " " 'my-org-ring-push)
+        (define-key map "p" 'my-org-ring-prev)
+        (define-key map "n" 'my-org-ring-next)
+        (define-key map "j" 'my-org-ring-jump)
+        (define-key map "r" 'my-org-ring-remove)
+        map))
+
+(define-key org-mode-map "\C-cr" my-org-ring-map)
