@@ -135,6 +135,13 @@ nil, use the current buffer."
       (setq current (cdr current)))
     current))
 
+(defun my-circlist-add-after (pair element)
+  "Insert ELEMENT after PAIR and return the new cons"
+  (let* ((next (cdr pair))
+         (new (cons element next)))
+    (setcdr pair new)
+    new))
+
 ;; ----------------------------------------
 (defun my-jump-to-marker (marker)
   (unless (marker-buffer marker)
