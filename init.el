@@ -402,3 +402,6 @@ current buffer"
 
 ;; ----------------------------------------
 (global-set-key "\C-ha" 'apropos)
+
+;; ----------------------------------------
+(global-set-key "\C-x\C-n" nil)
