@@ -612,3 +612,25 @@ and whose positions are always explictily set.")
         map))
 
 (define-key org-mode-map "\C-cr" my-org-ring-map)
+
+;; ----------------------------------------
+
+(defun my-org-restart-preserve-visibility nil
+  "Restart org-mode but don't change visibility"
+  (interactive)
+  (org-with-wide-buffer
+   (let* ((overlay-attrs
+           (mapcar (lambda (overlay)
+                     (let (invisible)
+                       (when (and (setq invisible
+                                        (overlay-get overlay 'invisible))
+                                  (invisible-p invisible))
+                         (cons (cons (overlay-start overlay)
+                                     (overlay-end overlay))
+                               invisible))))
+                     (overlays-in (point-min) (point-max)))))
+     (org-mode-restart)
+     (org-show-all)
+     (dolist (attrs overlay-attrs)
+       (pcase-let ((`((,start . ,end) . ,invisible) attrs))
+         (org-flag-region start end t invisible))))))
