@@ -656,18 +656,15 @@ and whose positions are always explictily set.")
   "Inserts a copy of the linked entry as a sibling of the current one.
  Works only for ID links to org-mode entries."
   (interactive)
-  (let (context link-obj-plist id entry)
-    (unless (setq context (assoc :link (org-context)))
-      (user-error "Point is not on a link"))
-    (save-excursion
-      (goto-char (or (car (cdr context)) (point)))
-      (setq link-obj-plist (car (cdr (org-element-link-parser))))
-      (unless (string= (plist-get link-obj-plist :type) "id")
-        (user-error "Point is not on an \"id\" link"))
-      (setq id (plist-get link-obj-plist :path))
-      (setq entry (my-org-id-get-entry id))
-      (unless entry
-        (user-error (format "No entry having ID %S" id))))
+  (let* ((id-re "id:\\(.*?\\)")
+         (link-re (format "%s\\|\\[\\[%s\\]\\(?:\\[.*?\\]\\)\\]" id-re id-re))
+         context link-obj-plist id entry)
+    (unless (org-in-regexp link-re)
+      (user-error "Point is not on an ID link"))
+    (setq id (or (match-string 1) (match-string 2)))
+    (setq entry (my-org-id-get-entry id))
+    (unless entry
+      (user-error (format "No entry having ID \"%s\"" id))))
     (org-insert-heading-respect-content t)
     (org-paste-subtree nil entry)
     (save-excursion
@@ -676,4 +673,4 @@ and whose positions are always explictily set.")
          (when (setq id (org-entry-get (point) "ID"))
            (org-delete-property "ID")
            (org-entry-put (point) "ORIG_ID" id)))))
-    (org-flag-subtree t) (org-cycle)))
+    (org-flag-subtree t) (org-cycle))
