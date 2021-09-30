@@ -647,3 +647,32 @@ and whose positions are always explictily set.")
          (org-back-to-heading t)
          (buffer-substring-no-properties
           (point) (org-end-of-subtree t t)))))))
+
+;; ----------------------------------------
+;; clones
+
+(defun my-org-clone-linked nil
+  "Inserts a copy of the linked entry as a sibling of the current one.
+ Works only for ID links to org-mode entries."
+  (interactive)
+  (let (context link-obj-plist id entry)
+    (unless (setq context (assoc :link (org-context)))
+      (user-error "Point is not on a link"))
+    (save-excursion
+      (goto-char (or (car (cdr context)) (point)))
+      (setq link-obj-plist (car (cdr (org-element-link-parser))))
+      (unless (string= (plist-get link-obj-plist :type) "id")
+        (user-error "Point is not on an \"id\" link"))
+      (setq id (plist-get link-obj-plist :path))
+      (setq entry (my-org-id-get-entry id))
+      (unless entry
+        (user-error (format "No entry having ID %S" id))))
+    (org-insert-heading-respect-content t)
+    (org-paste-subtree nil entry)
+    (save-excursion
+      (org-map-tree
+       (lambda nil
+         (when (setq id (org-entry-get (point) "ID"))
+           (org-delete-property "ID")
+           (org-entry-put (point) "ORIG_ID" id)))))
+    (org-flag-subtree t) (org-cycle)))
