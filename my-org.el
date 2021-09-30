@@ -2,6 +2,7 @@
 (require 'ol)
 (require 'org-id)
 (require 'my-macs "~/.emacs.d/my-macs")
+(require 'my-sched "~/.emacs.d/my-sched/my-sched")
 
 (define-key global-map "\C-ca" 'org-agenda)
 (setq org-log-done nil)
