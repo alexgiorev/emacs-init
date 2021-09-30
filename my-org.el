@@ -651,40 +651,49 @@ and whose positions are always explictily set.")
           (point) (org-end-of-subtree t t)))))))
 
 ;; ----------------------------------------
-;; clones
+;; * clones
 
-(defun my-org-clone-link nil
-  "Inserts a copy of the linked entry as a sibling of the current one.
- Works only for ID links to org-mode entries."
-  (interactive)
+(defvar my-org-id-link-re
   (let* ((id-re "id:\\(.*?\\)")
-         (link-re (format "%s\\|\\[\\[%s\\]\\(?:\\[.*?\\]\\)\\]" id-re id-re))
-         context link-obj-plist id entry)
-    (unless (org-in-regexp link-re)
-      (error "Point is not on an ID link"))
-    (setq id (or (match-string 1) (match-string 2)))
-    (setq entry (my-org-id-get-entry id))
+         (link-re (format "%s\\|\\[\\[%s\\]\\(?:\\[.*?\\]\\)\\]" id-re id-re)))
+    link-re)
+  "A regexp which matches an ID link to an entry. The actual ID is in group 1 or 2.
+ To get it run (or (match-string 1) (match-string 2))")
+
+(defun my-org-clone-fetch (eid)
+  "Insert as a sibling to the current entry the entry whose ID is EID"
+  (let ((entry (my-org-id-get-entry eid))
+        orig-id)
     (unless entry
-      (error (format "No entry having ID \"%s\"" id))))
+      (error (format "No entry having ID \"%s\"" eid)))
     (org-insert-heading-respect-content t)
     (org-paste-subtree nil entry)
     (save-excursion
       (org-map-tree
        (lambda nil
-         (when (setq id (org-entry-get (point) "ID"))
+         (when (setq orig-id (org-entry-get (point) "ID"))
            (org-delete-property "ID")
-           (org-entry-put (point) "ORIG_ID" id)))))
-    (org-flag-subtree t) (org-cycle))
+           (org-entry-put (point) "ORIG_ID" orig-id)))))
+    (org-flag-subtree t) (org-cycle)))
 
-(defun my-org-clone-fetch nil
+(defsubst my-org-clone-p nil
+  "When the current entry is a CLONE, return the ID of the original. Otherwise, return nil"
+  (save-excursion
+    (org-back-to-heading t)
+    (when (and (string= (org-get-todo-state) "CLONE")
+               (not (null (re-search-forward my-org-id-link-re
+                                             (line-end-position)
+                                             t))))
+      (or (match-string 1) (match-string 2)))))
+
+(defun my-org-clone-pull nil
   "Insert the text of the original entry as a sibling of the current one.
 Point must be on a CLONE entry for this to work."
   (interactive)
-  (unless (string= (org-get-todo-state) "CLONE")
-    (error "Point must be on a CLONE entry"))
-  (my-org-move-to-title)
-  (my-org-clone-linked))
-
+  (let (id)
+    (unless (setq id (my-org-clone-p))
+      (error "Point must be on a CLONE entry"))
+    (my-org-clone-fetch id)))
 
 ;; ----------------------------------------
 ;; * misc
