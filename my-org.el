@@ -227,6 +227,7 @@ entries from the file."
         (sequence "NEW" "|")
         (type "|" "PASSIVE(s)")
         (type "|" "LIST" "HEAP")
+        (type "|" "CLONE")
         (type "|" "DECISION" "PAST_DECISION")
         (type "|" "DECL(e)" "FACT" "CONCEPT(c)" "SOURCE" "EXAMPLES" "TEMP")
         (type "QUESTION(q)" "|" "ANSWERED" "ANSWER(a)")
