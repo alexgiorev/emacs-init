@@ -634,3 +634,16 @@ and whose positions are always explictily set.")
      (dolist (attrs overlay-attrs)
        (pcase-let ((`((,start . ,end) . ,invisible) attrs))
          (org-flag-region start end t invisible))))))
+
+;; ----------------------------------------
+
+(defun my-org-id-get-entry (eid)
+  "Returns as a string the entry having id EID or nil if no such entry"
+  (let ((location (org-id-find eid)))
+    (when location
+      (with-current-buffer (get-file-buffer (car location))
+        (org-with-wide-buffer
+         (goto-char (cdr location))
+         (org-back-to-heading t)
+         (buffer-substring-no-properties
+          (point) (org-end-of-subtree t t)))))))
