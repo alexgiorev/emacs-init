@@ -163,3 +163,12 @@ nil, use the current buffer."
     (error "Cannot jump to a marker whose position is nil"))
   (switch-to-buffer (marker-buffer marker))
   (goto-char marker))
+
+;; ----------------------------------------
+(defsubst my-plist-foreach (func plist)
+  "Call FUNC on each (key,value) pair in PLIST and return nil.
+FUNC should accept two arguments KEY and VALUE"
+  (let ((current plist))
+    (while current
+      (funcall func (car current) (car (setq current  (cdr current))))
+      (setq current (cdr current)))))
