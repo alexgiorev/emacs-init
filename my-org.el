@@ -653,7 +653,7 @@ and whose positions are always explictily set.")
 ;; ----------------------------------------
 ;; clones
 
-(defun my-org-clone-linked nil
+(defun my-org-clone-link nil
   "Inserts a copy of the linked entry as a sibling of the current one.
  Works only for ID links to org-mode entries."
   (interactive)
@@ -661,11 +661,11 @@ and whose positions are always explictily set.")
          (link-re (format "%s\\|\\[\\[%s\\]\\(?:\\[.*?\\]\\)\\]" id-re id-re))
          context link-obj-plist id entry)
     (unless (org-in-regexp link-re)
-      (user-error "Point is not on an ID link"))
+      (error "Point is not on an ID link"))
     (setq id (or (match-string 1) (match-string 2)))
     (setq entry (my-org-id-get-entry id))
     (unless entry
-      (user-error (format "No entry having ID \"%s\"" id))))
+      (error (format "No entry having ID \"%s\"" id))))
     (org-insert-heading-respect-content t)
     (org-paste-subtree nil entry)
     (save-excursion
@@ -675,3 +675,23 @@ and whose positions are always explictily set.")
            (org-delete-property "ID")
            (org-entry-put (point) "ORIG_ID" id)))))
     (org-flag-subtree t) (org-cycle))
+
+(defun my-org-clone-fetch nil
+  "Insert the text of the original entry as a sibling of the current one.
+Point must be on a CLONE entry for this to work."
+  (interactive)
+  (unless (string= (org-get-todo-state) "CLONE")
+    (error "Point must be on a CLONE entry"))
+  (my-org-move-to-title)
+  (my-org-clone-linked))
+
+;; ----------------------------------------
+;; * misc
+
+(defsubst my-org-move-to-title nil
+  "Move to the beginning of the title of the current heading, or just to the
+beginning of the heading when it has no title."
+  (org-back-to-heading t)
+  (looking-at org-complex-heading-regexp)
+  (when (match-string 4) (goto-char (match-beginning 4))))
+  
