@@ -25,11 +25,11 @@
   (intern (concat (symbol-name mode) "-map")))
 
 ;; org-mode configuration
-(load "~/.emacs.d/myorg")
+(load "~/.emacs.d/my-org")
 ;; programming configuration
 (load "~/.emacs.d/code")
 ;; python-configuration
-(load "~/.emacs.d/mypy")
+(load "~/.emacs.d/my-python")
 ;; miscellaneous functions
 (require 'my-macs "~/.emacs.d/my-macs.el")
 ;; functions I don't want to share
