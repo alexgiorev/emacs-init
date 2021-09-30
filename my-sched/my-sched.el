@@ -134,7 +134,7 @@ today.")
         (setq my-sched-ring (my-circlist-make ids))
       (setq my-sched-ring nil)))
   (when (called-interactively-p 'interactive)
-    (message "Ring reset")))
+    (message "%s entries due" (length my-sched-ring))))
 
 (defun my-sched-ring--check nil
   (if (not my-sched-ring)
@@ -189,6 +189,9 @@ today.")
   (define-key my-sched-map "s" 'my-sched-schedule))
 
 (define-key org-mode-map "\C-cs" my-sched-map)
+
+;; ----------------------------------------
+(provide 'my-sched)
 
 ;; ----------------------------------------
 ;; initialization
