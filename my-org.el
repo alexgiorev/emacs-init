@@ -685,6 +685,7 @@ Point must be on a CLONE entry for this to work."
   (my-org-move-to-title)
   (my-org-clone-linked))
 
+
 ;; ----------------------------------------
 ;; * misc
 
