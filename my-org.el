@@ -468,7 +468,7 @@ and if the `org-paste-subtree' inserted extra, they are deleted."
 
 ;; ----------------------------------------
 
-(defun my-org-set-tree-level (level)
+(defun my-org-tree-set-level (level)
   "Promote/demote the subtree at point so that its root has level LEVEL"
   (save-excursion
     (org-back-to-heading t)
@@ -504,7 +504,7 @@ subtree of the entry."
                                  (progn (org-end-of-subtree t t) (point)))))
                            (with-current-buffer temp-buffer
                              (save-excursion (insert subtree))
-                             (my-org-set-tree-level 1)
+                             (my-org-tree-set-level 1)
                              (end-of-buffer)))
                          ;; only continue the loop if on a heading after the
                          ;; subtree
@@ -695,11 +695,13 @@ Point must be on a CLONE entry for this to work."
   (interactive)
   (save-excursion
     (org-back-to-heading t)
-    (let (orig-id orig-location orig-level clone-text)
+    (let (orig-id orig-location orig-level
+          clone-text clone-visibility)
       (unless (setq orig-id (org-entry-get (point) "ORIG_ID"))
         (error "Current entry is not a clone"))
       (setq orig-location (org-id-find orig-id)
-            clone-text (my-org-tree-text :no-properties))
+            clone-text (my-org-tree-text :no-properties)
+            clone-visibility (my-org-tree-get-visibility))
       (with-current-buffer (get-file-buffer (car orig-location))
         (org-with-wide-buffer
          (goto-char (cdr orig-location)) (org-back-to-heading t)
@@ -708,7 +710,8 @@ Point must be on a CLONE entry for this to work."
           (point) (my-org-tree-end-pos))
          (delete-region (point-min) (point-max))
          (save-excursion (insert clone-text))
-         (my-org-set-tree-level orig-level)
+         (my-org-tree-set-visibility clone-visibility)
+         (my-org-tree-set-level orig-level)
          (org-map-tree
           (lambda nil
             (let (orig-id degree)
