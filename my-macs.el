@@ -172,3 +172,45 @@ FUNC should accept two arguments KEY and VALUE"
     (while current
       (funcall func (car current) (car (setq current  (cdr current))))
       (setq current (cdr current)))))
+
+;; ----------------------------------------
+
+(defun my-same-line (pos1 pos2)
+  (save-excursion
+    (= (progn (goto-char pos1) (line-beginning-position))
+       (progn (goto-char pos2) (line-beginning-position)))))
+
+;; ----------------------------------------
+
+(defun my-buffer-overlay-substring (start end)
+  "Returns the overlay string at the region (START END).
+The format of an overlay string is a pair whose first element is a string and
+whose second element is a list of triples (START END PROPS)"
+  (let* ((overlays (overlays-in start end))
+         ;; Skip the overlays which set the face. This inclues the `region'
+         ;; face. Without this, if you extract the marked substring, it will
+         ;; bring with it the region face.
+         (overlays (seq-filter (lambda (overlay)
+                                 (not (overlay-get overlay 'face)))
+                               overlays))
+         (overlays-data
+          (mapcar (lambda (overlay)
+                    (list (- (overlay-start overlay) start)
+                          (- (overlay-end overlay) start)
+                          (overlay-properties overlay)))
+                  overlays)))
+    (cons (buffer-substring-no-properties start end)
+          overlays-data)))
+
+(defun my-insert-overlay-string (ostr)
+  (let ((string (car ostr))
+        (triples (cdr ostr))
+        (base (point))
+        overlay)
+    (save-excursion (insert string))
+    (dolist (triple triples)
+      (pcase-let ((`(,start ,end ,props) triple))
+        (setq overlay (make-overlay (+ base start) (+ base end)))
+        (my-plist-foreach
+         (apply-partially 'overlay-put overlay)
+         props)))))
