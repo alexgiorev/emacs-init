@@ -671,7 +671,7 @@ and whose positions are always explictily set.")
                (org-entry-put (point) "CLONE_DEGREE" "1")))))))
     (org-flag-subtree t) (org-cycle)))
 
-(defsubst my-org-clone-p nil
+(defsubst my-org-clone-ref-p nil
   "When the current entry is a CLONE, return the ID of the original. Otherwise, return nil"
   (save-excursion
     (org-back-to-heading t)
@@ -686,7 +686,7 @@ and whose positions are always explictily set.")
 Point must be on a CLONE entry for this to work."
   (interactive)
   (let (id)
-    (unless (setq id (my-org-clone-p))
+    (unless (setq id (my-org-clone-ref-p))
       (error "Point must be on a CLONE entry"))
     (my-org-clone-fetch id)))
 
