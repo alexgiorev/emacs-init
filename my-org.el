@@ -647,8 +647,7 @@ and whose positions are always explictily set.")
         (org-with-wide-buffer
          (goto-char (cdr location))
          (org-back-to-heading t)
-         (buffer-substring-no-properties
-          (point) (org-end-of-subtree t t)))))))
+         (my-org-tree-text t))))))
 
 ;; ----------------------------------------
 ;; * clones
@@ -701,6 +700,26 @@ Point must be on a CLONE entry for this to work."
       (error "Point must be on a CLONE entry"))
     (my-org-clone-fetch id)))
 
+(defun my-org-clone-push nil
+  "Replace the original entry with the text of the clone at point"
+  (save-excursion
+    (org-back-to-heading t)
+    (let (orig-id orig-location orig-level clone-text)
+      (unless (setq orig-id (org-entry-get (point) "ORIG_ID"))
+        (error "Current entry is not a clone"))
+      (setq orig-location (org-id-find orig-id)
+            clone-text (buffer-substring))
+      (with-current-buffer (get-file-buffer (car orig-location))
+        (org-with-wide-buffer
+         (goto-char (cdr orig-location))
+         (org-back-to-heading t)
+         (setq orig-level (funcall outline-level))
+         (replace-region-contents
+          (point) (progn (org-end-of-subtree t t) (point))
+          (lambda nil
+            
+                                  
+
 ;; ----------------------------------------
 ;; * misc
 
@@ -710,3 +729,12 @@ beginning of the heading when it has no title."
   (org-back-to-heading t)
   (looking-at org-complex-heading-regexp)
   (when (match-string 4) (goto-char (match-beginning 4))))
+
+(defsubst my-org-tree-text (&optional no-properties)
+  (save-excursion
+    (org-back-to-heading t)
+    (if no-properties
+        (buffer-substring-no-properties
+         (point) (progn (org-end-of-subtree t t) (point)))
+      (buffer-substring
+         (point) (progn (org-end-of-subtree t t) (point))))))
