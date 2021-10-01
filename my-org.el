@@ -795,15 +795,10 @@ found under the `invisible' property, or nil when the region is visible there."
 `invisible' values are used."
   (interactive "r")
   (save-excursion
-    (let (spec overlay-start)
-      (goto-char start)
-      (while (< (point) end)
-        (setq spec (and (invisible-p (point))
-                        (get-char-property (point) 'invisible))
-              overlay-start (point))
-        (goto-char
-         (next-single-char-property-change
-          (point) 'invisible))
-        (when spec
-          (remove-overlays
-           overlay-start (point) 'invisible spec))))))
+    (let ((overlays (overlays-in start end))
+          spec)
+      (dolist (overlay overlays)
+        (when (invisible-p (setq spec (overlay-get overlay 'invisible)))
+          (org-flag-region (max start (overlay-start overlay))
+                           (min end (overlay-end overlay))
+                           nil spec))))))
