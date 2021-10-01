@@ -745,21 +745,62 @@ beginning of the heading when it has no title."
 (defsubst my-org-tree-end-pos (&rest args)
   (save-excursion (apply 'org-end-of-subtree args) (point)))
 
-(defun my-org-tree-get-visibility nil
+(defun my-org-get-visibility (region-start region-end)
   "Return a list of triples (START END SPEC) which describes the visibility of
-the current tree. The START and END values are relative to the beginning of the
-tree and are zero-indexed. SPEC is an `invisible' value, as given to
-`org-flag-region'."
+the region delimited by REGION-START and REGION-END. The START and END values in
+each triple are relative to REGION-START and are zero-indexed. SPEC is a value
+found under the `invisible' property, or nil when the region is visible there."
   (save-excursion
-    (org-back-to-heading t)
-    (let ((tree-start (point))
-          (tree-end (my-org-tree-end-pos))
+    (let ((region-start (point))
+          (region-end (my-org-tree-end-pos))
           visibility start end spec)
-      (while (< (point) tree-end)
-        (setq start (- (point) tree-start)
+      (while (< (point) region-end)
+        (setq start (- (point) region-start)
               spec (get-char-property (point) 'invisible))
         (goto-char (next-single-char-property-change
-                    (point) 'invisible nil tree-end))
-        (setq end (- (point) tree-start))
+                    (point) 'invisible nil region-end))
+        (setq end (- (point) region-start))
         (push (list start end spec) visibility))
       (reverse visibility))))
+
+(defun my-org-tree-get-visibility nil
+  (let (start end)
+    (save-excursion
+      (org-back-to-heading t) (setq start (point))
+      (org-end-of-subtree t t) (setq end (point)))
+    (my-org-get-visibility start end)))
+
+(defun my-org-tree-set-visibility (visibility)
+  "Set the visibility of the current entry to match VISIBILITY (whose format you
+  can see in `my-org-get-visibility'. This function assumes that VISIBILITY
+  was extracted from an entry with the exact same text."
+  (save-excursion
+    (org-back-to-heading t)
+    (let ((tree-start (point)))
+      (while visibility
+        (pcase-let ((`(,start ,end ,spec) (car visibility)))
+          (if spec
+              (org-flag-region
+               (+ tree-start start) (+ tree-start end)
+               t spec)
+            (my-org-make-visible
+             (+ tree-start start) (+ tree-start end))))
+        (setq visibility (cdr visibility))))))
+
+(defun my-org-make-visible (start end)
+  "Make the region delimited by START and END visible regardless of what
+`invisible' values are used."
+  (interactive "r")
+  (save-excursion
+    (let (spec overlay-start)
+      (goto-char start)
+      (while (< (point) end)
+        (setq spec (and (invisible-p (point))
+                        (get-char-property (point) 'invisible))
+              overlay-start (point))
+        (goto-char
+         (next-single-char-property-change
+          (point) 'invisible))
+        (when spec
+          (remove-overlays
+           overlay-start (point) 'invisible spec))))))
