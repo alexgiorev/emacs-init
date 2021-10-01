@@ -13,24 +13,14 @@
 
 ;; ----------------------------------------
 
-(defun my-isearch-headlines ()
+(defun my-org-isearch-headlines nil
   (interactive)
-  (let ((isearch-filter-predicate 'my-heading-filter-predicate))
+  (let ((isearch-filter-predicate
+         (lambda (start end)
+           (save-match-data (org-on-heading-p)))))
     (isearch-mode t nil nil t)))
 
-(defun my-heading-filter-predicate (start end)
-  (save-match-data
-    (and (isearch-filter-visible start end) ;; to reveal the invisible
-         (my-same-line start end) (my-on-headline start)
-         (progn (message "after: %i" (match-beginning 0)) t))))
-
-(defun my-same-line (pos1 pos2)
-  (save-excursion
-    (= (progn (goto-char pos1) (line-beginning-position))
-       (progn (goto-char pos2) (line-beginning-position)))))
-
-(defun my-on-headline (pos)
-  (my-same-line pos (save-excursion (org-back-to-heading t) (point))))
+(define-key org-mode-map (kbd "M-s e") 'my-org-isearch-headlines)
 
 ;; ----------------------------------------
 ;; widen to parent
@@ -478,7 +468,7 @@ and if the `org-paste-subtree' inserted extra, they are deleted."
 
 ;; ----------------------------------------
 
-(defun my-org-set-subtree-level (level)
+(defun my-org-set-tree-level (level)
   "Promote/demote the subtree at point so that its root has level LEVEL"
   (save-excursion
     (org-back-to-heading t)
@@ -514,7 +504,7 @@ subtree of the entry."
                                  (progn (org-end-of-subtree t t) (point)))))
                            (with-current-buffer temp-buffer
                              (save-excursion (insert subtree))
-                             (my-org-set-subtree-level 1)
+                             (my-org-set-tree-level 1)
                              (end-of-buffer)))
                          ;; only continue the loop if on a heading after the
                          ;; subtree
@@ -702,6 +692,7 @@ Point must be on a CLONE entry for this to work."
 
 (defun my-org-clone-push nil
   "Replace the original entry with the text of the clone at point"
+  (interactive)
   (save-excursion
     (org-back-to-heading t)
     (let (orig-id orig-location orig-level clone-text)
@@ -711,14 +702,26 @@ Point must be on a CLONE entry for this to work."
             clone-text (my-org-tree-text :no-properties))
       (with-current-buffer (get-file-buffer (car orig-location))
         (org-with-wide-buffer
-         (goto-char (cdr orig-location))
-         (org-back-to-heading t)
+         (goto-char (cdr orig-location)) (org-back-to-heading t)
          (setq orig-level (funcall outline-level))
-         (replace-region-contents
-          (point) (progn (org-end-of-subtree t t) (point))
+         (narrow-to-region
+          (point) (my-org-tree-end-pos))
+         (delete-region (point-min) (point-max))
+         (save-excursion (insert clone-text))
+         (my-org-set-tree-level orig-level)
+         (org-map-tree
           (lambda nil
-            
-                                  
+            (let (orig-id degree)
+              (when (setq orig-id (org-entry-get (point) "ORIG_ID"))
+                (setq degree (string-to-number
+                              (org-entry-get (point) "CLONE_DEGREE")))
+                (if (= degree 1)
+                    (progn (org-delete-property "ORIG_ID")
+                           (org-delete-property "CLONE_DEGREE")
+                           (org-entry-put (point) "ID" orig-id))
+                  (org-entry-put
+                   (point) "CLONE_DEGREE" (number-to-string (1- degree)))))))
+             ))))))
 
 ;; ----------------------------------------
 ;; * misc
