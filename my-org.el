@@ -647,7 +647,7 @@ and whose positions are always explictily set.")
         (org-with-wide-buffer
          (goto-char (cdr location))
          (org-back-to-heading t)
-         (my-org-tree-text t))))))
+         (my-org-tree-text :no-properties))))))
 
 ;; ----------------------------------------
 ;; * clones
@@ -708,7 +708,7 @@ Point must be on a CLONE entry for this to work."
       (unless (setq orig-id (org-entry-get (point) "ORIG_ID"))
         (error "Current entry is not a clone"))
       (setq orig-location (org-id-find orig-id)
-            clone-text (buffer-substring))
+            clone-text (my-org-tree-text :no-properties))
       (with-current-buffer (get-file-buffer (car orig-location))
         (org-with-wide-buffer
          (goto-char (cdr orig-location))
@@ -738,3 +738,6 @@ beginning of the heading when it has no title."
          (point) (progn (org-end-of-subtree t t) (point)))
       (buffer-substring
          (point) (progn (org-end-of-subtree t t) (point))))))
+
+(defsubst my-org-tree-end-pos (&rest args)
+  (save-excursion (apply 'org-end-of-subtree args) (point)))
