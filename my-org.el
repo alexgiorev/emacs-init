@@ -662,8 +662,7 @@ and whose positions are always explictily set.")
 
 (defun my-org-clone-fetch (eid)
   "Insert as a sibling to the current entry the entry whose ID is EID"
-  (let ((entry (my-org-id-get-entry eid))
-        orig-id)
+  (let ((entry (my-org-id-get-entry eid)))
     (unless entry
       (error (format "No entry having ID \"%s\"" eid)))
     (org-insert-heading-respect-content t)
@@ -671,9 +670,16 @@ and whose positions are always explictily set.")
     (save-excursion
       (org-map-tree
        (lambda nil
-         (when (setq orig-id (org-entry-get (point) "ID"))
-           (org-delete-property "ID")
-           (org-entry-put (point) "ORIG_ID" orig-id)))))
+         (let ((id (org-entry-get (point) "ID"))
+               (orig-id (org-entry-get (point) "ORIG_ID"))
+               (degree (org-entry-get (point) "CLONE_DEGREE")))
+           (if orig-id
+               (progn (setq degree (number-to-string (1+ (string-to-number degree))))
+                      (org-entry-put (point) "CLONE_DEGREE" degree))
+             (when id
+               (org-delete-property "ID")
+               (org-entry-put (point) "ORIG_ID" id)
+               (org-entry-put (point) "CLONE_DEGREE" "1")))))))
     (org-flag-subtree t) (org-cycle)))
 
 (defsubst my-org-clone-p nil
@@ -704,4 +710,3 @@ beginning of the heading when it has no title."
   (org-back-to-heading t)
   (looking-at org-complex-heading-regexp)
   (when (match-string 4) (goto-char (match-beginning 4))))
-  
