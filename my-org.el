@@ -744,3 +744,22 @@ beginning of the heading when it has no title."
 
 (defsubst my-org-tree-end-pos (&rest args)
   (save-excursion (apply 'org-end-of-subtree args) (point)))
+
+(defun my-org-tree-get-visibility nil
+  "Return a list of triples (START END SPEC) which describes the visibility of
+the current tree. The START and END values are relative to the beginning of the
+tree and are zero-indexed. SPEC is an `invisible' value, as given to
+`org-flag-region'."
+  (save-excursion
+    (org-back-to-heading t)
+    (let ((tree-start (point))
+          (tree-end (my-org-tree-end-pos))
+          visibility start end spec)
+      (while (< (point) tree-end)
+        (setq start (- (point) tree-start)
+              spec (get-char-property (point) 'invisible))
+        (goto-char (next-single-char-property-change
+                    (point) 'invisible nil tree-end))
+        (setq end (- (point) tree-start))
+        (push (list start end spec) visibility))
+      (reverse visibility))))
