@@ -405,3 +405,6 @@ current buffer"
 
 ;; ----------------------------------------
 (global-set-key "\C-x\C-n" nil)
+
+;; ----------------------------------------
+(set-register ?r "(region-beginning) (region-end)")
