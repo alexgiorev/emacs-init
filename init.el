@@ -407,4 +407,7 @@ current buffer"
 (global-set-key "\C-x\C-n" nil)
 
 ;; ----------------------------------------
+;; * registers
 (set-register ?r "(region-beginning) (region-end)")
+(set-register ?l "~/leng/")
+(set-register ?e "~/.emacs.d/")
