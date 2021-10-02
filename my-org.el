@@ -592,16 +592,24 @@ and whose positions are always explictily set.")
   (my-org-ring--check)
   (my-circlist-pop 'my-org-ring))
 
-(defvar my-org-ring-map)
-(setq my-org-ring-map
-      (let ((map (make-sparse-keymap)))
-        (define-key map "e" 'my-org-ring-empty)
-        (define-key map " " 'my-org-ring-push)
-        (define-key map "p" 'my-org-ring-prev)
-        (define-key map "n" 'my-org-ring-next)
-        (define-key map "j" 'my-org-ring-jump)
-        (define-key map "r" 'my-org-ring-remove)
-        map))
+(defun my-org-ring-todo-tree nil
+  "Initialize the ring with the TODO nodes in the tree at point"
+  (interactive)
+  (my-org-ring-empty)
+  (save-excursion
+    (org-map-tree
+     (lambda nil
+       (if (org-entry-is-todo-p) (my-org-ring-push))))))
+
+(defvar my-org-ring-map (make-sparse-keymap))
+(progn 
+  (define-key my-org-ring-map "e" 'my-org-ring-empty)
+  (define-key my-org-ring-map " " 'my-org-ring-push)
+  (define-key my-org-ring-map "p" 'my-org-ring-prev)
+  (define-key my-org-ring-map "n" 'my-org-ring-next)
+  (define-key my-org-ring-map "j" 'my-org-ring-jump)
+  (define-key my-org-ring-map "r" 'my-org-ring-remove)
+  (define-key my-org-ring-map "t" 'my-org-ring-todo-tree))
 
 (define-key org-mode-map "\C-cr" my-org-ring-map)
 
