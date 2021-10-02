@@ -545,14 +545,14 @@ and whose positions are always explictily set.")
   (if (not my-org-ring)
       (user-error "Ring is empty")))
 
-(defun my-org-ring-push nil
+(defun my-org-ring-push (&optional before)
   (interactive)
   (save-excursion
-    (org-back-to-heading)
+    (org-back-to-heading t)
     (let ((marker (point-marker)))
       (put-text-property (point) (1+ (point)) :my-org-ring-marker marker)
       (if my-org-ring
-          (setq my-org-ring (my-circlist-add-after my-org-ring marker))
+          (setq my-org-ring (my-circlist-add my-org-ring marker before))
         (setq my-org-ring (list marker))
         (my-circlist-make my-org-ring)))))
 
@@ -598,11 +598,12 @@ and whose positions are always explictily set.")
 (defun my-org-ring--remove nil
   (let ((marker (my-circlist-pop 'my-org-ring)))
     (with-current-buffer (marker-buffer marker)
-      (goto-char marker)
-      (while (text-property-search-forward :my-org-ring-marker marker)
-        (remove-text-properties
-         (point) (1+ point) (list :my-org-ring-marker nil)))
-      (set-marker marker nil nil))))
+      (save-excursion
+        (goto-char marker)
+        (while (text-property-search-forward :my-org-ring-marker marker)
+          (remove-text-properties
+           (1- (point)) (point) (list :my-org-ring-marker nil)))
+        (set-marker marker nil nil)))))
 
 (defun my-org-ring-todo-tree nil
   "Initialize the ring with the TODO nodes in the tree at point"
@@ -611,7 +612,8 @@ and whose positions are always explictily set.")
   (save-excursion
     (org-map-tree
      (lambda nil
-       (if (org-entry-is-todo-p) (my-org-ring-push))))))
+       (if (org-entry-is-todo-p) (my-org-ring-push)))))
+  (setq my-org-ring (cdr my-org-ring)))
 
 (defvar my-org-ring-map (make-sparse-keymap))
 (progn 
