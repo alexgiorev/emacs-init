@@ -215,7 +215,7 @@ entries from the file."
       '((sequence "TODO" "|" "DONE")
         (sequence "PROCESS" "|" "PROCESSED")
         (sequence "NEW" "|")
-        (type "|" "TEMPDONE")
+        (type "|" "TEMPDONE(-)")
         (type "|" "PASSIVE(s)")
         (type "|" "LIST" "HEAP")
         (type "|" "CLONE")
@@ -826,6 +826,39 @@ found under the `invisible' property, or nil when the region is visible there."
           (org-flag-region (max start (overlay-start overlay))
                            (min end (overlay-end overlay))
                            nil spec))))))
+
+(defun my-org-id-get-ids (files)
+  "Return a list of all IDs inside links in FILES"
+  (let ((ids (make-hash-table :test 'equal)))
+    (my-org-run-in-files
+     (lambda nil
+       (beginning-of-buffer)
+       (while (re-search-forward my-org-id-link-re nil t)
+         (puthash (or (match-string-no-properties 1)
+                      (match-string-no-properties 2))
+                  t ids)))
+     files)
+    (hash-table-keys ids)))
+
+(defun my-org-run-in-files (func files &optional save)
+  "Run FUNC in each file in FILES. Visit the files with org-mode as the
+major-mode. If optional argument SAVE is non-nil, save the files after running
+FUNC."
+  (let (buffer was-visited)
+    (dolist (file files)
+      (unless (file-directory-p file)
+        (setq was-visited nil)
+        (unless (setq was-visited (setq buffer (get-file-buffer file)))
+          (setq buffer (find-file-noselect file)))
+        (when (not (eq major-mode 'org-mode))
+          (org-mode))
+        (with-current-buffer buffer
+          (save-excursion
+           (funcall func) (save-buffer)))
+        (unless was-visited
+          (kill-buffer buffer))))))
+
+
 ;; ----------------------------------------
 ;; * tempdone
 
@@ -857,3 +890,4 @@ found under the `invisible' property, or nil when the region is visible there."
 
 (add-hook 'org-mode-hook
           'my-org-tempdone-undo-buffer)
+
