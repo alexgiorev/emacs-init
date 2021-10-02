@@ -564,6 +564,8 @@ and whose positions are always explictily set.")
         (with-current-buffer (marker-buffer marker)
           (save-excursion
             (goto-char marker)
+            (when (invisible-p (point))
+              (org-show-set-visibility 'canonical))
             (when (eq marker (get-text-property (point) :my-org-ring-marker))
               (setq jump? t)))))
       (unless jump?
