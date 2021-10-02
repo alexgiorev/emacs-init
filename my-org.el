@@ -213,8 +213,9 @@ entries from the file."
 ;; attention as well.
 (setq org-todo-keywords
       '((sequence "TODO" "|" "DONE")
-        (sequence "PROCESS" "|" "TEMPDONE" "PROCESSED")
+        (sequence "PROCESS" "|" "PROCESSED")
         (sequence "NEW" "|")
+        (type "|" "TEMPDONE")
         (type "|" "PASSIVE(s)")
         (type "|" "LIST" "HEAP")
         (type "|" "CLONE")
@@ -590,10 +591,11 @@ and whose positions are always explictily set.")
   (setq my-org-ring (my-circlist-prev my-org-ring))
   (my-org-ring-jump))
 
-(defun my-org-ring-remove nil
-  (interactive)
+(defun my-org-ring-remove (&optional jump)
+  (interactive "P")
   (my-org-ring--check)
-  (my-org-ring--remove))
+  (my-org-ring--remove)
+  (when jump (my-org-ring-jump)))
 
 (defun my-org-ring--remove nil
   (let ((marker (my-circlist-pop 'my-org-ring)))
@@ -824,3 +826,34 @@ found under the `invisible' property, or nil when the region is visible there."
           (org-flag-region (max start (overlay-start overlay))
                            (min end (overlay-end overlay))
                            nil spec))))))
+;; ----------------------------------------
+;; * tempdone
+
+(defun my-org-tempdone-after-state-change nil
+  (if (string= org-state "TEMPDONE")
+      (unless (string= org-last-state "TEMPDONE")
+        (org-entry-put (point) "TEMPDONE_UNDO" org-last-state))
+    (when (string= org-last-state "TEMPDONE")
+      (org-entry-delete (point) "TEMPDONE_UNDO"))))
+
+(defun my-org-tempdone-undo-buffer nil
+  "Go through the accessible portion of the current buffer and undo the TEMDONE entries"
+  (interactive)
+  (org-map-region
+   'my-org-tempdone-undo (point-min) (point-max)))
+
+(defun my-org-tempdone-undo nil
+  "If the current entry is a TEMPDONE, undo it. Otherwise do nothing"
+  (interactive)
+  (when (string= (org-get-todo-state) "TEMPDONE")
+    (let ((old (org-entry-get (point) "TEMPDONE_UNDO")))
+      (unless old
+        (error "TEMPDONE entry missing TEMPDONE_UNDO property"))
+      (org-entry-delete (point) "TEMPDONE_UNDO")
+      (org-todo old))))
+
+(add-hook 'org-after-todo-state-change-hook
+          'my-org-tempdone-after-state-change)
+
+(add-hook 'org-mode-hook
+          'my-org-tempdone-undo-buffer)
