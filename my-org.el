@@ -538,7 +538,8 @@ and whose positions are always explictily set.")
 
 (defun my-org-ring-empty nil
   (interactive)
-  (setq my-org-ring nil))
+  (while my-org-ring
+    (my-org-ring-remove)))
 
 (defun my-org-ring--check nil
   (if (not my-org-ring)
@@ -592,7 +593,16 @@ and whose positions are always explictily set.")
 (defun my-org-ring-remove nil
   (interactive)
   (my-org-ring--check)
-  (my-circlist-pop 'my-org-ring))
+  (my-org-ring--remove))
+
+(defun my-org-ring--remove nil
+  (let ((marker (my-circlist-pop 'my-org-ring)))
+    (with-current-buffer (marker-buffer marker)
+      (goto-char marker)
+      (while (text-property-search-forward :my-org-ring-marker marker)
+        (remove-text-properties
+         (point) (1+ point) (list :my-org-ring-marker nil)))
+      (set-marker marker nil nil))))
 
 (defun my-org-ring-todo-tree nil
   "Initialize the ring with the TODO nodes in the tree at point"
