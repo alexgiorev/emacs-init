@@ -135,6 +135,16 @@ nil, use the current buffer."
       (setq current (cdr current)))
     current))
 
+(defun my-circlist-add (clist element &optional before)
+  "Assumes that CLIST is a cons which is a node in a circular list. Inserts
+ELEMENT after CLIST and returns the new cons. Optional argument BEFORE controls
+whether the element is inserted before or after CLIST in the circular list."
+  (let* ((prev (if before (my-circlist-prev clist) clist))
+         (next (cdr prev))
+         (new (cons element next)))
+    (setcdr prev new)
+    new))
+
 (defun my-circlist-pop (var)
   "Remove the head of the circluar list stored at VAR and position VAR on the next element."
   (let (clist prev value)
@@ -148,13 +158,6 @@ nil, use the current buffer."
       (set var (cdr prev)))
     head))
       
-(defun my-circlist-add-after (pair element)
-  "Insert ELEMENT after PAIR and return the new cons"
-  (let* ((next (cdr pair))
-         (new (cons element next)))
-    (setcdr pair new)
-    new))
-
 ;; ----------------------------------------
 (defun my-jump-to-marker (marker)
   (unless (marker-buffer marker)
@@ -187,9 +190,7 @@ FUNC should accept two arguments KEY and VALUE"
 The format of an overlay string is a pair whose first element is a string and
 whose second element is a list of triples (START END PROPS)"
   (let* ((overlays (overlays-in start end))
-         ;; Skip the overlays which set the face. This inclues the `region'
-         ;; face. Without this, if you extract the marked substring, it will
-         ;; bring with it the region face.
+         ;; Skip the overlays which set the face, including the `region' face
          (overlays (seq-filter (lambda (overlay)
                                  (not (overlay-get overlay 'face)))
                                overlays))
