@@ -385,7 +385,6 @@ about the function."
 
 ;; ----------------------------------------
 
-
 (defun my-collect-symbol-definitions ()
   "Returns a list of the symbols which are in a top-level definition in the
 current buffer"
@@ -411,3 +410,8 @@ current buffer"
 (set-register ?r "(region-beginning) (region-end)")
 (set-register ?l "~/leng/")
 (set-register ?e "~/.emacs.d/")
+
+;; ----------------------------------------
+(when (get-buffer "*scratch*")
+  (kill-buffer "*scratch*")
+  (find-file-noselect "/tmp/scratch.el"))
