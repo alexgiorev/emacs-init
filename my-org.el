@@ -872,8 +872,13 @@ FUNC."
 (defun my-org-tempdone-undo-buffer nil
   "Go through the accessible portion of the current buffer and undo the TEMDONE entries"
   (interactive)
+  (my-org-tempdone-undo-region (point-min) (point-max)))
+
+(defun my-org-tempdone-undo-region (start end)
+  (interactive "r")
   (org-map-region
-   'my-org-tempdone-undo (point-min) (point-max)))
+   'my-org-tempdone-undo start end)
+  (deactivate-mark))
 
 (defun my-org-tempdone-undo nil
   "If the current entry is a TEMPDONE, undo it. Otherwise do nothing"
