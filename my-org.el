@@ -17,7 +17,9 @@
   (interactive)
   (let ((isearch-filter-predicate
          (lambda (start end)
-           (save-match-data (org-on-heading-p)))))
+           (save-match-data
+             (isearch-filter-visible start end)
+             (save-excursion (goto-char start) (org-on-heading-p))))))
     (isearch-mode t nil nil t)))
 
 (define-key org-mode-map (kbd "M-s e") 'my-org-isearch-headlines)
