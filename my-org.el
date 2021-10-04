@@ -832,13 +832,14 @@ found under the `invisible' property, or nil when the region is visible there."
   (let ((ids (make-hash-table :test 'equal)))
     (my-org-run-in-files
      (lambda nil
-       (beginning-of-buffer)
-       (while (re-search-forward my-org-id-link-re nil t)
-         (puthash (or (match-string-no-properties 1)
-                      (match-string-no-properties 2))
-                  t ids)))
-     files)
-    (hash-table-keys ids)))
+       (org-with-wide-buffer
+        (beginning-of-buffer)
+        (while (re-search-forward my-org-id-link-re nil t)
+          (puthash (or (match-string-no-properties 1)
+                       (match-string-no-properties 2))
+                   t ids)))
+       files)
+     (hash-table-keys ids))))
 
 (defun my-org-run-in-files (func files &optional save)
   "Run FUNC in each file in FILES. Visit the files with org-mode as the
