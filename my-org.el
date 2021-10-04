@@ -221,7 +221,7 @@ entries from the file."
         (type "|" "PASSIVE(s)")
         (type "|" "LIST" "HEAP")
         (type "|" "CLONE")
-        (type "|" "DECISION" "PAST_DECISION")
+        (type "|" "DECISION(n)" "PAST_DECISION")
         (type "|" "DECL(e)" "FACT" "CONCEPT(c)" "SOURCE" "EXAMPLES" "TEMP")
         (type "QUESTION(q)" "|" "ANSWERED" "ANSWER(a)")
         (type "PROBLEM(p)" "|" "SOLVED" "SOLUTION(o)" "PROBLEM_DEFERRED")
