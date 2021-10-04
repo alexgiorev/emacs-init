@@ -655,7 +655,7 @@ and whose positions are always explictily set.")
 
 ;; ----------------------------------------
 
-(defun my-org-id-get-entry (eid)
+(defun my-org-id-get-tree (eid)
   "Returns as a string the entry having id EID or nil if no such entry"
   (let ((location (org-id-find eid)))
     (when location
@@ -677,7 +677,7 @@ and whose positions are always explictily set.")
 
 (defun my-org-clone-fetch (eid)
   "Insert as a sibling to the current entry the entry whose ID is EID"
-  (let ((entry (my-org-id-get-entry eid)))
+  (let ((entry (my-org-id-get-tree eid)))
     (unless entry
       (error (format "No entry having ID \"%s\"" eid)))
     (org-insert-heading-respect-content t)
