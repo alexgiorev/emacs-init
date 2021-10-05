@@ -231,3 +231,27 @@ whose second element is a list of triples (START END PROPS)"
         (my-plist-foreach
          (apply-partially 'overlay-put overlay)
          props)))))
+
+;; ----------------------------------------
+;; * alists
+
+;; the utility of this function is that it enables the caller to see if
+;; something was actually removed
+(defun my-alist-pop (key alist-sym test)
+  "Remove from the alist stored in ALIST-SYM the first item whose key equals
+KEY, as determined by TEST. Return the removed item or nil if nothing was
+removed."
+  (let ((alist (symbol-value alist-sym))
+        prev current)
+    (when alist
+      (if (funcall test key (caar alist))
+          (progn (set alist-sym (cdr alist))
+                 (car alist))
+        (setq prev alist
+              current (cdr alist))
+        (while (and current (not (funcall test (caar current) key)))
+          (setq prev current
+                current (cdr current)))
+        (when current
+          (setcdr prev (cdr current))
+          (car current))))))
