@@ -668,23 +668,20 @@ and whose positions are always explictily set.")
 
 (defun my-org-clone-fetch (eid)
   "Insert as a sibling to the current tree the tree whose ID is EID"
-  (let ((tree (my-org-id-get-tree eid))
-        (degree (my-org-clone-degree)))
+  (let ((tree (my-org-id-get-tree eid)))
     (unless tree
       (error (format "No tree having ID \"%s\"" eid)))
     (org-insert-heading-respect-content t)
     (org-paste-subtree nil tree)
-    (org-entry-delete nil "ID")
-    (org-entry-put nil "ORIG_ID" eid)
-    (org-entry-put nil "CLONE_DEGREE" (number-to-string (1+ degree)))    
+    (org-entry-delete nil "ID") (org-entry-put nil "ORIG_ID" eid)
+    (org-entry-put nil "CLONE" "t")
     (save-excursion
       (my-org-tree-filter
        (lambda nil
          (let ((id (org-entry-get nil "ID"))
-               (degree (org-entry-get nil "CLONE_DEGREE")))
-           ;; When there is a `degree', the subtree will be removed since the
-           ;; `when' will return nil
-           (when (not degree)
+               (clone-p (org-entry-get nil "CLONE")))
+           ;; clones are deleted because the `unless' will return nil
+           (unless clone-p
              (when id
                (org-entry-delete nil "ID")
                (org-entry-put nil "ORIG_ID" id))
@@ -693,17 +690,6 @@ and whose positions are always explictily set.")
        :skip-root))
     ;; put in CHILDREN view
     (org-flag-subtree t) (org-cycle)))
-
-(defun my-org-clone-degree nil
-  "Return the clone degree of the tree at point. For a node which doesn't have a
-CLONE_DEGREE property, the degree is the value of the CLONE_DEGREE of the
-closest ancestor which has the property. When no ancestor has this property, the
-current node is not a clone, so the result is zero."
-  (save-excursion
-    (let (degree)
-      (while (and (not (setq degree (org-entry-get nil "CLONE_DEGREE")))
-                  (org-up-heading-safe)))
-      (if degree (string-to-number degree) 0))))
 
 (defsubst my-org-clone-ref-p nil
   "When the current entry is a CLONE, return the ID of the original. Otherwise, return nil"
@@ -732,12 +718,10 @@ Point must be on a CLONE entry for this to work."
     (org-back-to-heading t)
     (let (orig-id orig-location orig-level
           clone-text clone-visibility clone-degree)
-      (unless (setq orig-id (org-entry-get (point) "ORIG_ID"))
+      (unless (and (setq orig-id (org-entry-get nil "ORIG_ID"))
+                   (setq clone-degree (string-to-number
+                                       (org-entry-get nil "CLONE_DEGREE"))))
         (error "Current entry is not a clone"))
-      (when (< 1 (setq clone-degree
-                       (string-to-number
-                        (org-entry-get (point) "CLONE_DEGREE"))))
-        (error "Cannot push clone whose degree is greater than one"))
       (setq orig-location (org-id-find orig-id)
             clone-text (my-org-tree-text :no-properties)
             clone-visibility (my-org-tree-get-visibility))
@@ -751,10 +735,14 @@ Point must be on a CLONE entry for this to work."
          (save-excursion (insert clone-text))
          (my-org-tree-set-visibility clone-visibility)
          (my-org-tree-set-level orig-level)
-         (org-map-tree
+         ;; process the root
+         (org-entry-delete nil "ORIG_ID") (org-entry-put nil "ID" orig-id)
+         (org-entry-delete nil "CLONE_DEGREE")
+         (my-org-tree-filter
           (lambda nil
             (let (orig-id degree)
-              (when (setq orig-id (org-entry-get (point) "ORIG_ID"))
+              ;; Nodes with CLONE_DEGREE properties
+              (unless (org-entry-get nil "CLONE_DEGREE")
                 (setq degree (string-to-number
                               (org-entry-get (point) "CLONE_DEGREE")))
                 (if (= degree 1)
