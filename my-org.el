@@ -383,16 +383,6 @@ function with no arguments called with point at the beginning of the heading"
      (point-min) (point-max))
     (goto-char (my-randchoice posns))))
 
-(defun my-random-line nil
-  (interactive)
-  (my-random-point)
-  (beginning-of-line))
-
-(defun my-random-point nil
-  (interactive)
-  (goto-char (+ (point-min)
-                (1+ (random (1+ (- (point-max) (point-min))))))))
-
 (setq-default org-fontify-done-headline nil)
 (setq org-blank-before-new-entry '((heading . nil) (plain-list-item . nil)))
 (setq org-cycle-separator-lines 0)

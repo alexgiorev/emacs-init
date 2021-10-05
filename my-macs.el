@@ -127,6 +127,17 @@ nil, use the current buffer."
   (when list
     (nth (random (length list)) list)))
 
+(defun my-random-line nil
+  (interactive)
+  (my-random-point)
+  (beginning-of-line))
+
+(defun my-random-point nil
+  (interactive)
+  (goto-char (+ (point-min)
+                (1+ (random (1+ (- (point-max) (point-min))))))))
+
+
 ;; ----------------------------------------
 ;; circular lists
 
