@@ -190,7 +190,8 @@ entries from the file."
 (defun my-org-narrow-random-top-entry nil
   (interactive)
   (widen)
-  (my-org-random-entry)
+  (my-org-random-entry
+   (lambda nil (= (funcall outline-level) 1)))
   (while (org-up-heading-safe))
   (org-narrow-to-subtree)
   (outline-hide-sublevels 2))
