@@ -36,6 +36,15 @@ not bound to any node."
   (let ((id (cdr (assoc name my-org-vars-alist))))
     (org-id-open id nil)))
 
+;; * keymap
+
+(defvar my-org-vars-map (make-sparse-keymap))
+(progn
+  (define-key my-org-vars-map "g" 'my-org-vars-goto)
+  (define-key my-org-vars-map "s" 'my-org-vars-set))
+(define-key org-mode-map "\C-cv" 'my-org-vars-map)
+
 ;; * initialization
 
 (my-org-vars--load)
+(provide 'my-org-vars)
