@@ -51,10 +51,11 @@ not bound to any node."
 
 (defun my-org-vars-unset (name)
   (interactive (list (my-org-vars-read-var)))
-  (let ((removed-item 
-  (setq my-org-vars-alist
-        (assoc-delete-all name my-org-vars-alist 'string=))
-  ()
+  (let ((removed-item (my-alist-pop name 'my-org-vars-alist 'string=)))
+    (if removed-item
+        (progn (message "Removed \"%s\"" name)
+               (my-org-vars-flush))
+      (message "\"%s\" is not bound" name))))
 
 (defun my-org-vars-insert-link (name)
   (interactive (list (my-org-vars-read-var)))
@@ -67,6 +68,7 @@ not bound to any node."
 (progn
   (define-key my-org-vars-map "g" 'my-org-vars-goto)
   (define-key my-org-vars-map "s" 'my-org-vars-set)
+  (define-key my-org-vars-map "u" 'my-org-vars-unset)
   (define-key my-org-vars-map "l" 'my-org-vars-insert-link))
 (define-key org-mode-map "\C-cv" my-org-vars-map)
 
