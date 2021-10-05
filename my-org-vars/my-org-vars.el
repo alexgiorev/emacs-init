@@ -42,12 +42,38 @@
         (push (cons name id) my-org-vars-alist)))
     (my-org-vars-flush)))
 
-(defun my-org-vars-goto (name)
+(defvar my-org-vars-goto-alist nil
+  "Maps names to the buffers which should be used when going to the names using
+  `my-org-vars-goto'")
+(defun my-org-vars-goto nil
   "Jumps to the node bound to NAME. Signals `void-variable' error when NAME is
 not bound to any node."
-  (interactive (list (my-org-vars-read-var)))
-  (let ((id (my-org-vars-get name)))
-    (org-id-open id nil)))
+  (interactive)
+  (let* ((name (my-org-vars-read-var))
+         (id (my-org-vars-get name))
+         location buffer)
+    (unless id
+      (user-error "\"%s\" is not bound" name))
+    (unless (setq location (org-id-find id))
+      (user-error "Cannot find \"%s\"" name))
+    ;; get the buffer
+    (setq buffer (cdr (assoc name my-org-vars-goto-indirect-buffer-alist)))
+    (unless (buffer-live-p buffer)
+      (assoc-delete-all
+       name my-org-vars-goto-indirect-buffer-alist 'string=)
+      (setq buffer nil))
+    (unless buffer
+      (if (setq buffer (get-file-buffer (car location)))
+          (progn (setq buffer (make-indirect-buffer
+                               buffer (generate-new-buffer-name name) :clone))
+                 (push (cons name buffer)
+                       my-org-vars-goto-indirect-buffer-alist))
+        (setq buffer (find-file-noselect (car location)))))
+    ;; switch to the buffer
+    (switch-to-buffer buffer)
+    (widen)
+    (goto-char (cdr location))
+    (org-narrow-to-subtree)))
 
 (defun my-org-vars-unset (name)
   (interactive (list (my-org-vars-read-var)))
