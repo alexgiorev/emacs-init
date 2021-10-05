@@ -669,22 +669,29 @@ and whose positions are always explictily set.")
 (defun my-org-clone-fetch (eid)
   "Insert as a sibling to the current tree the tree whose ID is EID"
   (let ((tree (my-org-id-get-tree eid))
-        (tree-degree (my-org-clone-degree)))
+        (degree (my-org-clone-degree)))
     (unless tree
       (error (format "No tree having ID \"%s\"" eid)))
     (org-insert-heading-respect-content t)
     (org-paste-subtree nil tree)
+    (org-entry-delete nil "ID")
+    (org-entry-put nil "ORIG_ID" eid)
+    (org-entry-put nil "CLONE_DEGREE" (number-to-string (1+ degree)))    
     (save-excursion
-      (org-map-tree
+      (my-org-tree-filter
        (lambda nil
          (let ((id (org-entry-get nil "ID"))
                (degree (org-entry-get nil "CLONE_DEGREE")))
-           (if degree
-               (my-org-tree-delete)
+           ;; When there is a `degree', the subtree will be removed since the
+           ;; `when' will return nil
+           (when (not degree)
              (when id
-               (org-delete-property "ID")
-               (org-entry-put (point) "ORIG_ID" id)
-               (org-entry-put (point) "CLONE_DEGREE" "1")))))))
+               (org-entry-delete nil "ID")
+               (org-entry-put nil "ORIG_ID" id))
+             ;; make sure to not delete the subtree
+             :dont-delete)))
+       :skip-root))
+    ;; put in CHILDREN view
     (org-flag-subtree t) (org-cycle)))
 
 (defun my-org-clone-degree nil
@@ -719,6 +726,7 @@ Point must be on a CLONE entry for this to work."
 
 (defun my-org-clone-push nil
   "Replace the original entry with the text of the clone at point"
+  (error "TODO")
   (interactive)
   (save-excursion
     (org-back-to-heading t)
@@ -799,16 +807,18 @@ beginning of the heading when it has no title."
     (org-back-to-heading t)
     (delete-region (point) (my-org-tree-end-pos t t))))
 
-(defun my-org-tree-filter (pred)
+(defun my-org-tree-filter (pred &optional skip-root)
   "Keep in the tree at point only the nodes which satisfy PRED, which is a
 function called with point at the beginning of a node. The nodes are traversed
 in order and if one doesn't satisfy PRED, the whole subtree of the node is
 deleted. This means that if the root doesn't satisfy PRED, the whole tree will
-be deleted."
+be deleted. When optional argument SKIP-ROOT is non-nil, begin the traversal
+from the first child of the tree instead of at its root."
   (save-excursion
     (org-back-to-heading)
     (let ((end (make-marker)))
       (set-marker end (my-org-tree-end-pos t t))
+      (when skip-root (outline-next-heading))
       (while (< (point) end)
         (if (funcall pred)
             (outline-next-heading)
