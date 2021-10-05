@@ -475,19 +475,6 @@ and if the `org-paste-subtree' inserted extra, they are deleted."
 
 ;; ----------------------------------------
 
-(defun my-org-tree-set-level (level)
-  "Promote/demote the subtree at point so that its root has level LEVEL"
-  (save-excursion
-    (org-back-to-heading t)
-    (let* ((tree-level (funcall outline-level))
-           (diff (- level tree-level))
-           ;; READ If the diff is zero, this computation is wasteful
-           (set-level-func (if (> diff 0)
-                               (lambda nil (insert (make-string diff ?*)))
-                             (lambda nil (delete-char (- diff))))))
-      (when (/= diff 0)
-        (org-map-tree set-level-func)))))
-
 (defun my-org-collect-entries (pred)
   "Collect all entries which pass PRED and return them as a string.
 PRED is a predicate function called at the beginning of each entry in the
@@ -691,7 +678,6 @@ and whose positions are always explictily set.")
       (org-map-tree
        (lambda nil
          (let ((id (org-entry-get nil "ID"))
-               (orig-id (org-entry-get nil "ORIG_ID"))
                (degree (org-entry-get nil "CLONE_DEGREE")))
            (if degree
                (my-org-tree-delete)
@@ -781,6 +767,21 @@ beginning of the heading when it has no title."
   (looking-at org-complex-heading-regexp)
   (when (match-string 4) (goto-char (match-beginning 4))))
 
+;; ** trees
+
+(defun my-org-tree-set-level (level)
+  "Promote/demote the subtree at point so that its root has level LEVEL"
+  (save-excursion
+    (org-back-to-heading t)
+    (let* ((tree-level (funcall outline-level))
+           (diff (- level tree-level))
+           ;; READ If the diff is zero, this computation is wasteful
+           (set-level-func (if (> diff 0)
+                               (lambda nil (insert (make-string diff ?*)))
+                             (lambda nil (delete-char (- diff))))))
+      (when (/= diff 0)
+        (org-map-tree set-level-func)))))
+
 (defsubst my-org-tree-text (&optional no-properties)
   (save-excursion
     (org-back-to-heading t)
@@ -797,6 +798,22 @@ beginning of the heading when it has no title."
   (save-excursion
     (org-back-to-heading t)
     (delete-region (point) (my-org-tree-end-pos t t))))
+
+(defun my-org-tree-filter (pred)
+  "Keep in the tree at point only the nodes which satisfy PRED, which is a
+function called with point at the beginning of a node. The nodes are traversed
+in order and if one doesn't satisfy PRED, the whole subtree of the node is
+deleted. This means that if the root doesn't satisfy PRED, the whole tree will
+be deleted."
+  (save-excursion
+    (org-back-to-heading)
+    (let ((end (make-marker)))
+      (set-marker end (my-org-tree-end-pos t t))
+      (while (< (point) end)
+        (if (funcall pred)
+            (outline-next-heading)
+          (my-org-tree-delete)))
+      (set-marker end nil nil))))
 
 (defun my-org-get-visibility (region-start region-end)
   "Return a list of triples (START END SPEC) which describes the visibility of
