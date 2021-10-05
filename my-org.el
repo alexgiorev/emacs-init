@@ -726,9 +726,13 @@ Point must be on a CLONE entry for this to work."
   (save-excursion
     (org-back-to-heading t)
     (let (orig-id orig-location orig-level
-          clone-text clone-visibility)
+          clone-text clone-visibility clone-degree)
       (unless (setq orig-id (org-entry-get (point) "ORIG_ID"))
         (error "Current entry is not a clone"))
+      (when (< 1 (setq clone-degree
+                       (string-to-number
+                        (org-entry-get (point) "CLONE_DEGREE"))))
+        (error "Cannot push clone whose degree is greater than one"))
       (setq orig-location (org-id-find orig-id)
             clone-text (my-org-tree-text :no-properties)
             clone-visibility (my-org-tree-get-visibility))
