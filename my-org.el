@@ -681,7 +681,8 @@ and whose positions are always explictily set.")
 
 (defun my-org-clone-fetch (eid)
   "Insert as a sibling to the current tree the tree whose ID is EID"
-  (let ((tree (my-org-id-get-tree eid)))
+  (let ((tree (my-org-id-get-tree eid))
+        (tree-degree (my-org-clone-degree)))
     (unless tree
       (error (format "No tree having ID \"%s\"" eid)))
     (org-insert-heading-respect-content t)
@@ -689,17 +690,27 @@ and whose positions are always explictily set.")
     (save-excursion
       (org-map-tree
        (lambda nil
-         (let ((id (org-entry-get (point) "ID"))
-               (orig-id (org-entry-get (point) "ORIG_ID"))
-               (degree (org-entry-get (point) "CLONE_DEGREE")))
-           (if orig-id
-               (progn (setq degree (number-to-string (1+ (string-to-number degree))))
-                      (org-entry-put (point) "CLONE_DEGREE" degree))
+         (let ((id (org-entry-get nil "ID"))
+               (orig-id (org-entry-get nil "ORIG_ID"))
+               (degree (org-entry-get nil "CLONE_DEGREE")))
+           (if degree
+               (my-org-tree-delete)
              (when id
                (org-delete-property "ID")
                (org-entry-put (point) "ORIG_ID" id)
                (org-entry-put (point) "CLONE_DEGREE" "1")))))))
     (org-flag-subtree t) (org-cycle)))
+
+(defun my-org-clone-degree nil
+  "Return the clone degree of the tree at point. For a node which doesn't have a
+CLONE_DEGREE property, the degree is the value of the CLONE_DEGREE of the
+closest ancestor which has the property. When no ancestor has this property, the
+current node is not a clone, so the result is zero."
+  (save-excursion
+    (let (degree)
+      (while (and (not (setq degree (org-entry-get nil "CLONE_DEGREE")))
+                  (org-up-heading-safe)))
+      (if degree (string-to-number degree) 0))))
 
 (defsubst my-org-clone-ref-p nil
   "When the current entry is a CLONE, return the ID of the original. Otherwise, return nil"
@@ -781,6 +792,11 @@ beginning of the heading when it has no title."
 
 (defsubst my-org-tree-end-pos (&rest args)
   (save-excursion (apply 'org-end-of-subtree args) (point)))
+
+(defsubst my-org-tree-delete nil
+  (save-excursion
+    (org-back-to-heading t)
+    (delete-region (point) (my-org-tree-end-pos t t))))
 
 (defun my-org-get-visibility (region-start region-end)
   "Return a list of triples (START END SPEC) which describes the visibility of
