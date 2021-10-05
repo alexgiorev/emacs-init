@@ -122,6 +122,11 @@ nil, use the current buffer."
         ((= low high) low)
         (t (+ low (random (- high low -1))))))
 
+(defsubst my-randchoice (list)
+  "Return a random element from LIST or nil when empty"
+  (when list
+    (nth (random (length list)) list)))
+
 ;; ----------------------------------------
 ;; circular lists
 
