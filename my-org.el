@@ -680,12 +680,12 @@ and whose positions are always explictily set.")
  To get it run (or (match-string 1) (match-string 2))")
 
 (defun my-org-clone-fetch (eid)
-  "Insert as a sibling to the current entry the entry whose ID is EID"
-  (let ((entry (my-org-id-get-tree eid)))
-    (unless entry
-      (error (format "No entry having ID \"%s\"" eid)))
+  "Insert as a sibling to the current tree the tree whose ID is EID"
+  (let ((tree (my-org-id-get-tree eid)))
+    (unless tree
+      (error (format "No tree having ID \"%s\"" eid)))
     (org-insert-heading-respect-content t)
-    (org-paste-subtree nil entry)
+    (org-paste-subtree nil tree)
     (save-excursion
       (org-map-tree
        (lambda nil
