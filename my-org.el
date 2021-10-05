@@ -710,18 +710,17 @@ Point must be on a CLONE entry for this to work."
       (error "Point must be on a CLONE entry"))
     (my-org-clone-fetch id)))
 
-(defun my-org-clone-push nil
+(defun my-org-clone-push-single nil
   "Replace the original entry with the text of the clone at point"
-  (error "TODO")
   (interactive)
   (save-excursion
     (org-back-to-heading t)
     (let (orig-id orig-location orig-level
-          clone-text clone-visibility clone-degree)
-      (unless (and (setq orig-id (org-entry-get nil "ORIG_ID"))
-                   (setq clone-degree (string-to-number
-                                       (org-entry-get nil "CLONE_DEGREE"))))
-        (error "Current entry is not a clone"))
+          clone-text clone-visibility)
+      (unless (org-entry-get nil "CLONE")
+        (error "Current node is not a clone"))
+      (unless (setq orig-id (org-entry-get nil "ORIG_ID"))
+        (error "Missing original ID"))
       (setq orig-location (org-id-find orig-id)
             clone-text (my-org-tree-text :no-properties)
             clone-visibility (my-org-tree-get-visibility))
@@ -730,28 +729,23 @@ Point must be on a CLONE entry for this to work."
          (goto-char (cdr orig-location)) (org-back-to-heading t)
          (setq orig-level (funcall outline-level))
          (narrow-to-region
-          (point) (my-org-tree-end-pos))
+          (point) (my-org-tree-end-pos t t))
          (delete-region (point-min) (point-max))
          (save-excursion (insert clone-text))
          (my-org-tree-set-visibility clone-visibility)
          (my-org-tree-set-level orig-level)
          ;; process the root
          (org-entry-delete nil "ORIG_ID") (org-entry-put nil "ID" orig-id)
-         (org-entry-delete nil "CLONE_DEGREE")
+         (org-entry-delete nil "CLONE")
          (my-org-tree-filter
           (lambda nil
-            (let (orig-id degree)
-              ;; Nodes with CLONE_DEGREE properties
-              (unless (org-entry-get nil "CLONE_DEGREE")
-                (setq degree (string-to-number
-                              (org-entry-get (point) "CLONE_DEGREE")))
-                (if (= degree 1)
-                    (progn (org-delete-property "ORIG_ID")
-                           (org-delete-property "CLONE_DEGREE")
-                           (org-entry-put (point) "ID" orig-id))
-                  (org-entry-put
-                   (point) "CLONE_DEGREE" (number-to-string (1- degree)))))))
-             ))))))
+            (let (orig-id)
+              ;; Clones will be deleted because the `unless' will return nil
+              (unless (org-entry-get nil "CLONE")
+                (when (setq orig-id (org-entry-get nil "ORIG_ID"))
+                  (org-entry-delete nil "ORIG_ID")
+                  (org-entry-put nil "ID" orig-id))
+                :dont-delete)))))))))
 
 ;; ----------------------------------------
 ;; * misc
