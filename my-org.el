@@ -3,6 +3,7 @@
 (require 'org-id)
 (require 'my-macs "~/.emacs.d/my-macs")
 (require 'my-sched "~/.emacs.d/my-sched/my-sched")
+(require 'my-org-vars (concat user-emacs-directory "my-org-vars/my-org-vars.el"))
 
 (define-key global-map "\C-ca" 'org-agenda)
 (setq org-log-done nil)
