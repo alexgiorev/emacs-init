@@ -1,3 +1,5 @@
+(require 'my-macs)
+
 (defvar my-org-vars-file
   (concat user-emacs-directory "my-org-vars/my-org-vars-alist")
   "The path to the file which stores the bindings")
@@ -9,9 +11,10 @@
 
 (defun my-org-vars-load nil
   (let (buffer)
-    (with-current-buffer (setq buffer (find-file-noselect my-org-vars-file))
-      (ignore-error 'end-of-file (setq my-org-vars-alist (read buffer)))
-    (kill-buffer buffer))))
+    (ignore-error 'file-error
+      (with-current-buffer (setq buffer (find-file-noselect my-org-vars-file))
+        (ignore-error 'end-of-file (setq my-org-vars-alist (read buffer)))
+        (kill-buffer buffer)))))
 
 (defun my-org-vars-flush nil
   (with-temp-file my-org-vars-file
@@ -29,12 +32,15 @@
 
 (defun my-org-vars-set (name)
   "Bind NAME to the node at point"
-  (interactive (list (read-string "Identifier: ")))
-  (let (binding (id (org-id-get-create)))
-    (if (setq binding (assoc name my-org-vars-alist))
-        (setcdr binding id)
-      (push (cons name id) my-org-vars-alist)))
-  (my-org-vars-flush))
+  (interactive (list (my-org-vars-read-var)))
+  (when (or (not (my-org-vars-get name))
+             (string= (read-answer (format "\"%s\" is already used. Override? " name)
+                                   '(("yes") ("no")))))
+    (let ((binding nil) (id (org-id-get-create)))
+      (if (setq binding (assoc name my-org-vars-alist))
+          (setcdr binding id)
+        (push (cons name id) my-org-vars-alist)))
+    (my-org-vars-flush)))
 
 (defun my-org-vars-goto (name)
   "Jumps to the node bound to NAME. Signals `void-variable' error when NAME is
@@ -42,6 +48,13 @@ not bound to any node."
   (interactive (list (my-org-vars-read-var)))
   (let ((id (my-org-vars-get name)))
     (org-id-open id nil)))
+
+(defun my-org-vars-unset (name)
+  (interactive (list (my-org-vars-read-var)))
+  (let ((removed-item 
+  (setq my-org-vars-alist
+        (assoc-delete-all name my-org-vars-alist 'string=))
+  ()
 
 (defun my-org-vars-insert-link (name)
   (interactive (list (my-org-vars-read-var)))
