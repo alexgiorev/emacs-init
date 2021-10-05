@@ -9,7 +9,7 @@
 
 ;; ----------------------------------------
 (setq-default org-startup-folded t)
-(add-hook 'org-mode-hook (lambda () (electric-indent-local-mode -1)))
+(add-hook 'org-mode-hook (lambda nil (electric-indent-local-mode -1)))
 
 ;; ----------------------------------------
 
@@ -27,7 +27,7 @@
 ;; ----------------------------------------
 ;; widen to parent
 
-(defun my-widen-to-parent ()
+(defun my-widen-to-parent nil
   (interactive)
   (goto-char (point-min)) ;; TODO: How to go to the root node?
   (push-mark)
@@ -63,7 +63,7 @@ add a backlink as a BACKLINK property."
       (org-show-set-visibility 'canonical))
     (if backlink (org-entry-put (point) "BACKLINK" backlink))))
 
-(defsubst my-goto-last-top-heading ()
+(defsubst my-goto-last-top-heading nil
   "Moves point to the beginning of the last heading at level 1"
   (end-of-buffer)
   (while (org-up-heading-safe)))
@@ -79,7 +79,7 @@ add a backlink as a BACKLINK property."
   (define-key org-mode-map (kbd "C-c n") 'my-new-entry-today))
 
 ;; ----------------------------------------
-(defun my-org-paste-list ()
+(defun my-org-paste-list nil
   (interactive)
   (save-restriction
     (let ((start (point))
@@ -98,7 +98,7 @@ add a backlink as a BACKLINK property."
 
 ;; ----------------------------------------
 
-(defun my-wrap-entry ()
+(defun my-wrap-entry nil
   (interactive)
   (org-back-to-heading)
   (forward-line)
@@ -117,7 +117,7 @@ add a backlink as a BACKLINK property."
 
 ;; ----------------------------------------
 
-(defun my-org-paste-random-child ()
+(defun my-org-paste-random-child nil
   (interactive)
   (my-org-insert-random-child)
   (if (org-kill-is-subtree-p)
@@ -126,7 +126,7 @@ add a backlink as a BACKLINK property."
   ;; hide subtree
   (outline-hide-subtree))
 
-(defun my-org-insert-random-child ()
+(defun my-org-insert-random-child nil
   (interactive)
   (org-back-to-heading)
   (let* ((parent-pos (point))
@@ -148,7 +148,7 @@ result in faster runtime."
     (let ((child-level (1+ (org-current-level)))
           (list-of-posns nil))
       (org-map-tree
-       (lambda ()
+       (lambda nil
          (if (= (org-current-level) child-level)
              (setq list-of-posns (cons (point) list-of-posns)))))
       (unless dont-reverse (reverse list-of-posns)))))
@@ -179,7 +179,7 @@ entries from the file."
         (append-to-buffer buffer (point-min) (point-max))
         (erase-buffer)))))
 
-(defun my-dired-files-list ()
+(defun my-dired-files-list nil
   "Returns a list of the absolute file names shown in the Dired buffer."
   (let ((list nil))
     (dired-map-dired-file-lines
@@ -187,11 +187,10 @@ entries from the file."
     (reverse list)))
 
 ;; ----------------------------------------
-(defun my-org-narrow-random-top-entry ()
+(defun my-org-narrow-random-top-entry nil
   (interactive)
   (widen)
-  (my-random-entry)
-  ;; goto root
+  (my-org-random-entry)
   (while (org-up-heading-safe))
   (org-narrow-to-subtree)
   (outline-hide-sublevels 2))
@@ -240,14 +239,14 @@ entries from the file."
 (setq org-adapt-indentation nil)
 
 ;; to randomize entries
-(defun my-randomize-entries ()
+(defun my-randomize-entries nil
   (interactive)
   (org-sort-entries nil ?f (lambda (&rest args) (random)))
   (org-cycle))
 
 ;; quick insertion of caption
 (add-hook 'org-mode-hook
-          (lambda ()
+          (lambda nil
             (push (cons ?c "#+CAPTION: ")
                   register-alist)))
 
@@ -274,7 +273,7 @@ entries from the file."
    "%i" :empty-lines 1 :immediate-finish t))
 
 (define-key global-map (kbd "C-c c e")
-  (lambda () (interactive) (org-capture nil "e")))
+  (lambda nil (interactive) (org-capture nil "e")))
 
 ;; extracting into an arbitrary entry
 (add-to-list
@@ -286,9 +285,9 @@ entries from the file."
 
 (with-eval-after-load 'org
   (define-key org-mode-map (kbd "C-c c x")
-    (lambda () (interactive) (org-capture nil "x"))))
+    (lambda nil (interactive) (org-capture nil "x"))))
 
-(defun my-set-extract-target ()
+(defun my-set-extract-target nil
   (interactive)
   (let ((new-target (list 'file+headline
                           (or (buffer-file-name)
@@ -308,7 +307,7 @@ entries from the file."
 ;;----------------------------------------
 ;; yanking from special sources
 
-(defun my-yank-from-pdf ()
+(defun my-yank-from-pdf nil
   (yank)
   (save-excursion
     (let ((end (region-end)))
@@ -317,7 +316,7 @@ entries from the file."
         (replace-match ""))))
   (unfill-region (region-beginning) (region-end)))
 
-(defun my-yank-from-info ()
+(defun my-yank-from-info nil
   (yank)
   (my-strip-region (region-beginning) (region-end))
   (unfill-region (region-beginning) (region-end)))
@@ -339,7 +338,7 @@ entries from the file."
           (forward-line))))))
 
 (setq my-cloze-regexp "{{c[[:digit:]]*::\\(.*?\\)\\(?:::\\(.*?\\)\\)?}}")
-(defun my-strip-cloze ()
+(defun my-strip-cloze nil
   (interactive)
   (let (beginning end)
     (yank)
@@ -350,11 +349,11 @@ entries from the file."
       (replace-match (match-string 1)))
     (goto-char end)))
 
-(defun my-yank ()
+(defun my-yank nil
   (interactive)
   (funcall my-yank-function))
 
-(defun my-yank-kill ()
+(defun my-yank-kill nil
   "This is useful to process text and then paste it somewhere else, (e.g. Anki)"
   (interactive)
   (my-yank)
@@ -366,17 +365,30 @@ entries from the file."
   (define-key org-mode-map "\C-\M-g" 'my-yank-kill))
 
 ;; random entry
-(defun my-random-entry ()
+(defun my-org-random-entry-from-point nil
   (interactive)
   (my-random-point)
   (org-back-to-heading))
 
-(defun my-random-line ()
+(defun my-org-random-entry (&optional pred)
+  "Move point to a random entry in the accessible region. When PRED is non-nil,
+consider only the headings which match PRED as possible candidates. PRED is a
+function with no arguments called with point at the beginning of the heading"
+  (interactive)
+  (let (posns)
+    (org-map-region
+     (if pred
+         (lambda nil (when (funcall pred) (push (point) posns)))
+       (lambda nil (push (point) posns)))
+     (point-min) (point-max))
+    (goto-char (my-randchoice posns))))
+
+(defun my-random-line nil
   (interactive)
   (my-random-point)
   (beginning-of-line))
 
-(defun my-random-point ()
+(defun my-random-point nil
   (interactive)
   (goto-char (+ (point-min)
                 (1+ (random (1+ (- (point-max) (point-min))))))))
@@ -389,7 +401,7 @@ entries from the file."
 
 (setq org-id-link-to-org-use-id t)
 
-(defun my-org-refile-link ()
+(defun my-org-refile-link nil
   "Creates a link to the current entry and refiles it."
   (interactive)
   (save-excursion
@@ -400,7 +412,7 @@ entries from the file."
       (insert link)
       (org-refile))))
 
-(defun my-org-kill-link ()
+(defun my-org-kill-link nil
   (interactive)
   (save-excursion
     (org-back-to-heading t)
