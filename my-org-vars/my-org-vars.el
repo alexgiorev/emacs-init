@@ -57,22 +57,24 @@ not bound to any node."
     (unless (setq location (org-id-find id))
       (user-error "Cannot find \"%s\"" name))
     ;; get the buffer
-    (setq buffer (cdr (assoc name my-org-vars-goto-indirect-buffer-alist)))
+    (setq buffer (cdr (assoc name my-org-vars-goto-alist)))
     (unless (buffer-live-p buffer)
       (assoc-delete-all
-       name my-org-vars-goto-indirect-buffer-alist 'string=)
+       name my-org-vars-goto-alist 'string=)
       (setq buffer nil))
     (unless buffer
       (if (setq buffer (get-file-buffer (car location)))
           (progn (setq buffer (make-indirect-buffer
                                buffer (generate-new-buffer-name name) :clone))
                  (push (cons name buffer)
-                       my-org-vars-goto-indirect-buffer-alist))
+                       my-org-vars-goto-alist))
         (setq buffer (find-file-noselect (car location)))))
     ;; switch to the buffer
     (switch-to-buffer buffer)
     (widen)
     (goto-char (cdr location))
+    (when (invisible-p (point))
+      (org-flag-heading nil))    
     (org-narrow-to-subtree)))
 
 (defun my-org-vars-unset (name)
