@@ -49,7 +49,8 @@ add a backlink as a BACKLINK property."
     (widen)
     (if arg (setq backlink (org-store-link 1)))
     (org-overview) ;; startup visibility
-    (my-goto-last-top-heading)
+    ;; go to the last top-level heading
+    (end-of-buffer) (while (org-up-heading-safe))
     (setq today (org-timestamp-from-time (current-time))
           headtime (org-timestamp-from-string
                     (org-get-heading :no-tags :no-todo :no-priority)))
@@ -63,11 +64,6 @@ add a backlink as a BACKLINK property."
       (org-insert-heading-respect-content) (org-demote)
       (org-show-set-visibility 'canonical))
     (if backlink (org-entry-put (point) "BACKLINK" backlink))))
-
-(defsubst my-goto-last-top-heading nil
-  "Moves point to the beginning of the last heading at level 1"
-  (end-of-buffer)
-  (while (org-up-heading-safe)))
 
 (defun my-timestamp-ymd (timestamp)
   "Returns a list (YEAR MONTH DAY) for an org timestamp object"
@@ -225,7 +221,7 @@ entries from the file."
         (type "|" "DECISION(n)" "PAST_DECISION")
         (type "|" "DECL(e)" "FACT" "CONCEPT(c)" "SOURCE" "EXAMPLES" "TEMP")
         (type "QUESTION(q)" "|" "ANSWERED" "ANSWER(a)")
-        (type "PROBLEM(p)" "|" "SOLVED" "SOLUTION(o)" "PROBLEM_DEFERRED")
+        (type "PROBLEM(p)" "|" "SOLVED" "SOLUTION(o)")
         (type "EXPLORE(x)" "EXPERIMENT" "ACTION" "HOOK" "LATER" "IDEA(i)" "READ(r)" "|")))
 
 ;; so that level 2 entries are also considered when refiling
