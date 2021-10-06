@@ -76,7 +76,9 @@ add a backlink as a BACKLINK property."
   (define-key org-mode-map (kbd "C-c n") 'my-new-entry-today))
 
 ;; ----------------------------------------
-(defun my-org-paste-list nil
+;; * yanking
+
+(defun my-org-yank-list nil
   (interactive)
   (save-restriction
     (let ((start (point))
@@ -90,8 +92,62 @@ add a backlink as a BACKLINK property."
                (forward-line)
                (not (eobp)))))))
 
-(with-eval-after-load 'org
-  (define-key org-mode-map "\C-cyl" 'my-org-paste-list))
+(defun my-yank-from-pdf nil
+  (let (text)
+    (with-temp-buffer
+      (yank) (beginning-of-buffer)
+      (while (re-search-forward "[-­‐]\n" nil t)
+        (replace-match ""))
+      (unfill-region (point-min) (point-max))
+      (setq text (buffer-string)))
+    (insert text)))
+
+(defun my-yank-from-info nil
+  (yank)
+  (my-strip-region (region-beginning) (region-end))
+  (unfill-region (region-beginning) (region-end)))
+
+(defun my-strip-region (start end)
+  "For each line in the region, strips beginning whitespace."
+  (save-excursion
+    (save-restriction
+      (setq start (progn (goto-char start) (beginning-of-line) (point)))
+      (setq end (progn (goto-char end) (end-of-line) (point)))
+      (narrow-to-region start end)
+      (goto-char start)
+      (let (delete-start delete-end)
+        (while (not (eobp))
+          (setq delete-start (point))
+          (skip-chars-forward "[[:blank:]]")
+          (setq delete-end (point))
+          (delete-region delete-start delete-end)
+          (forward-line))))))
+
+(defun my-yank-unfill nil
+  (interactive)
+  (let (text)
+    (with-temp-buffer
+      (yank) (unfill-region (point-min) (point-max))
+      (setq text (buffer-string)))
+    (insert text)))
+
+(defun my-org-yank-unfill-elisp-comment nil
+  (interactive)
+  (let (text)
+    (with-temp-buffer
+      (emacs-lisp-mode)
+      (yank) (uncomment-region (point-min) (point-max))
+      (unfill-region (point-min) (point-max))
+      (setq text (buffer-string)))
+    (insert text)))
+
+(defvar my-org-yank-map (make-sparse-keymap))
+(progn
+  (define-key my-org-yank-map "l" 'my-org-yank-list)
+  (define-key my-org-yank-map "u" 'my-yank-unfill)
+  (define-key my-org-yank-map "e" 'my-org-yank-unfill-elisp-comment))
+(define-key org-mode-map "\C-cy" my-org-yank-map)
+(global-set-key "\C-\M-y" 'my-yank-unfill)
 
 ;; ----------------------------------------
 
@@ -302,38 +358,6 @@ entries from the file."
   (define-key org-mode-map "\C-k" 'org-kill-line))
 (setq org-special-ctrl-a/e t)
 
-;;----------------------------------------
-;; yanking from special sources
-
-(defun my-yank-from-pdf nil
-  (yank)
-  (save-excursion
-    (let ((end (region-end)))
-      (goto-char (region-beginning))
-      (while (re-search-forward "[-­‐]\n" end t)
-        (replace-match ""))))
-  (unfill-region (region-beginning) (region-end)))
-
-(defun my-yank-from-info nil
-  (yank)
-  (my-strip-region (region-beginning) (region-end))
-  (unfill-region (region-beginning) (region-end)))
-
-(defun my-strip-region (start end)
-  "For each line in the region, strips beginning whitespace."
-  (save-excursion
-    (save-restriction
-      (setq start (progn (goto-char start) (beginning-of-line) (point)))
-      (setq end (progn (goto-char end) (end-of-line) (point)))
-      (narrow-to-region start end)
-      (goto-char start)
-      (let (delete-start delete-end)
-        (while (not (eobp))
-          (setq delete-start (point))
-          (skip-chars-forward "[[:blank:]]")
-          (setq delete-end (point))
-          (delete-region delete-start delete-end)
-          (forward-line))))))
 
 (setq my-cloze-regexp "{{c[[:digit:]]*::\\(.*?\\)\\(?:::\\(.*?\\)\\)?}}")
 (defun my-strip-cloze nil
@@ -346,21 +370,6 @@ entries from the file."
     (while (re-search-forward my-cloze-regexp end nil)
       (replace-match (match-string 1)))
     (goto-char end)))
-
-(defun my-yank nil
-  (interactive)
-  (funcall my-yank-function))
-
-(defun my-yank-kill nil
-  "This is useful to process text and then paste it somewhere else, (e.g. Anki)"
-  (interactive)
-  (my-yank)
-  (kill-region (region-beginning) (region-end)))
-
-(setq my-yank-function 'my-yank-from-pdf)
-(with-eval-after-load 'org
-  (define-key org-mode-map "\C-\M-y" 'my-yank)
-  (define-key org-mode-map "\C-\M-g" 'my-yank-kill))
 
 ;; random entry
 (defun my-org-random-entry-from-point nil
@@ -423,7 +432,20 @@ function with no arguments called with point at the beginning of the heading"
   (define-key org-mode-map (kbd "C-c C-l") nil)
   (define-key org-mode-map (kbd "C-c C-l") my-org-link-prefix-map))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ----------------------------------------
+;; * source code
+
+(defun my-org-yank-code (lang)
+  (let (text)
+    (with-temp-buffer
+      (yank) (beginning-of-buffer)
+      (insert (format "#+begin_src %s\n" lang))
+      (end-of-buffer)
+      (unless (= (char-before) ?\n)
+        (insert "\n"))
+      (insert "#+end_src")
+      (setq text (buffer-string)))
+    (save-excursion (insert text))))
 
 (defun my-org-codify-region (start end)
   (interactive "r")
@@ -442,8 +464,18 @@ function with no arguments called with point at the beginning of the heading"
         (yank) (activate-mark) (org-babel-demarcate-block))
     (org-babel-demarcate-block)))
 
-(with-eval-after-load
-    (define-key org-mode-map (kbd "C-c b s") 'my-org-code))
+(defvar my-org-block-map (make-sparse-keymap))
+(progn
+  (define-key my-org-block-map "s" 'my-org-code)
+  (define-key my-org-block-map "e"
+    (lambda nil (interactive)
+      (my-org-yank-code "elisp")))
+  (define-key my-org-block-map "p"
+    (lambda nil (interactive)
+      (my-org-yank-code "python"))))
+(define-key org-mode-map (kbd "C-c b") my-org-block-map)
+
+;; ----------------------------------------
 
 (defun my-org-paste-subtree-advice (old-func &rest args)
   "I don't like that the function sometimes inserts blank lines after it pastes
