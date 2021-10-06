@@ -141,11 +141,21 @@ add a backlink as a BACKLINK property."
       (setq text (buffer-string)))
     (insert text)))
 
+(defun my-org-yank-random-child nil
+  (interactive)
+  (my-org-insert-random-child)
+  (if (org-kill-is-subtree-p)
+      (org-paste-subtree)
+    (yank) (org-back-to-heading))
+  ;; hide subtree
+  (outline-hide-subtree))
+
 (defvar my-org-yank-map (make-sparse-keymap))
 (progn
   (define-key my-org-yank-map "l" 'my-org-yank-list)
   (define-key my-org-yank-map "u" 'my-yank-unfill)
-  (define-key my-org-yank-map "e" 'my-org-yank-unfill-elisp-comment))
+  (define-key my-org-yank-map "e" 'my-org-yank-unfill-elisp-comment)
+  (define-key my-org-yank-map "r" 'my-org-yank-random-child))
 (define-key org-mode-map "\C-cy" my-org-yank-map)
 (global-set-key "\C-\M-y" 'my-yank-unfill)
 
@@ -169,15 +179,6 @@ add a backlink as a BACKLINK property."
   (define-key org-mode-map "\C-ch" 'my-wrap-entry))
 
 ;; ----------------------------------------
-
-(defun my-org-paste-random-child nil
-  (interactive)
-  (my-org-insert-random-child)
-  (if (org-kill-is-subtree-p)
-      (org-paste-subtree)
-    (yank) (org-back-to-heading))
-  ;; hide subtree
-  (outline-hide-subtree))
 
 (defun my-org-insert-random-child nil
   (interactive)
@@ -205,9 +206,6 @@ result in faster runtime."
          (if (= (org-current-level) child-level)
              (setq list-of-posns (cons (point) list-of-posns)))))
       (unless dont-reverse (reverse list-of-posns)))))
-
-(with-eval-after-load 'org
-  (define-key org-mode-map "\C-cyr" 'my-org-paste-random-child))
 
 ;; ----------------------------------------
 
