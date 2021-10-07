@@ -263,7 +263,19 @@
   (nth (random (length list)) list))
 
 ;; ----------------------------------------
-(global-set-key "\C-xf" 'find-library)
+;; finding files
+
+(defun my-find-file (dir)
+  (find-file (read-file-name "Find file: " dir)))
+
+(defvar my-find-map (make-sparse-keymap))
+(progn
+  (define-key my-find-map "l"
+    (lambda nil (interactive) (my-find-file "~/leng/")))
+  (define-key my-find-map "e"
+    (lambda nil (interactive) (my-find-file user-emacs-directory)))
+  (define-key my-find-map "i" 'find-library))
+(global-set-key "\C-xf" my-find-map)
 
 ;; ----------------------------------------
 (defun my-dired-store-filename-in-kill-ring ()
