@@ -46,7 +46,7 @@
    ["black" "red3" "ForestGreen" "yellow3" "blue" "magenta3" "DeepSkyBlue" "gray50"])
  '(custom-enabled-themes nil)
  '(package-selected-packages
-   '(bazel rust-mode projectile elpy magit anki-editor racket-mode))
+   '(undo-tree bazel rust-mode projectile elpy magit anki-editor racket-mode))
  '(send-mail-function 'mailclient-send-it))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
@@ -415,3 +415,7 @@ current buffer"
 (when (get-buffer "*scratch*")
   (kill-buffer "*scratch*")
   (find-file-noselect "/tmp/scratch.el"))
+
+;; ----------------------------------------
+(require 'undo-tree)
+(global-undo-tree-mode)
