@@ -128,13 +128,14 @@ today.")
 
 (defun my-sched-ring-reset nil
   (interactive)
-  (let ((ids (mapcar (lambda (sched) (plist-get sched :id))
-                     (my-sched--due-today))))
+  (let* ((ids (mapcar (lambda (sched) (plist-get sched :id))
+                      (my-sched--due-today)))
+         (length (length ids)))
     (if ids
         (setq my-sched-ring (my-circlist-make ids))
-      (setq my-sched-ring nil)))
-  (when (called-interactively-p 'interactive)
-    (message "%s entries due" (length my-sched-ring))))
+      (setq my-sched-ring nil))
+    (when (called-interactively-p 'interactive)
+      (message "%s entries due" length))))
 
 (defun my-sched-ring--check nil
   (if (not my-sched-ring)
