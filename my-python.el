@@ -34,15 +34,15 @@
 
 (defconst my-python-identifier-re "[0-9a-zA-Z_]+")
 (defconst my-python-def-re
-  (format "[ \t]*def[ \t]\\(%s\\)" my-python-identifier-re)
+  (format "^[ \t]*def[ \t]\\(%s\\)" my-python-identifier-re)
   "A regexp which matches the beginning of a function definition. The name of
   the function is stored in the first group.")
 (defconst my-python-class-re
-  (format "[ \t]*class[ \t]\\(%s\\)" my-python-identifier-re)
+  (format "^[ \t]*class[ \t]\\(%s\\)" my-python-identifier-re)
   "A regexp which matches the beginning of a function definition. The name of
   the function is stored in the first group.")
 
-(defun my-python-func-signature nil
+(defun my-python-save-func-signature nil
   "Insert into the kill ring the signature of the function at point"
   (interactive)
   (save-excursion
@@ -50,7 +50,7 @@
     (looking-at "[ \t]*\\(.*\\):")
     (kill-new (match-string-no-properties 1))))
 
-(defun my-python-func-name nil
+(defun my-python-save-name nil
   "Insert into the kill ring the name of the function at point"
   (interactive)
   (kill-new (my-python-definition-name)))
@@ -84,11 +84,15 @@ or a function definition."
       (kill-new (if class-name (format "%s.%s" class-name func-name)
                   func-name)))))
 
-(define-key python-mode-map (kbd "C-c t")
-  (lambda (&optional arg)
-    (interactive "P")
-    (funcall (if arg 'my-python-func-name
-               'my-python-func-signature))))
+(defvar my-python-defs-map (make-sparse-keymap))
+(progn
+  (define-key my-python-defs-map "n" 'my-python-save-name)
+  (define-key my-python-defs-map "s" 'my-python-save-func-signature)
+  (define-key my-python-defs-map "m" 'my-python-save-method-path))
+(define-key python-mode-map "\C-cd" my-python-defs-map)
+
+;; ----------------------------------------
+;; search
 
 ;; ----------------------------------------
 ;; misc
@@ -107,3 +111,11 @@ return nil."
                              (progn (setq pos (point)) nil))))))
     (when pos (goto-char pos))))
 
+(defun my-python-defs nil
+  "Return a list of the names of the functions defined in the current buffer"
+  (save-excursion
+    (let (result)
+      (beginning-of-buffer)
+      (while (re-search-forward my-python-def-re nil t)
+        (push (match-string-no-properties 1) result))
+      result)))
