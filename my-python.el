@@ -1,5 +1,7 @@
 ;; Python-related configuration
-
+;; ----------------------------------------
+(require 'python)
+;; ----------------------------------------
 ;; so that python3 is used rather than python2
 (setq python-shell-interpreter "python3")
 
@@ -7,29 +9,40 @@
 
 ;; store "raise NotImplementedError" in register 1 for python-mode
 (add-hook 'python-mode-hook
-          (lambda ()
-            (push (cons ?1 "raise NotImplementedError")
-                  register-alist)))
+          (lambda nil
+            (set-register ?1 "raise NotImplementedError")))
 
 ;; python-mode keys
-(with-eval-after-load 'python-mode
-  (define-key python-mode-map (kbd "M-{") 'python-nav-backward-block)
-  (define-key python-mode-map (kbd "M-}") 'python-nav-forward-block)
-  (define-key python-mode-map (kbd "M-h") 'python-mark-defun))
+(define-key python-mode-map (kbd "M-{") 'python-nav-backward-block)
+(define-key python-mode-map (kbd "M-}") 'python-nav-forward-block)
+(define-key python-mode-map (kbd "M-h") 'python-mark-defun)
 
 ;; ----------------------------------------
-(defun my-rename-python-init ()
+(defun my-rename-python-init nil
   (interactive)
   (let* ((dirname (car (last (split-string (buffer-file-name) "/") 2)))
          (new-buffer-name (concat dirname "__init__.py")))
     (rename-buffer new-buffer-name :unique)))
 
 (add-hook 'python-mode-hook
-          (lambda ()
+          (lambda nil
             (if (string-match "^__init__\\.py" (buffer-name))
                 (my-rename-python-init))))
 
-(defun my-python-get-func-signature ()
+;; ----------------------------------------
+;; functions and classes
+
+(defconst my-python-identifier-re "[0-9a-zA-Z_]+")
+(defconst my-python-def-re
+  (format "[ \t]*def[ \t]\\(%s\\)" my-python-identifier-re)
+  "A regexp which matches the beginning of a function definition. The name of
+  the function is stored in the first group.")
+(defconst my-python-class-re
+  (format "[ \t]*class[ \t]\\(%s\\)" my-python-identifier-re)
+  "A regexp which matches the beginning of a function definition. The name of
+  the function is stored in the first group.")
+
+(defun my-python-func-signature nil
   "Insert into the kill ring the signature of the function at point"
   (interactive)
   (save-excursion
@@ -37,18 +50,60 @@
     (looking-at "[ \t]*\\(.*\\):")
     (kill-new (match-string-no-properties 1))))
 
-(defun my-python-get-func-name ()
+(defun my-python-func-name nil
   "Insert into the kill ring the name of the function at point"
   (interactive)
+  (kill-new (my-python-definition-name)))
+
+(defun my-python-definition-name nil
+  "Return the name of the definition at point. This could be a class definition
+or a function definition."
   (save-excursion
     (beginning-of-defun)
-    (let ((case-fold-search t))
-      (looking-at "[ \t]*def[ \t]+\\([0-9a-z_]+\\)"))
-    (kill-new (match-string-no-properties 1))))
+    (or (looking-at my-python-def-re)
+        (looking-at my-python-class-re))
+    (match-string-no-properties 1)))
 
-(with-eval-after-load 'python-mode
-  (define-key python-mode-map (kbd "C-c t")
-    (lambda (&optional arg)
-      (interactive "P")
-      (funcall (if arg 'my-python-get-func-name
-                 'my-python-get-func-signature)))))
+(defun my-python-save-method-path nil
+  "Insert into the kill ring a string of the form
+  \"CLASS_NAME.METHOD_NAME\". When the function at point is not a method in a
+  class, just store the function name."
+  (interactive)
+  (save-excursion
+    (let (func-name class-name matched-p)
+      (beginning-of-line)
+      (unless (looking-at my-python-def-re)
+        (beginning-of-defun)
+        (unless (looking-at my-python-def-re)
+          (error "Point not in function definition")))
+      (setq func-name (match-string-no-properties 1))
+      (while (and (my-python-goto-parent-line)
+                  (not (setq matched-p (looking-at my-python-class-re)))))
+      (when matched-p
+        (setq class-name (match-string-no-properties 1)))
+      (kill-new (if class-name (format "%s.%s" class-name func-name)
+                  func-name)))))
+
+(define-key python-mode-map (kbd "C-c t")
+  (lambda (&optional arg)
+    (interactive "P")
+    (funcall (if arg 'my-python-func-name
+               'my-python-func-signature))))
+
+;; ----------------------------------------
+;; misc
+
+(defun my-python-goto-parent-line nil
+  "Move to the beginning of the nearest preceding line having lower indentation
+than the current one and return t. If no such line, keep point in place and
+return nil."
+  (let ((indentation (current-indentation))
+        pos)
+    (save-excursion
+      (while (and (not (bobp))
+                  (progn (beginning-of-line 0)
+                         (or (looking-at my-blank-line-re)
+                             (>= (current-indentation) indentation)
+                             (progn (setq pos (point)) nil))))))
+    (when pos (goto-char pos))))
+
