@@ -255,3 +255,8 @@ removed."
         (when current
           (setcdr prev (cdr current))
           (car current))))))
+
+;; ----------------------------------------
+;; lines
+(defvar my-blank-line-re "^[ \t]*$"
+  "Regexp which matches a blank line")
