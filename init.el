@@ -124,11 +124,14 @@
 ;; misc
 (show-paren-mode)
 
+(defun my-text-size nil
+  (unless (minibufferp)
+    (setq text-scale-mode-amount 1)
+    (text-scale-mode text-scale-mode-amount)))
+
 ;; increase default text size
 (add-hook 'after-change-major-mode-hook
-          (lambda ()
-            (unless (string-match "*Minibuf-" (buffer-name))
-              (text-scale-adjust 0) (text-scale-adjust 1) (message ""))))
+          'my-text-size)
 
 (put 'set-goal-column 'disabled nil)
 
