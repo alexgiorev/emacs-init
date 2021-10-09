@@ -45,6 +45,7 @@
  '(ansi-color-names-vector
    ["black" "red3" "ForestGreen" "yellow3" "blue" "magenta3" "DeepSkyBlue" "gray50"])
  '(custom-enabled-themes nil)
+ '(elpy-rpc-python-command "python3")
  '(package-selected-packages
    '(undo-tree bazel rust-mode projectile elpy magit anki-editor racket-mode))
  '(send-mail-function 'mailclient-send-it))
@@ -124,12 +125,13 @@
 ;; misc
 (show-paren-mode)
 
+;; increase default text size
+(require 'face-remap)
 (defun my-text-size nil
   (unless (minibufferp)
     (setq text-scale-mode-amount 1)
     (text-scale-mode text-scale-mode-amount)))
 
-;; increase default text size
 (add-hook 'after-change-major-mode-hook
           'my-text-size)
 

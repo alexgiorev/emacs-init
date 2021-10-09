@@ -94,6 +94,19 @@ or a function definition."
 ;; ----------------------------------------
 ;; search
 
+(defun my-python-isearch-def nil
+  (interactive)
+  (let ((isearch-filter-predicate
+         (lambda (beg end)
+           (save-match-data
+             (save-excursion
+               (beginning-of-line)
+               (and (looking-at my-python-def-re)
+                    (<= (match-beginning 1) beg end (match-end 1))))))))
+    (isearch-mode :forward nil nil t)))
+
+(define-key python-mode-map (kbd "M-s d") 'my-python-isearch-def)
+
 ;; ----------------------------------------
 ;; misc
 
@@ -119,3 +132,8 @@ return nil."
       (while (re-search-forward my-python-def-re nil t)
         (push (match-string-no-properties 1) result))
       result)))
+
+;; elpy
+(setq elpy-modules nil)
+(setq elpy-rpc-python-command "python3")
+(elpy-enable)
