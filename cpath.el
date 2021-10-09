@@ -135,15 +135,18 @@ current node is created which corresponds to the function at point"
   (cpath--check-current)
   (let ((parent (plist-get cpath-current-node :parent)))
     (unless parent
-      (user-error "Cannot go up, on top frame"))
+      (user-error "Cannot move up, at top"))
     (setq cpath-current-node parent)
     (cpath--jump)))
 
 (defun cpath-down nil
   (interactive)
   (cpath--check-current)
-  (setq cpath-current-node (cpath-node-branch-child cpath-current-node))
-  (cpath--jump))
+  (let ((child (cpath-node-branch-child cpath-current-node)))
+    (unless child
+      (user-error "Cannot move down, at bottom"))
+    (setq cpath-current-node child)
+    (cpath--jump)))
 
 (defun cpath-goto-current nil
   (interactive)
