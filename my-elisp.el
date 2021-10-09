@@ -1,3 +1,4 @@
+(require 'elisp-mode)
 ;; ----------------------------------------
 (defconst my-elisp-defun-re
   "([[:space:]\n]*defun[[:space:]\n]+\\(\\(?:\\sw\\|\\s_\\)+\\)")
@@ -16,4 +17,7 @@
 (define-key emacs-lisp-mode-map (kbd "M-s d") 'my-elisp-isearch-defun)
 
 ;; ----------------------------------------
-;; 
+(define-key emacs-lisp-mode-map (kbd "C-c t")
+  (lambda nil
+    (interactive)
+    (insert "(error \"TODO\")")))
