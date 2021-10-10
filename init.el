@@ -434,7 +434,9 @@ current buffer"
 kill ring the name of the defun at point."
   (interactive)
   (ignore-errors
-    (kill-new (my-get-defun-name)))
+    (if (eq major-mode 'python-mode)
+        (my-python-save-name)
+      (my-elisp-save-defun-name)))
   (magit-stage-file (buffer-file-name))
   (if ammend (magit-commit-amend) (magit-commit)))
 
@@ -454,6 +456,22 @@ kill ring the name of the defun at point."
   (progn
     (define-key map "\C-f" 'next-buffer)
     (define-key map "\C-b" 'previous-buffer)
-    (define-key map "\C-l" 'list-buffers))
-  (setq my-buffernav-map map))
-(global-set-key "\C-x\C-b" my-buffernav-map)
+    (define-key map "\C-l" 'list-buffers)
+    (define-key map "\C-s" 'my-buffernav-switch-to-spouse))
+  (fset 'my-buffernav-map map))
+(global-set-key "\C-x\C-b" 'my-buffernav-map)
+
+(defun my-buffernav-marry (buffer-or-name)
+  "Set BUFFER-OR-NAME as the spouse of the current buffer
+This is facilitates switching between two buffers which are related"
+  (interactive "b")
+  (let ((current-buffer (current-buffer)))
+    (setq-local my-buffernav-spouse buffer-or-name)
+    (with-current-buffer buffer-or-name
+      (setq-local my-buffernav-spouse current-buffer))))
+
+(defun my-buffernav-switch-to-spouse nil
+  (interactive)
+  (unless (boundp 'my-buffernav-spouse)
+    (user-error "Current buffer has no spouse"))
+  (switch-to-buffer my-buffernav-spouse))
