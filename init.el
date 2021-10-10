@@ -457,14 +457,15 @@ kill ring the name of the defun at point."
     (define-key map "\C-f" 'next-buffer)
     (define-key map "\C-b" 'previous-buffer)
     (define-key map "\C-l" 'list-buffers)
-    (define-key map "\C-s" 'my-buffernav-switch-to-spouse))
+    (define-key map "\C-s" 'my-buffernav-switch-to-spouse)
+    (define-key map "\C-r" 'my-buffernav-marry))
   (fset 'my-buffernav-map map))
 (global-set-key "\C-x\C-b" 'my-buffernav-map)
 
 (defun my-buffernav-marry (buffer-or-name)
   "Set BUFFER-OR-NAME as the spouse of the current buffer
-This is facilitates switching between two buffers which are related"
-  (interactive "b")
+This facilitates switching between two buffers which are related"
+  (interactive "bMarry with: ")
   (let ((current-buffer (current-buffer)))
     (setq-local my-buffernav-spouse buffer-or-name)
     (with-current-buffer buffer-or-name
