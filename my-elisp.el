@@ -49,3 +49,5 @@ about the function."
             (lambda nil
               (setq cpath-func-name-func
                     'my-elisp-defun-name))))
+;; ----------------------------------------
+(provide 'my-elisp)

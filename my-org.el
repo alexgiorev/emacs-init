@@ -958,3 +958,5 @@ FUNC."
 (add-hook 'org-mode-hook
           'my-org-tempdone-undo-buffer)
 
+;;----------------------------------------
+(provide 'my-org)

@@ -174,4 +174,14 @@ the roto of the first top-level tree."
   (kill-new (cpath-org-tree)))
 
 ;;----------------------------------------
+;; keymap
+(defvar cpath-map (make-sparse-keymap))
+(progn
+  (define-key cpath-map "c" 'cpath-call)
+  (define-key cpath-map "p" 'cpath-up)
+  (define-key cpath-map "n" 'cpath-down)
+  (define-key cpath-map "d" 'cpath-prune)
+  (define-key cpath-map " " 'cpath-goto-current))
+(define-key prog-mode-map "\C-cp" cpath-map)
+;;----------------------------------------
 (provide 'cpath)

@@ -24,14 +24,17 @@
   "Construct a map name based on a MODE name."
   (intern (concat (symbol-name mode) "-map")))
 
+(add-to-list 'load-path user-emacs-directory)
 ;; org-mode configuration
-(load "~/.emacs.d/my-org")
+(require 'my-org)
 ;; programming configuration
-(load "~/.emacs.d/code")
+(require 'my-code)
 ;; python-configuration
-(load "~/.emacs.d/my-python")
+(require 'my-python)
 ;; miscellaneous functions
-(require 'my-macs "~/.emacs.d/my-macs.el")
+(require 'my-macs)
+;; emacs coding
+(require 'my-elisp)
 ;; functions I don't want to share
 (load "~/.emacs.d/private")
 
@@ -385,20 +388,6 @@
 "The map containing the bindings of my own commands in the global map")
 
 (define-key global-map "\C-\M-m" my-global-prefix-map)
-
-;; ----------------------------------------
-(defun my-get-defun-name ()
-  "Puts in the kill ring the name of the current defun. Useful when taking notes
-about the function."
-  (interactive)
-  (save-excursion
-    (beginning-of-defun)
-    (let ((defun-form (read (current-buffer))))
-      (kill-new (symbol-name (cadr defun-form))))))
-
-(with-eval-after-load 'elisp-mode
-  (define-key emacs-lisp-mode-map (kbd "C-c C-t") 'my-get-defun-name)
-  (define-key lisp-interaction-mode-map (kbd "C-c C-t") 'my-get-defun-name))
 
 ;; ----------------------------------------
 

@@ -15,3 +15,5 @@
   (define-key prog-mode-map
     (kbd "C-c M-w") 'my-kill-code-remove-indent))
 
+;; ----------------------------------------
+(provide 'my-code)

@@ -132,8 +132,11 @@ return nil."
       (while (re-search-forward my-python-def-re nil t)
         (push (match-string-no-properties 1) result))
       result)))
-
+;; ----------------------------------------
 ;; elpy
 (setq elpy-modules nil)
 (setq elpy-rpc-python-command "python3")
 (elpy-enable)
+
+;; ----------------------------------------
+(provide 'my-python)
