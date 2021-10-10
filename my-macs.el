@@ -255,6 +255,44 @@ removed."
         (when current
           (setcdr prev (cdr current))
           (car current))))))
+;; ----------------------------------------
+;; * lists
+(defun my-list-index (elt list &optional test)
+  "Return the index in LIST where ELT first appears.
+The comparison is done with TEST, which defaults to `eq'."
+  (let ((result 0)
+        (current list)
+        (test (or test 'eq))
+        foundp)
+    (while (and current (not (setq foundp (eq (car current) elt))))
+      (setq result (1+ result)
+            current (cdr current)))
+    (and foundp result)))
+
+(defmacro my-loop-cons (var-list &rest body)
+  "Iterate over the pairs of a list. For each pair, bind VAR to it and execute
+BODY."
+  (declare (indent 1))
+  (let ((var (car var-list))
+        (list-expr (cadr var-list)))
+    `(let ((,var ,list-expr))
+       (while ,var
+         ,@body
+         (setq ,var (cdr ,var))))))
+
+(defun my-list-prev-cons (list pred)
+  "Return the CONS preceding the one whose CAR passes PRED. Returns nil when
+such a CONS is not present in LIST.
+
+The first element of LIST is ignored. For example, the first element may pass
+PRED but if no other element passes it then nil will be returned."
+  (let ((current list) next result)
+    (catch :break
+      (my-loop-cons (current list)
+        (when (setq next (cdr current))
+          (when (funcall pred (car next))
+            (setq result current) (throw :break nil)))))
+    result))
 
 ;; ----------------------------------------
 ;; lines
