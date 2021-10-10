@@ -446,3 +446,14 @@ kill ring the name of the defun at point."
   (define-key my-magit-map "p" 'magit-push-current-to-upstream)
   (define-key my-magit-map "s" 'magit-status))
 (global-set-key "\C-xg" my-magit-map)
+
+;; ----------------------------------------
+;; buffer navigation
+(defvar my-buffernav-map nil)
+(let ((map (make-sparse-keymap)))
+  (progn
+    (define-key map "\C-f" 'next-buffer)
+    (define-key map "\C-b" 'previous-buffer)
+    (define-key map "\C-l" 'list-buffers))
+  (setq my-buffernav-map map))
+(global-set-key "\C-x\C-b" my-buffernav-map)
