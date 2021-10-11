@@ -376,6 +376,52 @@ current one"
   (interactive)
   (kill-buffer-and-window))
 
+;; ----------------------------------------
+;; (experimental) alternative tree visualization
+
+(defun my-tree-draw (&optional root)
+  "Make sure to call on an empty line"
+  (setq root (or root (cpath--current-root)))
+  (insert (my-tree-draw-node root)))
+
+(defun my-tree-draw-node (node)
+  "Draw NODE at point and leave point at the end of the drawing"
+  (let ((children-markers nil)
+        (children (plist-get node :children))
+        child-start child-end connector node-string)
+    (if (not children)
+        (insert (plist-get node :name) "\n")
+      (save-restriction
+        (narrow-to-region (point) (point))
+        (dolist (child children)
+          (push (point-marker) children-markers)
+          (my-tree-draw-node child))
+        (setq children-markers (reverse children-markers))
+        ;; insert connectors
+        (my-loop-cons (pair children-markers)
+          (setq child-start (car pair))
+          (if (cdr pair)
+              (setq connector "╠═"
+                    child-end (cadr pair))
+            (setq connector "╚═"
+                  child-end (point-max)))
+          (goto-char child-start)
+          (insert connector)
+          (unless (= (progn (beginning-of-line 2) (point)) child-end)
+            (indent-rigidly (point) child-end 2)))
+        ;; connect connectors
+        (my-maplines (point-min) (car (last children-markers))
+          (lambda nil
+            (when (= (char-after) ?\s)
+              (delete-char 1) (insert "║"))))
+        ;; insert NODE's text and associate the text with NODE through a text property
+        (setq node-string (concat (plist-get node :name) "═╗"))
+        (indent-rigidly (point-min) (point-max) (1- (length node-string)))
+        (beginning-of-buffer)
+        (save-excursion (insert node-string "\n"))
+        (put-text-property (point) (1+ (point)) :node node)
+        (goto-char (point-max))))))
+
 ;;----------------------------------------
 ;; keymap
 (defvar cpath-map (make-sparse-keymap))
