@@ -283,6 +283,22 @@ PRED but if no other element passes it then nil will be returned."
             (setq result current) (throw :break nil)))))
     result))
 
+(defun my-list-neighbor (list elt &optional left)
+  "Return the neighbor of ELT in LIST or nil when ELT is not in LIST. This is
+either the left neighbor when LEFT is non-nil or the right one. The right
+neighbor of the last element is the first element, and the left neighbor of the
+first element is the last element."
+  (cond (left
+         (if (eq (car list) elt)
+             (car (last list))
+           (car (my-list-prev-cons
+                 list (lambda (other-elt) (eq elt other-elt))))))
+          
+        (t
+         (let ((tail (memq elt list)))
+           (when tail
+             (if (cdr tail) (cadr tail) (car list)))))))
+
 ;; ----------------------------------------
 ;; lines
 (defvar my-blank-line-re "^[ \t]*$"
