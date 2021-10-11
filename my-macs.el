@@ -269,17 +269,6 @@ The comparison is done with TEST, which defaults to `eq'."
             current (cdr current)))
     (and foundp result)))
 
-(defmacro my-loop-cons (var-list &rest body)
-  "Iterate over the pairs of a list. For each pair, bind VAR to it and execute
-BODY."
-  (declare (indent 1))
-  (let ((var (car var-list))
-        (list-expr (cadr var-list)))
-    `(let ((,var ,list-expr))
-       (while ,var
-         ,@body
-         (setq ,var (cdr ,var))))))
-
 (defun my-list-prev-cons (list pred)
   "Return the CONS preceding the one whose CAR passes PRED. Returns nil when
 such a CONS is not present in LIST.
@@ -298,3 +287,28 @@ PRED but if no other element passes it then nil will be returned."
 ;; lines
 (defvar my-blank-line-re "^[ \t]*$"
   "Regexp which matches a blank line")
+
+;; ----------------------------------------
+;; loops
+
+(defmacro my-loop-cons (var-list &rest body)
+  "Iterate over the pairs of a list. For each pair, bind VAR to it and execute
+BODY."
+  (declare (indent 1))
+  (let ((var (car var-list))
+        (list-expr (cadr var-list)))
+    `(let ((,var ,list-expr))
+       (while ,var
+         ,@body
+         (setq ,var (cdr ,var))))))
+
+(defvar do-while--break-symbol (make-symbol ":do-while--break"))
+(defmacro do-while (&rest body)
+  "Keep evaluating BODY until `end-do-while' is called"
+  (declare (indent 0))
+  `(catch do-while--break-symbol
+     (while t
+       ,@body)))
+(defsubst end-do-while (&optional result)
+  "End the nearest enclosing `do-while' loop"
+  (throw do-while--break-symbol result))
