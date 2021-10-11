@@ -224,7 +224,8 @@ the roto of the first top-level tree."
     (define-key map "n" 'cpath-navigation-down)
     (define-key map "f" 'cpath-navigation-branch-next)
     (define-key map "b" 'cpath-navigation-branch-prev)
-    (define-key map "q" 'cpath-navigation-quit))
+    (define-key map "q" 'cpath-navigation-quit)
+    (define-key map (kbd "RET") 'cpath-navigation-quit))
   (setq cpath-navigation-mode-map map))
 
 (defvar cpath-navigation-branch-face nil
@@ -232,17 +233,21 @@ the roto of the first top-level tree."
 (defvar cpath-navigation-current-face nil
   "The face of the heading corresponding to the current node")
 
-(define-derived-mode cpath-navigation-mode org-mode "cpath-navigation"
-  ;; insert the org-mode representation, additionally associating via text
+(define-derived-mode cpath-navigation-mode special-mode "cpath-navigation"
+  ;; ----------------------------------------
+  ;; insert an org-like representation, additionally associating via text
   ;; properties each heading with an actual node
-  (erase-buffer)
+  (read-only-mode -1)
+  (erase-buffer)  
   (cpath-depth-first-walk
    (lambda (node depth)
-     (insert (make-string (1+ depth) ?*) " "
+     (insert (make-string (1+ depth) ?-)
              (plist-get node :name) "\n")
      (beginning-of-line 0)
      (put-text-property (point) (1+ (point)) :cpath-node node)
      (beginning-of-line 2)))
+  (read-only-mode 1)
+  ;; ----------------------------------------
   (cpath-navigation--mark-branch)
   (cpath-navigation--goto-node cpath-current-node)
   (setq cursor-type nil))
@@ -275,8 +280,7 @@ current node"
   "Assumes point is at the beginning of a heading. When TYPE is :branch, marks
 it visually as a part of the current branch. When TYPE is :current, marks the
 heading as the one which maps to the current node."
-  (looking-at org-complex-heading-regexp)
-  (let ((overlay (make-overlay (match-beginning 4) (match-end 4)))
+  (let ((overlay (make-overlay (point) (line-end-position)))
         (face (cond ((eq type :current) '(:foreground "white" :background "black"))
                     ((eq type :branch) '(:foreground "black" :background "yellow"))
                     (t (error "Invalid type: %s" type)))))
@@ -290,17 +294,19 @@ heading as the one which maps to the current node."
   (remove-overlays (point) (line-end-position) :cpath-navigation t))
 
 (defvar cpath-navigation-buffer-name "*cpath-navigation*")
-(defvar cpath-navigation-other-window nil
-  "The window affected by the navigation commands.
-When a navigation command is invoked, it jumps to a call made previously. The
-jump happens in the window bound to this variable")
 (defun cpath-navigate nil
   "Show navigation buffer"
   (interactive)
   (cpath--check-current)
   (let ((nbuffer (get-buffer-create cpath-navigation-buffer-name)))
-    (switch-to-buffer-other-window buffer)
-    (cpath-navigation-mode)))
+    (switch-to-buffer-other-window nbuffer)
+    (cpath-navigation-mode)
+    (cpath-navigation--jump)))
+
+(defsubst cpath-navigation--jump nil
+  (select-window (previous-window))
+  (cpath--jump)
+  (select-window (next-window)))
 
 (defun cpath-navigation-up nil
   (interactive)
@@ -308,7 +314,8 @@ jump happens in the window bound to this variable")
     (unless parent
       (user-error "Cannot move up, at root"))
     (setq cpath-current-node parent)
-    (cpath-navigation--mark-branch)))
+    (cpath-navigation--mark-branch)
+    (cpath-navigation--jump)))
 
 (defun cpath-navigation-down nil
   (interactive)
@@ -316,7 +323,8 @@ jump happens in the window bound to this variable")
     (unless child
       (user-error "Cannot move down, at bottom"))
     (setq cpath-current-node child)
-    (cpath-navigation--mark-branch)))
+    (cpath-navigation--mark-branch)
+    (cpath-navigation--jump)))
 
 (defun cpath-navigation--branch (direction)
   "When DIRECTION is :next, set the branch child to the one following the
@@ -340,18 +348,16 @@ the current one."
 (defun cpath-navigation-branch-next nil
   "Set the branch child to the one preceding the current one"
   (interactive)
-  (cpath-navigation--branch :next)
-  (error "TODO"))
+  (cpath-navigation--branch :next))
 
 (defun cpath-navigation-branch-prev nil
   "Set the branch child to the one preceding the current one"
   (interactive)
-  (cpath-navigation--branch :prev)
-  (error "TODO"))
+  (cpath-navigation--branch :prev))
 
 (defun cpath-navigation-quit nil
   (interactive)
-  (kill-buffer (current-buffer)))
+  (kill-buffer-and-window))
 
 ;;----------------------------------------
 ;; keymap
@@ -361,7 +367,8 @@ the current one."
   (define-key cpath-map "p" 'cpath-up)
   (define-key cpath-map "n" 'cpath-down)
   (define-key cpath-map "d" 'cpath-prune)
-  (define-key cpath-map " " 'cpath-goto-current))
+  (define-key cpath-map " " 'cpath-goto-current)
+  (define-key cpath-map "v" 'cpath-navigate))
 (define-key prog-mode-map "\C-cp" cpath-map)
 ;;----------------------------------------
 (provide 'cpath)
