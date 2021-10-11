@@ -86,33 +86,42 @@ Assumes a call path is active"
                (plist-get node :name) "\n")))
     (buffer-string)))
 
-(defun cpath-depth-first-walk (func &optional root)
+(defun cpath-depth-first-walk (func &optional root postorder)
   "Traverse in depth-first order the subtree whose root is ROOT and call FUNC on
-each node. ROOT defaults to the current root, but it can be any node, in which
-case the traversal is performed on the subtree of the node. FUNC accepts two
-arguments: the current node and its depth from the root. FUNC is called on a
-parent before it is called on a child. The root itself has depth zero, its
-children have depth one, etc."
+each node. The traversal is in pre-order (parent called before children), unless
+POSTORDER is non-nil. ROOT defaults to the current root, but it can be any node,
+in which case the traversal is performed on the subtree of the node. FUNC
+accepts two arguments: the current node and its depth from the root. FUNC is
+called on a parent before it is called on a child. The root itself has depth
+zero, its children have depth one, etc."
   (let* ((root (or root (cpath--current-root)))
-         ;; each stack element is a pair (NODES . DEPTH)
-         ;; an assumption is that NODES is never nil
-         (stack (list (cons (list root) 0)))
-         head nodes node depth children)
+         ;; Each stack element corresponds to a node in the tree and has the
+         ;; form [NODE CHILDREN DEPTH]
+         (stack (list (vector root (plist-get root :children) 0)))
+         head node children child)
     (while stack
       (setq head (car stack)
-            nodes (car head)
-            node (car nodes)
-            children (plist-get node :children)
-            depth (cdr head))
-      (funcall func node depth)
-      (setq nodes (cdr nodes))
-      (if nodes
-          (setcar head nodes)
-        (pop stack))
-      (when children
-        (push (cons children (1+ depth))
-              stack)))))
-
+            node (aref head 0)
+            children (aref head 1)
+            depth (aref head 2))
+      (if postorder
+          (if children
+              (progn (setq child (pop children))
+                     (aset head 1 children)
+                     (push (vector child
+                                   (plist-get child :children)
+                                   (1+ depth))
+                           stack))
+            (funcall func node depth)
+            (pop stack))
+        (if node
+            (progn (funcall func node depth)
+                   (aset head 0 nil)
+                   (when (not children) (pop stack)))
+          (setq child (pop children))
+          (if children (aset head 1 children) (pop stack))
+          (push (vector child (plist-get child :children) (1+ depth)) stack))))))
+      
 (defsubst cpath--jump nil
   (my-jump-to-marker (plist-get cpath-current-node :marker)))
 
