@@ -48,6 +48,7 @@ Assumes that point is at the beginning of the line."
     (delete-region start (point))))
 
 (defun my-maplines (beg end fun)
+  (declare (indent 0))
   (unless (= (point-min) (point-max))
     (save-excursion
       (setq end (copy-marker end))
@@ -56,9 +57,10 @@ Assumes that point is at the beginning of the line."
             (goto-char beg) (beginning-of-line)
             (while (when (<= (point) end)
                      (save-excursion (funcall fun))
-                     (forward-line)
+                     (beginning-of-line 2)
                      (not (eobp)))))
         (set-marker end nil)))))
+(put 'my-maplines 'lisp-indent-function 2)
 
 (defun delete-current-line ()
   (interactive)
