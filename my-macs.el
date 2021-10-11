@@ -337,7 +337,8 @@ BODY."
   (interactive "r")
   (let ((overlay (make-overlay start end (current-buffer))))
     (overlay-put overlay 'face '(:foreground "white" :background "black"))
-    (overlay-put overlay :my-highlight t)))
+    (overlay-put overlay :my-highlight t)
+    (overlay-put overlay 'evaporate t)))
 (defun my-unhighlight-all nil
   (interactive)
   (remove-overlays (point-min) (point-max) :my-highlight t))
