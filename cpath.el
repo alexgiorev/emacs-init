@@ -446,11 +446,11 @@ the connector (i.e. up to and including the first ╗ connector)"
     (my-tree--mark (point) (1+ (point))))))
 
 (defun my-tree-mark--row nil
-  "Marks from point up to and including the first ╚ connector. Returns nil when
+  "Marks from point up to and including the first ╚ or ╠ connector. Returns nil when
 there is no such connector (which means that the root has been marked), and t
 otherwise."
   (let ((end (point)))
-    (if (search-backward "╚" nil t)
+    (if (re-search-backward "╚\\|╠" nil t)
         (progn (my-tree--mark (point) end) t)
       (beginning-of-line)
       (my-tree--mark (point) end)
