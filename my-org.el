@@ -150,12 +150,24 @@ add a backlink as a BACKLINK property."
   ;; hide subtree
   (outline-hide-subtree))
 
+(defun my-org-yank-anki-cloze nil
+  "Useful when I yank from Anki Cloze notes"
+  (interactive)
+  (let (text (cloze-re "{{c[0-9]+::\\(.*?\\)}}"))
+    (with-temp-buffer
+      (yank) (beginning-of-buffer)
+      (while (re-search-forward cloze-re nil t)
+        (replace-match (match-string 1)))
+      (setq text (buffer-string)))
+    (insert text)))
+
 (defvar my-org-yank-map (make-sparse-keymap))
 (progn
   (define-key my-org-yank-map "l" 'my-org-yank-list)
   (define-key my-org-yank-map "u" 'my-yank-unfill)
   (define-key my-org-yank-map "e" 'my-org-yank-unfill-elisp-comment)
-  (define-key my-org-yank-map "r" 'my-org-yank-random-child))
+  (define-key my-org-yank-map "r" 'my-org-yank-random-child)
+  (define-key my-org-yank-map "z" 'my-org-yank-anki-cloze))
 (define-key org-mode-map "\C-cy" my-org-yank-map)
 (global-set-key "\C-\M-y" 'my-yank-unfill)
 
@@ -355,19 +367,6 @@ entries from the file."
   (define-key org-mode-map "\C-e" 'org-end-of-line)
   (define-key org-mode-map "\C-k" 'org-kill-line))
 (setq org-special-ctrl-a/e t)
-
-
-(setq my-cloze-regexp "{{c[[:digit:]]*::\\(.*?\\)\\(?:::\\(.*?\\)\\)?}}")
-(defun my-strip-cloze nil
-  (interactive)
-  (let (beginning end)
-    (yank)
-    ;; region beginning is before the yanked text
-    (setq beginning (region-beginning) end (region-end))
-    (goto-char beginning)
-    (while (re-search-forward my-cloze-regexp end nil)
-      (replace-match (match-string 1)))
-    (goto-char end)))
 
 ;; random entry
 (defun my-org-random-entry-from-point nil

@@ -328,3 +328,14 @@ BODY."
 (defsubst end-do-while (&optional result)
   "End the nearest enclosing `do-while' loop"
   (throw do-while--break-symbol result))
+
+;; ----------------------------------------
+;; highlight
+(defun my-highlight-region (start end)
+  (interactive "r")
+  (let ((overlay (make-overlay start end (current-buffer))))
+    (overlay-put overlay 'face '(:foreground "white" :background "black"))
+    (overlay-put overlay :my-highlight t)))
+(defun my-unhighlight-all nil
+  (interactive)
+  (remove-overlays (point-min) (point-max) :my-highlight t))

@@ -16,4 +16,6 @@
     (kbd "C-c M-w") 'my-kill-code-remove-indent))
 
 ;; ----------------------------------------
+(require 'cpath)
+;; ----------------------------------------
 (provide 'my-code)
