@@ -242,73 +242,36 @@ the roto of the first top-level tree."
     (define-key map (kbd "RET") 'cpath-navigation-quit))
   (setq cpath-navigation-mode-map map))
 
-(defvar cpath-navigation-branch-face nil
+;; TODO: Use `defface'
+(defvar cpath-navigation-branch-face '(:foreground "black" :background "yellow")
   "The face of the headings corresponding to the nodes of the current branch")
-(defvar cpath-navigation-current-face nil
+(defvar cpath-navigation-current-face '(:foreground "white" :background "black")
   "The face of the heading corresponding to the current node")
 
 (define-derived-mode cpath-navigation-mode special-mode "cpath-navigation"
   ;; ----------------------------------------
   ;; insert an org-like representation of `cpath-trees', additionally
   ;; associating via text properties each heading with an actual node
+  (setq treevis-name-func (lambda (node) (plist-get node :name))
+        treevis-children-func (lambda (node) (plist-get node :children)))
   (read-only-mode -1)
   (erase-buffer)
   (dolist (tree cpath-trees)
-    (cpath-depth-first-walk
-     (lambda (node depth)
-       (insert (make-string (* depth 2) ?_)
-               (plist-get node :name) "\n")
-       (beginning-of-line 0)
-       (put-text-property (point) (1+ (point)) :cpath-node node)
-       (beginning-of-line 2))
-     tree)
+    (treevis-draw tree)
     (insert "\n"))
   (read-only-mode 1)
   ;; ----------------------------------------
   (cpath-navigation--mark-branch)
-  (cpath-navigation--goto-node cpath-current-node)
   (setq cursor-type nil))
 
-(defun cpath-navigation--goto-node (node)
-  "Moves point to the heading which corresponds to NODE"
-  (beginning-of-buffer)
-  (text-property-search-forward :cpath-node node 'eq)
-  (beginning-of-line))
-
-(defun cpath-navigation--heading-node nil
-  "Returns the node corresponding to the heading at point"
-  (beginning-of-line)
-  (get-text-property (point) :cpath-node))
-
 (defun cpath-navigation--mark-branch nil
-  "Mark the current branch and leave point on the heading corresponding to the
-current node"
-  ;; unmark everything
-  (remove-overlays (point-min) (point-max) :cpath-navigation t)
+  (treevis-unmark)
   ;; mark the current branch
   (let ((current (cpath--current-root)))
-    (while current
-      (cpath-navigation--goto-node current)
-      (cpath-navigation--mark-heading
-       (if (eq current cpath-current-node) :current :branch))
-      (setq current (cpath-node-get-branch-child current)))))
-
-(defun cpath-navigation--mark-heading (type)
-  "Assumes point is at the beginning of a heading. When TYPE is :branch, marks
-it visually as a part of the current branch. When TYPE is :current, marks the
-heading as the one which maps to the current node."
-  (let ((overlay (make-overlay (point) (line-end-position)))
-        (face (cond ((eq type :current) '(:foreground "white" :background "black"))
-                    ((eq type :branch) '(:foreground "black" :background "yellow"))
-                    (t (error "Invalid type: %s" type)))))
-    ;; mark the overlay with this property so that we can delete it later
-    (overlay-put overlay :cpath-navigation t)
-    (overlay-put overlay 'face face)))
-
-(defun cpath-navigation--unmark-heading nil
-  "Assumes point is at the beginning of a heading. Ensures the heading is not
-  marked as a node in the branch."
-  (remove-overlays (point) (line-end-position) :cpath-navigation t))
+    (while (not (cpath-node-leafp current))
+      (setq current (cpath-node-get-branch-child current)))
+    (treevis-mark-branch current cpath-navigation-branch-face)
+    (treevis-mark-node cpath-current-node cpath-navigation-current-face)))
 
 (defvar cpath-navigation-buffer-name "*cpath-navigation*")
 (defun cpath-navigate nil

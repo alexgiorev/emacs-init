@@ -2,11 +2,11 @@
   "Used as the text property which associates the visualization of the node with
 the node object.")
 
-(defvar treevis-children-func 'treevis-children-func-default
+(defvar-local treevis-children-func 'treevis-children-func-default
   "A function which accepts a node and outputs the list of children nodes. The
 default function sees a node as a plist with a :children property")
 
-(defvar treevis-name-func 'treevis-name-func-default
+(defvar-local treevis-name-func 'treevis-name-func-default
   "A function which accepts a node and outputs the name of the node.  The name
 is going to be used as the text representing the node in the visualization. In
 the visualization text the name is also going to become associated with the node
@@ -95,7 +95,7 @@ there is text associated with LEAF through the `treevis--node-property' text
 property. Naturally, it also assumes that LEAF is actually a leaf node"
   (save-excursion
     (treevis-goto-node leaf)
-    (forward-char (length (funcall treevis-name leaf)))
+    (forward-char (length (funcall treevis-name-func leaf)))
     (let ((treevis-mark-face (or face treevis-mark-face)))
       (while (treevis-mark--row)
         (treevis-mark--column)))))
@@ -108,7 +108,7 @@ associated with NODE"
     (let ((treevis-mark-face (or face treevis-mark-face)))
       (treevis-goto-node node)
       (treevis--mark
-       (point) (+ (point) (length (funcall treevis-name node)))))))
+       (point) (+ (point) (length (funcall treevis-name-func node)))))))
 
 (defun treevis-mark--column nil
   "Assumes that point is on an already marked ╚ connector. Marks the column of
@@ -132,11 +132,12 @@ otherwise."
 ;; TODO: Use `defface'
 (defvar treevis-mark-face '(:foreground "white" :background "black"))
 (defun treevis--mark (start end)
+  (remove-overlays start end :treevis-mark t)
   (let ((overlay (make-overlay start end)))
     (overlay-put overlay 'face treevis-mark-face)
     (overlay-put overlay :treevis-mark t)
     (overlay-put overlay 'evaporate t)))
-(defun treevis--unmark nil
+(defun treevis-unmark nil
   (remove-overlays (point-min) (point-max) :treevis-mark t))
 
 ;;----------------------------------------
