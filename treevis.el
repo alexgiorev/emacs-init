@@ -2,19 +2,38 @@
   "Used as the text property which associates the visualization of the node with
 the node object.")
 
-(defun treevis-draw (&optional root)
+(defvar treevis-children-func 'treevis-children-func-default
+  "A function which accepts a node and outputs the list of children nodes. The
+default function sees a node as a plist with a :children property")
+
+(defvar treevis-name-func 'treevis-name-func-default
+  "A function which accepts a node and outputs the name of the node.  The name
+is going to be used as the text representing the node in the visualization. In
+the visualization text the name is also going to become associated with the node
+via the `treevis--node-property' property. The default function sees a node as a
+plist with a :name property")
+
+(defun treevis-children-func-default (node)
+  (plist-get node :children))
+
+(defun treevis-name-func-default (node)
+  (plist-get node :name))
+
+;; ----------------------------------------
+;; draw
+
+(defun treevis-draw (tree)
   "Make sure to call on an empty line"
-  (setq root (or root (cpath--current-root)))
-  (insert (treevis-draw-node root)))
+  (treevis-draw-node tree))
 
 (defun treevis-draw-node (node)
   "Draw NODE at point and leave point at the end of the drawing"
   (let ((children-markers nil)
-        (children (plist-get node :children))
+        (children (funcall treevis-children-func node))
         child-start child-end connector node-string)
     (if (not children)
         (progn (setq child-start (point))
-               (insert (plist-get node :name) "\n")
+               (insert (funcall treevis-name-func node) "\n")
                (put-text-property
                 child-start (1+ child-start) treevis--node-property node))
       (save-restriction
@@ -41,7 +60,7 @@ the node object.")
             (when (= (char-after) ?\s)
               (delete-char 1) (insert "║"))))
         ;; insert NODE's text and associate the text with NODE through a text property
-        (setq node-string (concat (plist-get node :name) "═╗"))
+        (setq node-string (concat (funcall treevis-name-func node) "═╗"))
         (indent-rigidly (point-min) (point-max) (1- (length node-string)))
         (beginning-of-buffer)
         (setq child-start (point)) (insert node-string "\n")
@@ -55,7 +74,7 @@ the node object.")
 (defun treevis-goto-node (node)
   (beginning-of-buffer)
   (text-property-search-forward
-   treevis-node-property node 'eq)
+   treevis--node-property node 'eq)
   (forward-char -1))
 
 (defun treevis-node-at-point nil
@@ -76,7 +95,7 @@ there is text associated with LEAF through the `treevis--node-property' text
 property. Naturally, it also assumes that LEAF is actually a leaf node"
   (save-excursion
     (treevis-goto-node leaf)
-    (forward-char (length (plist-get leaf :name)))
+    (forward-char (length (funcall treevis-name leaf)))
     (let ((treevis-mark-face (or face treevis-mark-face)))
       (while (treevis-mark--row)
         (treevis-mark--column)))))
@@ -89,7 +108,7 @@ associated with NODE"
     (let ((treevis-mark-face (or face treevis-mark-face)))
       (treevis-goto-node node)
       (treevis--mark
-       (point) (+ (point) (length (plist-get node :name)))))))
+       (point) (+ (point) (length (funcall treevis-name node)))))))
 
 (defun treevis-mark--column nil
   "Assumes that point is on an already marked ╚ connector. Marks the column of
@@ -111,8 +130,7 @@ otherwise."
       nil)))
 
 ;; TODO: Use `defface'
-(defvar treevis-mark-face nil)
-(setq treevis-mark-face '(:foreground "white" :background "black"))
+(defvar treevis-mark-face '(:foreground "white" :background "black"))
 (defun treevis--mark (start end)
   (let ((overlay (make-overlay start end)))
     (overlay-put overlay 'face treevis-mark-face)
@@ -138,7 +156,7 @@ otherwise."
           ;; if we are positioned on a child of NODE...
           (when (= (caar entries2) (1+ depth))
             (plist-put node :children
-                       (append (plist-get node :children)
+                       (append (funcall treevis-children-func node)
                                (list (cdar entries2)))))
           ;; continue with next entry
           (pop entries2))))
