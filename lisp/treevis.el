@@ -188,3 +188,21 @@ been marked) or when the root line has been marked."
                :children (mapcar 'treevis-from-sexp form)))
         ((symbolp form) (list :name (symbol-name form) :children nil))
         (t (list :name (concat "[" (symbol-name (type-of form)) "]") :children nil))))
+
+;; visualizing directory trees
+(defun treevis-draw-dir (path)
+  (let ((treevis-children-func 'treevis-dirnode-children)
+        (treevis-name-func 'treevis-dirnode-name))
+    (treevis-draw path)))
+                                            
+(defun treevis-dirnode-name (path)
+  (if (file-directory-p path)
+      (file-name-nondirectory (directory-file-name path))
+    (file-name-nondirectory path)))
+
+(defun treevis-dirnode-children (path)
+  (when (file-directory-p path)
+    (seq-filter
+     (lambda (file)
+       (not (string-match "/\\.$\\|/\\.\\.$" file)))
+     (directory-files path t))))
