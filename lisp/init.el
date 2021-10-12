@@ -281,7 +281,7 @@
   (define-key my-find-map "l"
     (lambda nil (interactive) (my-find-file "~/leng/")))
   (define-key my-find-map "e"
-    (lambda nil (interactive) (my-find-file user-emacs-directory)))
+    (lambda nil (interactive) (my-find-file (concat user-emacs-directory "lisp"))))
   (define-key my-find-map "i" 'find-library))
 (global-set-key "\C-xf" my-find-map)
 
@@ -414,8 +414,6 @@ current buffer"
 ;;########################################
 ;; * registers
 (set-register ?r "(region-beginning) (region-end)")
-(set-register ?l "~/leng/")
-(set-register ?e "~/.emacs.d/lisp")
 
 ;;########################################
 (when (get-buffer "*scratch*")
