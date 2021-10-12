@@ -415,7 +415,7 @@ current buffer"
 ;; * registers
 (set-register ?r "(region-beginning) (region-end)")
 (set-register ?l "~/leng/")
-(set-register ?e "~/.emacs.d/")
+(set-register ?e "~/.emacs.d/lisp")
 
 ;;########################################
 (when (get-buffer "*scratch*")
