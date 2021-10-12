@@ -13,7 +13,7 @@
 ; hide the toolbar
 (tool-bar-mode -1)
 
-;; ----------------------------------------
+;;########################################
 ;; makes it easier to define keys
 
 (defsubst my-mode-hook-name (mode)
@@ -144,7 +144,7 @@
 
 (setq dired-isearch-filenames t)
 
-;; ----------------------------------------
+;;########################################
 ;; Miscellaneous commands
 (defun my-all-defuns (&optional buffer)
   "Returns all in the current buffer symbols which are defined in a defun"
@@ -166,7 +166,7 @@
     (dolist (sym (my-all-defuns buffer))
       (princ (format "%s\n" sym)))))
 
-;; ----------------------------------------
+;;########################################
 
 (defun my-books ()
   (interactive)
@@ -182,27 +182,27 @@
   (call-process "/usr/bin/xdg-open" nil 0 nil
                 (dired-get-filename)))
 
-;; ----------------------------------------
+;;########################################
 
 (defun my-white-noise ()
   (interactive)
   (start-process "white-noise" nil "xdg-open"
                  "/home/alex/Downloads/white-noise.mp3"))
 
-;; ----------------------------------------
+;;########################################
 
 (defun my-pomo ()
   (interactive)
   (call-process "gnome-pomodoro" nil 0))
 
-;; ----------------------------------------
+;;########################################
 
 (defun my-firefox ()
   (interactive)
   (start-process "firefox" nil "/usr/bin/firefox"))
 (put 'dired-find-alternate-file 'disabled nil)
 
-;; ----------------------------------------
+;;########################################
 
 (add-hook
  'dired-mode-hook
@@ -210,15 +210,15 @@
    (define-key dired-mode-map (kbd "\C-c\C-p")
      (lambda () (interactive) (find-alternate-file "..")))))
 
-;; ----------------------------------------
+;;########################################
 ;; avoid “cannot set terminal process group” error
 (setq shell-command-switch "-c")
 
-;; ----------------------------------------
+;;########################################
 ;; directories before files in dired
 (setq dired-listing-switches "-agho --group-directories-first")
 
-;; ----------------------------------------
+;;########################################
 (defun my-narrow-indentation ()
   (interactive)
   (beginning-of-line)
@@ -234,7 +234,7 @@
 
 (global-set-key (kbd "C-x n i") 'my-narrow-indentation)
 
-;; ----------------------------------------
+;;########################################
 (defun my-Info-save-heading ()
   "Saves the title of the current node into the kill ring."
   (interactive)
@@ -246,7 +246,7 @@
               (kbd "C-c t")
               'my-Info-save-heading)))
 
-;; ----------------------------------------
+;;########################################
 
 (defun my-forward-line-no-indentation (&optional arg)
   "Move to the next line having no indentation. Skip empty lines"
@@ -266,11 +266,11 @@
   (define-key apropos-mode-map "p"
     (lambda nil (interactive) (my-forward-line-no-indentation -1))))
 
-;; ----------------------------------------
+;;########################################
 (defun my-randchoice (list)
   (nth (random (length list)) list))
 
-;; ----------------------------------------
+;;########################################
 ;; finding files
 
 (defun my-find-file (dir)
@@ -285,7 +285,7 @@
   (define-key my-find-map "i" 'find-library))
 (global-set-key "\C-xf" my-find-map)
 
-;; ----------------------------------------
+;;########################################
 (defun my-dired-store-filename-in-kill-ring ()
   (interactive)
   (kill-new (dired-get-filename)))
@@ -302,7 +302,7 @@
     (push (list (format "elisp:%S" form) (file-name-nondirectory file))
           org-stored-links)))
 
-;; ----------------------------------------
+;;########################################
 ;; fix a bug, change :desc to :description
 (defun org-info-store-link ()
   "Store a link to an Info file and node."
@@ -317,7 +317,7 @@
 			    :link link :description desc)
       link)))
 
-;; ----------------------------------------
+;;########################################
 (defun my-inc-region (arg start end)
   (interactive "p\nr")
   (save-excursion
@@ -328,7 +328,7 @@
         (let ((int (string-to-number (match-string 0))))
           (replace-match (number-to-string (+ int arg))))))))
 
-;; ----------------------------------------
+;;########################################
 ;; Emacs sentences begin with two blanks, but mine begin with only one
 (defun my-mark-sentence ()
   (interactive)
@@ -338,7 +338,7 @@
   (re-search-forward "[.!?,;]"))
 
 (define-key global-map (kbd "M-e") 'my-mark-sentence)
-;; ----------------------------------------
+;;########################################
 ;; unfill-region binding
 (global-set-key (kbd "C-c u") 'unfill-region)
 
@@ -348,7 +348,7 @@
 ;; view mode instead of read only mode
 (global-set-key (kbd "C-x C-q") 'view-mode)
 
-;; ----------------------------------------
+;;########################################
 (defun my-dired-kill-dot-files ()
   (interactive)
   (dired-mark-files-regexp "^\\.")
@@ -380,7 +380,7 @@
       (interactive)
       (my-dired-goto-marked-file t))))
 
-;; ----------------------------------------
+;;########################################
 (defvar my-global-prefix-map
   (let ((map (make-sparse-keymap)))
     (define-key map "\C-t" 'my-touch-left)
@@ -389,7 +389,7 @@
 
 (define-key global-map "\C-\M-m" my-global-prefix-map)
 
-;; ----------------------------------------
+;;########################################
 
 (defun my-collect-symbol-definitions ()
   "Returns a list of the symbols which are in a top-level definition in the
@@ -405,28 +405,28 @@ current buffer"
   (require 'apropos)
   (apropos-symbols-internal (my-collect-symbol-definitions) nil))
 
-;; ----------------------------------------
+;;########################################
 (global-set-key "\C-ha" 'apropos)
 
-;; ----------------------------------------
+;;########################################
 (global-set-key "\C-x\C-n" nil)
 
-;; ----------------------------------------
+;;########################################
 ;; * registers
 (set-register ?r "(region-beginning) (region-end)")
 (set-register ?l "~/leng/")
 (set-register ?e "~/.emacs.d/")
 
-;; ----------------------------------------
+;;########################################
 (when (get-buffer "*scratch*")
   (kill-buffer "*scratch*")
   (find-file-noselect "/tmp/scratch.el"))
 
-;; ----------------------------------------
+;;########################################
 (require 'undo-tree)
 (global-undo-tree-mode)
 
-;; ----------------------------------------
+;;########################################
 ;; magit
 
 (defun my-magit-commit-file (&optional ammend)
@@ -449,7 +449,7 @@ kill ring the name of the defun at point."
   (define-key my-magit-map "s" 'magit-status))
 (global-set-key "\C-xg" my-magit-map)
 
-;; ----------------------------------------
+;;########################################
 ;; buffer navigation
 (defvar my-buffernav-map nil)
 (let ((map (make-sparse-keymap)))

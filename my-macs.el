@@ -87,7 +87,7 @@ Assumes that point is at the beginning of the line."
                  :continue-loop)))
       empty-lines)))
 
-;; ----------------------------------------
+;; ########################################
 (defun my-read-buffer (&optional buffer)
   "Return a list of the top-level forms in the current buffer. When omitted or
 nil, use the current buffer."
@@ -109,12 +109,12 @@ nil, use the current buffer."
 
 (provide 'my-macs)
 
-;; ----------------------------------------
+;; ########################################
 
 (defsubst my-int-time nil
   (time-convert (current-time) 'integer))
 
-;; ----------------------------------------
+;; ########################################
 (defsubst my-randint (low high)
   "Return a random number from the interval [low high] (i.e. from low to high inclusive)"
   (cond ((> low high)
@@ -140,7 +140,7 @@ nil, use the current buffer."
                 (1+ (random (1+ (- (point-max) (point-min))))))))
 
 
-;; ----------------------------------------
+;; ########################################
 ;; circular lists
 
 (defun my-circlist-make (list)
@@ -176,7 +176,7 @@ whether the element is inserted before or after CLIST in the circular list."
       (set var (cdr prev)))
     head))
       
-;; ----------------------------------------
+;; ########################################
 (defun my-jump-to-marker (marker)
   (unless (marker-buffer marker)
     (error "Cannot jump to a marker whose buffer is nil"))
@@ -185,7 +185,7 @@ whether the element is inserted before or after CLIST in the circular list."
   (switch-to-buffer (marker-buffer marker))
   (goto-char marker))
 
-;; ----------------------------------------
+;; ########################################
 (defsubst my-plist-foreach (func plist)
   "Call FUNC on each (key,value) pair in PLIST and return nil.
 FUNC should accept two arguments KEY and VALUE"
@@ -194,14 +194,14 @@ FUNC should accept two arguments KEY and VALUE"
       (funcall func (car current) (car (setq current  (cdr current))))
       (setq current (cdr current)))))
 
-;; ----------------------------------------
+;; ########################################
 
 (defun my-same-line (pos1 pos2)
   (save-excursion
     (= (progn (goto-char pos1) (line-beginning-position))
        (progn (goto-char pos2) (line-beginning-position)))))
 
-;; ----------------------------------------
+;; ########################################
 
 (defun my-buffer-overlay-substring (start end)
   "Returns the overlay string at the region (START END).
@@ -234,7 +234,7 @@ whose second element is a list of triples (START END PROPS)"
          (apply-partially 'overlay-put overlay)
          props)))))
 
-;; ----------------------------------------
+;; ########################################
 ;; * alists
 
 ;; the utility of this function is that it enables the caller to see if
@@ -257,7 +257,7 @@ removed."
         (when current
           (setcdr prev (cdr current))
           (car current))))))
-;; ----------------------------------------
+;; ########################################
 ;; * lists
 (defun my-list-index (elt list &optional test)
   "Return the index in LIST where ELT first appears.
@@ -301,12 +301,12 @@ first element is the last element."
            (when tail
              (if (cdr tail) (cadr tail) (car list)))))))
 
-;; ----------------------------------------
+;; ########################################
 ;; lines
 (defvar my-blank-line-re "^[ \t]*$"
   "Regexp which matches a blank line")
 
-;; ----------------------------------------
+;; ########################################
 ;; loops
 
 (defmacro my-loop-cons (var-list &rest body)
@@ -331,7 +331,7 @@ BODY."
   "End the nearest enclosing `do-while' loop"
   (throw do-while--break-symbol result))
 
-;; ----------------------------------------
+;; ########################################
 ;; highlight
 (defun my-highlight-region (start end)
   (interactive "r")

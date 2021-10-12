@@ -19,7 +19,7 @@ plist with a :name property")
 (defun treevis-name-func-default (node)
   (plist-get node :name))
 
-;; ----------------------------------------
+;;########################################
 ;; draw
 
 (defun treevis-draw (tree)
@@ -68,7 +68,7 @@ plist with a :name property")
          child-start (1+ child-start) treevis--node-property node)
         (goto-char (point-max))))))
 
-;; ----------------------------------------
+;;########################################
 ;; utils
 
 (defun treevis-goto-node (node)
@@ -85,7 +85,7 @@ plist with a :name property")
     (get-text-property
      (1- (point)) treevis--node-property)))
 
-;; ----------------------------------------
+;;########################################
 ;; marking
 
 (defun treevis-mark-branch (leaf &optional face)
@@ -119,11 +119,11 @@ the connector (i.e. up to and including the first ╗ connector)"
     (treevis--mark (point) (1+ (point))))))
 
 (defun treevis-mark--row nil
-  "Marks from point up to and including the first ╚ or ╠ connector. Returns nil when
-there is no such connector (which means that the root has been marked), and t
-otherwise."
+  "Marks from point up to and including the first ╚ or ╠ connector and returns
+t. Returns nil when there is no such connector (which means that the root has
+been marked) or when the root line has been marked."
   (let ((end (point)))
-    (if (re-search-backward "╚\\|╠" nil t)
+    (if (re-search-backward "╚\\|╠" (line-beginning-position) t)
         (progn (treevis--mark (point) end) t)
       (beginning-of-line)
       (treevis--mark (point) end)
@@ -140,7 +140,7 @@ otherwise."
 (defun treevis-unmark nil
   (remove-overlays (point-min) (point-max) :treevis-mark t))
 
-;;----------------------------------------
+;;########################################
 ;; fun utilities
 
 (defun treevis-from-org nil

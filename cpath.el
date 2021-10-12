@@ -1,5 +1,5 @@
 (require 'my-macs)
-;;----------------------------------------
+;;########################################
 ;; variables
 
 (defvar cpath-trees nil
@@ -11,7 +11,7 @@
 It doesn't accept any arguments and returns a string. If a name cannot be
 extracted, an error should be signaled")
 
-;;----------------------------------------
+;;########################################
 ;; Nodes of the call tree. A node is represented as a plist with properties
 ;; (:parent :children :marker :name)
 
@@ -59,7 +59,7 @@ NODE is a leaf."
 (defsubst cpath-node-leafp (node)
   (null (plist-get node :children)))
 
-;;----------------------------------------
+;;########################################
 ;; misc
 
 (defsubst cpath--check-current nil
@@ -125,7 +125,7 @@ zero, its children have depth one, etc."
 (defsubst cpath--jump nil
   (my-jump-to-marker (plist-get cpath-current-node :marker)))
 
-;;----------------------------------------
+;;########################################
 ;; commands
 
 (defun cpath-call (&optional arg)
@@ -239,6 +239,8 @@ the roto of the first top-level tree."
     (define-key map "f" 'cpath-navigation-branch-next)
     (define-key map "b" 'cpath-navigation-branch-prev)
     (define-key map "q" 'cpath-navigation-quit)
+    (define-key map "\C-p" 'cpath-navigation-prev-tree)
+    (define-key map "\C-n" 'cpath-navigation-next-tree)
     (define-key map (kbd "RET") 'cpath-navigation-quit))
   (setq cpath-navigation-mode-map map))
 
@@ -249,7 +251,7 @@ the roto of the first top-level tree."
   "The face of the heading corresponding to the current node")
 
 (define-derived-mode cpath-navigation-mode special-mode "cpath-navigation"
-  ;; ----------------------------------------
+  ;;########################################
   ;; insert an org-like representation of `cpath-trees', additionally
   ;; associating via text properties each heading with an actual node
   (setq treevis-name-func (lambda (node) (plist-get node :name))
@@ -260,17 +262,17 @@ the roto of the first top-level tree."
     (treevis-draw tree)
     (insert "\n"))
   (read-only-mode 1)
-  ;; ----------------------------------------
+  ;;########################################
   (cpath-navigation--mark-branch)
   (setq cursor-type nil))
 
 (defun cpath-navigation--mark-branch nil
   (treevis-unmark)
   ;; mark the current branch
-  (let ((current (cpath--current-root)))
-    (while (not (cpath-node-leafp current))
-      (setq current (cpath-node-get-branch-child current)))
-    (treevis-mark-branch current cpath-navigation-branch-face)
+  (let ((node (cpath--current-root)))
+    (while (not (cpath-node-leafp node))
+      (setq node (cpath-node-get-branch-child node)))
+    (treevis-mark-branch node cpath-navigation-branch-face)
     (treevis-mark-node cpath-current-node cpath-navigation-current-face)))
 
 (defvar cpath-navigation-buffer-name "*cpath-navigation*")
@@ -329,17 +331,30 @@ the current one."
   (cpath-navigation--branch :prev))
 
 (defun cpath-navigation-next-tree nil
-  "Set the current node to be the root of the top-level tree following the
-current one"
+  "Set the current node to be the root of the top-level tree following the current one"
   (interactive)
   (cpath--check-current)
-  (error "TODO"))
+  (let* ((current-tree (cpath--current-root))
+         (next-tree (my-list-neighbor cpath-trees current-tree)))
+    (unless (eq current-tree next-tree)
+      (setq cpath-current-node next-tree))
+    (cpath-navigation--mark-branch)))
+
+(defun cpath-navigation-prev-tree nil
+  "Set the current node to be the root of the top-level tree preceding the current one"
+  (interactive)
+  (cpath--check-current)
+  (let* ((current-tree (cpath--current-root))
+         (prev-tree (my-list-neighbor cpath-trees current-tree :left)))
+    (unless (eq current-tree prev-tree)
+      (setq cpath-current-node prev-tree))
+    (cpath-navigation--mark-branch)))
 
 (defun cpath-navigation-quit nil
   (interactive)
   (kill-buffer-and-window))
 
-;;----------------------------------------
+;;########################################
 ;; keymap
 (defvar cpath-map (make-sparse-keymap))
 (progn
@@ -350,5 +365,5 @@ current one"
   (define-key cpath-map " " 'cpath-goto-current)
   (define-key cpath-map "v" 'cpath-navigate))
 (define-key prog-mode-map "\C-cp" cpath-map)
-;;----------------------------------------
+;;########################################
 (provide 'cpath)

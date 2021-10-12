@@ -1,5 +1,5 @@
 (require 'elisp-mode)
-;; ----------------------------------------
+;; ########################################
 (defconst my-elisp-defun-re
   "([[:space:]\n]*defun[[:space:]\n]+\\(\\(?:\\sw\\|\\s_\\)+\\)")
 
@@ -36,18 +36,18 @@ about the function."
   (define-key emacs-lisp-mode-map (kbd "C-c C-t")
     'my-elisp-save-defun-name))
 
-;; ----------------------------------------
+;; ########################################
 (define-key emacs-lisp-mode-map (kbd "C-c t")
   (lambda nil
     (interactive)
     (insert "(error \"TODO\")")))
 
-;; ----------------------------------------
+;; ########################################
 ;; cpath
 (with-eval-after-load 'cpath
   (add-hook 'emacs-lisp-mode-hook
             (lambda nil
               (setq cpath-func-name-func
                     'my-elisp-defun-name))))
-;; ----------------------------------------
+;; ########################################
 (provide 'my-elisp)
