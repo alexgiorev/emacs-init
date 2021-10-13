@@ -1,3 +1,5 @@
+(require 'my-macs)
+;;########################################
 (defvar treevis--node-property (make-symbol ":node")
   "Used as the text property which associates the visualization of the node with
 the node object.")
@@ -19,9 +21,29 @@ plist with a :name property")
 (defun treevis-name-func-default (node)
   (plist-get node :name))
 
+
 ;;########################################
 ;; draw
-
+(defvar treevis-brushes
+  '(("double1" :chars "╚═╗╠║" :width 1)
+    ("light" :chars "└─┐├│" :width 1)
+    ("heavy1" :chars "┕━┒┠┃" :width 2)
+    ("heavy2" :chars "┗━┓┣┃" :width 2)
+    ("double2" :chars "╘═╕╞│" :width 1)))
+(defvar treevis-brush (cdr (assoc "heavy2" treevis-brushes)))
+(defsubst treevis--up-right nil
+  (char-to-string (aref (plist-get treevis-brush :chars) 0)))
+(defsubst treevis--horizontal nil
+  (char-to-string (aref (plist-get treevis-brush :chars) 1)))
+(defsubst treevis--down-left nil
+  (char-to-string (aref (plist-get treevis-brush :chars) 2)))
+(defsubst treevis--vertical-right nil
+  (char-to-string (aref (plist-get treevis-brush :chars) 3)))
+(defsubst treevis--vertical nil
+  (char-to-string (aref (plist-get treevis-brush :chars) 4)))
+(defsubst treevis--brush-width nil
+  (plist-get treevis-brush :width))
+  
 (defun treevis-draw (tree)
   "Make sure to call on an empty line"
   (treevis-draw-node tree))
@@ -30,7 +52,7 @@ plist with a :name property")
   "Draw NODE at point and leave point at the end of the drawing"
   (let ((children-markers nil)
         (children (funcall treevis-children-func node))
-        child-start child-end connector node-string)
+        child-start child-end connector node-string name)
     (if (not children)
         (progn (setq child-start (point))
                (insert (funcall treevis-name-func node) "\n")
@@ -46,22 +68,26 @@ plist with a :name property")
         (my-loop-cons (pair children-markers)
           (setq child-start (car pair))
           (if (cdr pair)
-              (setq connector "╠═"
+              ;; a connector equivalent to "╠═"
+              (setq connector (concat (treevis--vertical-right) (treevis--horizontal))
                     child-end (cadr pair))
-            (setq connector "╚═"
+            ;; a connector equivalent to "╚═"
+            (setq connector (concat (treevis--up-right) (treevis--horizontal))
                   child-end (point-max)))
           (goto-char child-start)
           (insert connector)
           (unless (= (progn (beginning-of-line 2) (point)) child-end)
-            (indent-rigidly (point) child-end 2)))
+            (indent-rigidly (point) child-end (* 2 (treevis--brush-width)))))
         ;; connect connectors
         (my-maplines (point-min) (car (last children-markers))
           (lambda nil
             (when (= (char-after) ?\s)
-              (delete-char 1) (insert "║"))))
+              (delete-char (treevis--brush-width)) (insert (treevis--vertical)))))
         ;; insert NODE's text and associate the text with NODE through a text property
-        (setq node-string (concat (funcall treevis-name-func node) "═╗"))
-        (indent-rigidly (point-min) (point-max) (1- (length node-string)))
+        (setq name (funcall treevis-name-func node)
+              node-string (concat name (treevis--horizontal) (treevis--down-left)))
+        (indent-rigidly (point-min) (point-max)
+                        (+ (length name) (treevis--brush-width)))
         (beginning-of-buffer)
         (setq child-start (point)) (insert node-string "\n")
         (put-text-property
@@ -111,19 +137,15 @@ associated with NODE"
        (point) (+ (point) (length (funcall treevis-name-func node)))))))
 
 (defun treevis-mark--column nil
-  "Assumes that point is on an already marked ╚ connector. Marks the column of
-the connector (i.e. up to and including the first ╗ connector)"
   (let ((column (current-column)))
-  (while (not (= (char-after) ?╗))
+  (while (not (= (char-after) (string-to-char (treevis--down-left))))
     (beginning-of-line 0) (forward-char column)
     (treevis--mark (point) (1+ (point))))))
 
 (defun treevis-mark--row nil
-  "Marks from point up to and including the first ╚ or ╠ connector and returns
-t. Returns nil when there is no such connector (which means that the root has
-been marked) or when the root line has been marked."
-  (let ((end (point)))
-    (if (re-search-backward "╚\\|╠" (line-beginning-position) t)
+  (let ((end (point))
+        (regexp (format "%s\\|%s" (treevis--up-right) (treevis--vertical-right))))
+    (if (re-search-backward regexp (line-beginning-position) t)
         (progn (treevis--mark (point) end) t)
       (beginning-of-line)
       (treevis--mark (point) end)
@@ -175,26 +197,24 @@ been marked) or when the root line has been marked."
         entries)))
     (reverse entries)))
 
-(defun treevis-remove-names (tree)
-  (cpath-depth-first-walk
-   (lambda (node depth)
-     (plist-put node :name "X"))
-   tree)
-  tree)
-
 (defun treevis-from-sexp (form)
   (cond ((consp form)
          (list :name "()"
                :children (mapcar 'treevis-from-sexp form)))
         ((symbolp form) (list :name (symbol-name form) :children nil))
-        (t (list :name (concat "[" (symbol-name (type-of form)) "]") :children nil))))
+        (t (list :name (concat "["
+                               (symbol-name (type-of form))
+                               " "
+                               (prin1-to-string form)
+                               "]")
+                 :children nil))))
 
 ;; visualizing directory trees
 (defun treevis-draw-dir (path)
   (let ((treevis-children-func 'treevis-dirnode-children)
         (treevis-name-func 'treevis-dirnode-name))
     (treevis-draw path)))
-                                            
+                   
 (defun treevis-dirnode-name (path)
   (if (file-directory-p path)
       (file-name-nondirectory (directory-file-name path))
