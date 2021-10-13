@@ -49,5 +49,27 @@ about the function."
             (lambda nil
               (setq cpath-func-name-func
                     'my-elisp-defun-name))))
+;;########################################
+;; evaluation
+
+(defun my-elisp-eval-defvar nil
+  "When the expression before point is a defvar, evaluate the expression and set
+it as the symbol's value"
+  (interactive)
+  (let ((sexp (elisp--preceding-sexp))
+        var body)
+    (when (eq (car-safe sexp) 'defvar)
+      (setq var (cadr sexp) body (caddr sexp))
+      (eval `(setq ,var ,body))
+      (message (symbol-name var)))))
+
+(defvar my-elisp-eval-map (make-sparse-keymap))
+(progn
+  (define-key my-elisp-eval-map "\C-e" 'eval-last-sexp)
+  (define-key my-elisp-eval-map "\C-b" 'eval-buffer)
+  (define-key my-elisp-eval-map "\C-r" 'eval-region)
+  (define-key my-elisp-eval-map "\C-v" 'my-elisp-eval-defvar))
+(define-key emacs-lisp-mode-map (kbd "C-x C-e") my-elisp-eval-map)
+
 ;; ########################################
 (provide 'my-elisp)
