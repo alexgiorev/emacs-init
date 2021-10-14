@@ -24,7 +24,7 @@
   "Construct a map name based on a MODE name."
   (intern (concat (symbol-name mode) "-map")))
 
-(add-to-list 'load-path user-emacs-directory)
+(add-to-list 'load-path (concat user-emacs-directory "lisp"))
 ;; org-mode configuration
 (require 'my-org)
 ;; programming configuration
@@ -36,7 +36,7 @@
 ;; emacs coding
 (require 'my-elisp)
 ;; functions I don't want to share
-(load "~/.emacs.d/private")
+(provide 'private)
 
 (custom-set-variables
  ;; custom-set-variables was added by Custom.
@@ -281,7 +281,7 @@
   (define-key my-find-map "l"
     (lambda nil (interactive) (my-find-file "~/leng/")))
   (define-key my-find-map "e"
-    (lambda nil (interactive) (my-find-file (concat user-emacs-directory "lisp"))))
+    (lambda nil (interactive) (my-find-file (concat user-emacs-directory "lisp/"))))
   (define-key my-find-map "i" 'find-library))
 (global-set-key "\C-xf" my-find-map)
 

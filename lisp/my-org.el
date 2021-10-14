@@ -1,8 +1,8 @@
 (require 'org)
 (require 'ol)
 (require 'org-id)
-(require 'my-macs "~/.emacs.d/my-macs")
-(require 'my-sched "~/.emacs.d/my-sched/my-sched")
+(require 'my-macs)
+(require 'my-sched (concat user-emacs-directory "my-sched/my-sched.el"))
 (require 'my-org-vars (concat user-emacs-directory "my-org-vars/my-org-vars.el"))
 
 (define-key global-map "\C-ca" 'org-agenda)

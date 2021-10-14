@@ -47,7 +47,7 @@ Assumes that point is at the beginning of the line."
     (skip-chars-forward "[[:blank:]]" (+ start amount))
     (delete-region start (point))))
 
-(defun my-maplines (beg end fun)
+(defun my-maplines (fun beg end)
   (declare (indent 0))
   (unless (= (point-min) (point-max))
     (save-excursion
@@ -106,8 +106,6 @@ nil, use the current buffer."
   (with-temp-buffer
     (insert-file-contents file)
     (my-read-buffer)))
-
-(provide 'my-macs)
 
 ;; ########################################
 
@@ -333,12 +331,25 @@ BODY."
 
 ;; ########################################
 ;; highlight
+
+(defun my-add-face-overlay (start end face)
+  (let ((overlay (make-overlay start end (current-buffer))))
+    ;; TODO: Use `defface'
+    (overlay-put overlay 'face face)
+    (overlay-put overlay 'evaporate t)
+    overlay))
+
+;; TODO: use `defface'
+(defvar my-highlight-face '(:foreground "white" :background "black"))
+
 (defun my-highlight-region (start end)
   (interactive "r")
-  (let ((overlay (make-overlay start end (current-buffer))))
-    (overlay-put overlay 'face '(:foreground "white" :background "black"))
-    (overlay-put overlay :my-highlight t)
-    (overlay-put overlay 'evaporate t)))
+  (let ((overlay (my-add-face-overlay start end my-highlight-face)))
+    (overlay-put overlay :my-highlight t)))
+
 (defun my-unhighlight-all nil
   (interactive)
   (remove-overlays (point-min) (point-max) :my-highlight t))
+
+;;########################################
+(provide 'my-macs)
