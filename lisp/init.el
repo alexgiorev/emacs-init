@@ -36,7 +36,7 @@
 ;; emacs coding
 (require 'my-elisp)
 ;; functions I don't want to share
-(provide 'private)
+(require 'private)
 
 (custom-set-variables
  ;; custom-set-variables was added by Custom.
