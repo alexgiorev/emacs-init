@@ -21,28 +21,24 @@ plist with a :name property")
 (defun treevis-name-func-default (node)
   (plist-get node :name))
 
-
-;;########################################
 ;; draw
 (defvar treevis-brushes
-  '(("double1" :chars "╚═╗╠║" :width 1)
-    ("light" :chars "└─┐├│" :width 1)
-    ("heavy1" :chars "┕━┒┠┃" :width 2)
-    ("heavy2" :chars "┗━┓┣┃" :width 2)
-    ("double2" :chars "╘═╕╞│" :width 1)))
-(defvar treevis-brush (cdr (assoc "heavy2" treevis-brushes)))
+  '(("double1" "╚═╗╠║")
+    ("double2" "╘═╕╞│")
+    ("light" "└─┐├│")
+    ("heavy1" "┕━┒┠┃")
+    ("heavy2" "┗━┓┣┃")))
+(defvar treevis-brush (cadr (assoc "double1" treevis-brushes)))
 (defsubst treevis--up-right nil
-  (char-to-string (aref (plist-get treevis-brush :chars) 0)))
+  (char-to-string (aref treevis-brush 0)))
 (defsubst treevis--horizontal nil
-  (char-to-string (aref (plist-get treevis-brush :chars) 1)))
+  (char-to-string (aref treevis-brush 1)))
 (defsubst treevis--down-left nil
-  (char-to-string (aref (plist-get treevis-brush :chars) 2)))
+  (char-to-string (aref treevis-brush 2)))
 (defsubst treevis--vertical-right nil
-  (char-to-string (aref (plist-get treevis-brush :chars) 3)))
+  (char-to-string (aref treevis-brush 3)))
 (defsubst treevis--vertical nil
-  (char-to-string (aref (plist-get treevis-brush :chars) 4)))
-(defsubst treevis--brush-width nil
-  (plist-get treevis-brush :width))
+  (char-to-string (aref treevis-brush 4)))
   
 (defun treevis-draw (tree)
   "Make sure to call on an empty line"
@@ -79,10 +75,11 @@ plist with a :name property")
           (unless (= (progn (beginning-of-line 2) (point)) child-end)
             (indent-rigidly (point) child-end (* 2 (treevis--brush-width)))))
         ;; connect connectors
-        (my-maplines (point-min) (car (last children-markers))
-          (lambda nil
-            (when (= (char-after) ?\s)
-              (delete-char (treevis--brush-width)) (insert (treevis--vertical)))))
+        (my-maplines
+            (lambda nil
+              (when (= (char-after) ?\s)
+                (delete-char (treevis--brush-width)) (insert (treevis--vertical))))
+            (point-min) (car (last children-markers)))
         ;; insert NODE's text and associate the text with NODE through a text property
         (setq name (funcall treevis-name-func node)
               node-string (concat name (treevis--horizontal) (treevis--down-left)))
@@ -155,10 +152,8 @@ associated with NODE"
 (defvar treevis-mark-face '(:foreground "white" :background "black"))
 (defun treevis--mark (start end)
   (remove-overlays start end :treevis-mark t)
-  (let ((overlay (make-overlay start end)))
-    (overlay-put overlay 'face treevis-mark-face)
-    (overlay-put overlay :treevis-mark t)
-    (overlay-put overlay 'evaporate t)))
+  (let ((overlay (my-add-face-overlay start end treevis-mark-face)))
+    (overlay-put overlay :treevis-mark t)))
 (defun treevis-unmark nil
   (remove-overlays (point-min) (point-max) :treevis-mark t))
 
@@ -197,6 +192,11 @@ associated with NODE"
         entries)))
     (reverse entries)))
 
+;;####################
+
+(defun treevis-read-sexp nil
+  (treevis-from-sexp (save-excursion (read (current-buffer)))))
+
 (defun treevis-from-sexp (form)
   (cond ((consp form)
          (list :name "()"
@@ -209,7 +209,9 @@ associated with NODE"
                                "]")
                  :children nil))))
 
+;;####################
 ;; visualizing directory trees
+
 (defun treevis-draw-dir (path)
   (let ((treevis-children-func 'treevis-dirnode-children)
         (treevis-name-func 'treevis-dirnode-name))
