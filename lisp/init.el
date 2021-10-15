@@ -448,19 +448,9 @@ kill ring the name of the defun at point."
 (global-set-key "\C-xg" my-magit-map)
 
 ;;########################################
-;; buffer navigation
-(defvar my-buffernav-map nil)
-(let ((map (make-sparse-keymap)))
-  (progn
-    (define-key map "\C-f" 'next-buffer)
-    (define-key map "\C-b" 'previous-buffer)
-    (define-key map "\C-l" 'list-buffers)
-    (define-key map "\C-s" 'my-buffernav-switch-to-spouse)
-    (define-key map "\C-r" 'my-buffernav-marry))
-  (fset 'my-buffernav-map map))
-(global-set-key "\C-x\C-b" 'my-buffernav-map)
+;; * buffer navigation
 
-(defun my-buffernav-marry (buffer-or-name)
+(defun my-buffer-marry (buffer-or-name)
   "Set BUFFER-OR-NAME as the spouse of the current buffer
 This facilitates switching between two buffers which are related"
   (interactive "bMarry with: ")
@@ -469,8 +459,108 @@ This facilitates switching between two buffers which are related"
     (with-current-buffer buffer-or-name
       (setq-local my-buffernav-spouse current-buffer))))
 
-(defun my-buffernav-switch-to-spouse nil
+(defun my-buffer-switch-to-spouse nil
   (interactive)
   (unless (boundp 'my-buffernav-spouse)
     (user-error "Current buffer has no spouse"))
   (switch-to-buffer my-buffernav-spouse))
+
+;;####################
+;; ** buffer-tree
+
+(defvar buffer-trees nil
+  "The roots of the forest")
+(defvar buffer-tree-current nil
+  "The current node in the forest")
+
+(defun buffer-tree--check-current nil
+  (unless buffer-tree-current
+    (user-error "No node selected")))
+
+(defun buffer-tree-switch-to-current nil
+  (interactive)
+  (buffer-tree--check-current)
+  (buffer-tree--switch))
+
+(defsubst buffer-tree--switch nil
+  (switch-to-buffer (plist-get buffer-tree-current :buffer)))
+
+(defun buffer-tree-new-node (&optional arg)
+  "Append the current buffer as a child of the current node and make it the
+current node. When no node is selected, or when called with a prefix argument,
+make the current buffer a root node."
+  (interactive "P")
+  (let* ((buffer (current-buffer))
+         parent node)
+    (if (or arg (null buffer-tree-current))
+        (progn (setq node (list :buffer buffer))
+               (setq buffer-trees (append buffer-trees (list node))))
+      (when (eq (plist-get buffer-tree-current :buffer) buffer)
+        (user-error "The current node already references the current buffer"))
+      (setq node (list :buffer buffer :parent buffer-tree-current))
+      (plist-put buffer-tree-current :children
+                 (append (plist-get buffer-tree-current :children)
+                         (list node))))
+    (setq buffer-tree-current node)
+    (message "New node: %s" (buffer-name buffer))))
+
+(defun buffer-tree-up nil
+  (interactive)
+  (buffer-tree--check-current)
+  (let ((parent (plist-get buffer-tree-current :parent)))
+    (unless parent
+      (user-error "Cannot go up, on a root"))
+    (setq buffer-tree-current parent))
+  (buffer-tree--switch))
+
+(defun buffer-tree-down nil
+  "Move to the first child"
+  (interactive)
+  (buffer-tree--check-current)
+  (let ((children (plist-get buffer-tree-current :children)))
+    (unless children
+      (user-error "Cannot go down, on a leaf"))
+    (setq buffer-tree-current (car children)))
+  (buffer-tree--switch))
+
+(defun buffer-tree-next nil
+  "Go to the next sibling. When on the last child of the parent, cycle back to the first one"
+  (interactive)
+  (let ((sibling (my-list-neighbor (plist-get buffer-tree-current :children)
+                                   buffer-tree-current)))
+    (if (eq sibling buffer-tree-current)
+        (message "Only child")
+      (setq buffer-tree-current sibling)))
+  (buffer-tree--switch))
+
+(defun buffer-tree-prev nil
+  "Go to the previous sibling. When on the first child of the parent, cycle to the last one"
+  (interactive)
+  (let ((sibling (my-list-neighbor (plist-get buffer-tree-current :children)
+                                   buffer-tree-current :left)))
+    (if (eq sibling buffer-tree-current)
+        (message "Only child")
+      (setq buffer-tree-current sibling)))
+  (buffer-tree--switch))
+
+(defun buffer-tree-pop nil
+  "Remove the subtree of the current node and select the parent. This doesn't
+kill the buffer. When the current node is a root, selects the next one."
+  (interactive)
+  (error "TODO"))
+
+;;####################
+;; ** map
+
+(defvar my-buffer-map (make-sparse-keymap))
+(progn
+  (define-key my-buffer-map "\C-f" 'buffer-tree-next)
+  (define-key my-buffer-map "\C-b" 'buffer-tree-prev)
+  (define-key my-buffer-map "\C-p" 'buffer-tree-up)
+  (define-key my-buffer-map "\C-n" 'buffer-tree-down)
+  (define-key my-buffer-map "\C-c" 'buffer-tree-switch-to-current)
+  (define-key my-buffer-map (kbd "C-SPC") 'buffer-tree-new-node)
+  (define-key my-buffer-map "\C-l" 'list-buffers)
+  (define-key my-buffer-map "\C-s" 'my-buffer-switch-to-spouse)
+  (define-key my-buffer-map "\C-r" 'my-buffer-marry))
+(global-set-key "\C-x\C-b" my-buffer-map)
