@@ -28,7 +28,7 @@ plist with a :name property")
     ("light" "└─┐├│")
     ("heavy1" "┕━┒┠┃")
     ("heavy2" "┗━┓┣┃")))
-(defvar treevis-brush (cadr (assoc "double1" treevis-brushes)))
+(defvar treevis-brush (cadr (assoc "heavy1" treevis-brushes)))
 (defsubst treevis--up-right nil
   (char-to-string (aref treevis-brush 0)))
 (defsubst treevis--horizontal nil
@@ -39,7 +39,21 @@ plist with a :name property")
   (char-to-string (aref treevis-brush 3)))
 (defsubst treevis--vertical nil
   (char-to-string (aref treevis-brush 4)))
-  
+(defun treevis--brush-width nil
+  (treevis--string-width (treevis--horizontal)))
+(defun treevis--string-width (string)
+  "Return the size of STRING expressed in units the width of a space character"
+  (/ (treevis--string-pixel-width string)
+     (treevis--string-pixel-width " ")))
+(defun treevis--string-pixel-width (string)
+  "This only works for strings which fit into a visual line"
+  (let (str-pixels start-x end-x)
+    (insert string)
+    (setq start-x (car (window-absolute-pixel-position (- (point) (length string))))
+          end-x (car (window-absolute-pixel-position (point))))
+    (delete-region (- (point) (length string)) (point))
+    (- end-x start-x)))
+
 (defun treevis-draw (tree)
   "Make sure to call on an empty line"
   (treevis-draw-node tree))
