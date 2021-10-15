@@ -71,5 +71,18 @@ it as the symbol's value"
   (define-key my-elisp-eval-map "\C-v" 'my-elisp-eval-defvar))
 (define-key emacs-lisp-mode-map (kbd "C-x C-e") my-elisp-eval-map)
 
+;;########################################
+;;prefix
+(defvar my-prefix nil)
+(defun my-prefix-symbol nil
+  (interactive)
+  (unless my-prefix
+    (user-error "No prefix is set"))
+  (save-excursion
+    (condition-case nil
+        (beginning-of-thing 'symbol)
+      (error (forward-thing 'symbol -1)))
+    (insert my-prefix "-")))
+(define-key emacs-lisp-mode-map (kbd "C-M-.") 'my-prefix-symbol)
 ;; ########################################
 (provide 'my-elisp)
