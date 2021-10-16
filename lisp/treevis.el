@@ -15,11 +15,16 @@ the visualization text the name is also going to become associated with the node
 via the `treevis--node-property' property. The default function sees a node as a
 plist with a :name property")
 
+(defvar-local treevis-parent-func 'treevis-parent-func-default
+  "A function which accepts a node and returns its parent. The default function
+sees a node as a plist with a :parent property")
+
 (defun treevis-children-func-default (node)
   (plist-get node :children))
-
 (defun treevis-name-func-default (node)
   (plist-get node :name))
+(defun treevis-parent-dunc-default (node)
+  (plist-get node :parent))
 
 ;; draw
 (defvar treevis-brushes
@@ -28,7 +33,7 @@ plist with a :name property")
     ("light" "└─┐├│")
     ("heavy1" "┕━┒┠┃")
     ("heavy2" "┗━┓┣┃")))
-(defvar treevis-brush (cadr (assoc "heavy1" treevis-brushes)))
+(defvar treevis-brush (cadr (assoc "double1" treevis-brushes)))
 (defsubst treevis--up-right nil
   (char-to-string (aref treevis-brush 0)))
 (defsubst treevis--horizontal nil
@@ -47,12 +52,12 @@ plist with a :name property")
      (treevis--string-pixel-width " ")))
 (defun treevis--string-pixel-width (string)
   "This only works for strings which fit into a visual line"
-  (let (str-pixels start-x end-x)
+  (let (str-pixels)
     (insert string)
-    (setq start-x (car (window-absolute-pixel-position (- (point) (length string))))
-          end-x (car (window-absolute-pixel-position (point))))
+    (setq str-pixels (car (window-text-pixel-size
+                           nil (- (point) (length string)) (point))))
     (delete-region (- (point) (length string)) (point))
-    (- end-x start-x)))
+    str-pixels))
 
 (defun treevis-draw (tree)
   "Make sure to call on an empty line"
@@ -148,14 +153,20 @@ associated with NODE"
        (point) (+ (point) (length (funcall treevis-name-func node)))))))
 
 (defun treevis-mark--column nil
-  (let ((column (current-column)))
-  (while (not (= (char-after) (string-to-char (treevis--down-left))))
-    (beginning-of-line 0) (forward-char column)
-    (treevis--mark (point) (1+ (point))))))
+  (do-while
+    (beginning-of-line 0)
+    (when (search-forward (treevis--down-left) (line-end-position) t)
+      (backward-char)
+      (treevis--mark (point) (1+ (point)))
+      (end-do-while))
+    (re-search-forward (regexp-opt (list (treevis--vertical) (treevis--vertical-right)))
+                       (line-end-position))
+    (backward-char)
+    (treevis--mark (point) (1+ (point)))))
 
 (defun treevis-mark--row nil
   (let ((end (point))
-        (regexp (format "%s\\|%s" (treevis--up-right) (treevis--vertical-right))))
+        (regexp (regexp-opt (list (treevis--up-right) (treevis--vertical-right)))))
     (if (re-search-backward regexp (line-beginning-position) t)
         (progn (treevis--mark (point) end) t)
       (beginning-of-line)
@@ -170,6 +181,117 @@ associated with NODE"
     (overlay-put overlay :treevis-mark t)))
 (defun treevis-unmark nil
   (remove-overlays (point-min) (point-max) :treevis-mark t))
+
+;;########################################
+
+(defvar treevis-select--buffer-name "*treevis-select*")
+(defvar-local treevis-select-current nil)
+(defvar-local treevis-select-forest nil)
+(defun treevis-select (forest &optional current)
+  "Ask the user to select a node from FOREST, which is a list of trees. When
+CURRENT is non-nil, set CURRENT as the initial selected node. Returns the node
+selected or nil when the user quit without selecting a node."
+  (let ((selection-buffer (get-buffer-create treevis-select--buffer-name))
+        result)
+    (switch-to-buffer-other-window selection-buffer)
+    (treevis-select-mode)
+    (setq treevis-select-current (or current (car forest))
+          treevis-select-forest forest)
+    (treevis-select--draw-forest forest)
+    (recursive-edit)
+    (setq result treevis-select-current)
+    (kill-buffer-and-window)
+    result))
+
+(defun treevis-select--draw-forest (forest)
+  (read-only-mode -1) (erase-buffer)
+  (dolist (tree forest)
+    (treevis-draw tree) (insert "\n"))
+  (treevis-mark-node treevis-select-current
+                     treevis-select-current-face)
+  (read-only-mode 1))
+
+;; TODO: Use `defface'
+(defvar treevis-select-branch-face '(:foreground "black" :background "yellow")
+  "The face of the headings corresponding to the nodes of the current branch")
+(defvar treevis-select-current-face '(:foreground "white" :background "black")
+  "The face of the heading corresponding to the current node")
+
+(define-derived-mode treevis-select-mode special-mode "Select-Node"
+  (setq cursor-type nil))
+
+(defun treevis-select-up nil
+  (interactive)
+  (let ((parent (funcall treevis-parent-func treevis-select-current)))
+    (unless parent (user-error "Can't go up, on a root"))
+    (setq treevis-select-current parent)
+    (treevis-select--mark-current)))
+
+(defun treevis-select-down nil
+  (interactive)
+  (let ((children (funcall treevis-children-func treevis-select-current)))
+    (unless children (user-error "Cannot go down, on a leaf"))
+    (setq treevis-select-current (car children))
+    (treevis-select--mark-current)))
+
+(defun treevis-select-next-sibling nil
+  (interactive)
+  (treevis-select-sibling :next))
+
+(defun treevis-select-prev-sibling nil
+  (interactive)
+  (treevis-select-sibling :prev))
+
+(defun treevis-select-sibling (direction)
+  "Direction is either :next or :prev"
+  (let* ((parent (funcall treevis-parent-func treevis-select-current))
+         (sibling (my-list-neighbor
+                   (if parent (funcall treevis-children-func parent)
+                     treevis-select-forest)
+                   treevis-select-current
+                   (eq direction :prev))))
+    (unless (eq sibling treevis-select-current)
+      (setq treevis-select-current sibling)
+      (treevis-select--mark-current))))
+
+(defun treevis-select-choose nil
+  (interactive)
+  (exit-recursive-edit)
+  (treevis-select-exit))
+
+(defun treevis-select-quit nil
+  (interactive)
+  (setq treevis-select-current nil)
+  (exit-recursive-edit))
+
+;;####################
+;; treevis-select utils
+
+(defun treevis-select--current-root nil
+  (let* ((current treevis-select-current)
+         (parent (funcall treevis-parent-func current)))
+    (while parent
+      (setq current parent)
+      (setq parent (funcall treevis-parent-func treevis-select-current)))
+    current))
+
+(defsubst treevis-select--mark-current nil
+  (treevis-unmark) (treevis-mark-node treevis-select-current))
+
+;;####################
+
+(defvar treevis-select-mode-map nil)
+(let ((map (make-sparse-keymap)))
+  (progn
+    (define-key map "p" 'treevis-select-up)
+    (define-key map "n" 'treevis-select-down)
+    (define-key map "f" 'treevis-select-next-sibling)
+    (define-key map "b" 'treevis-select-prev-sibling)
+    (define-key map "q" 'treevis-select-quit)
+    (define-key map "\C-p" 'treevis-select-prev-tree)
+    (define-key map "\C-n" 'treevis-select-next-tree)
+    (define-key map (kbd "RET") 'treevis-select-choose))
+  (setq treevis-select-mode-map map))
 
 ;;########################################
 ;; fun utilities
