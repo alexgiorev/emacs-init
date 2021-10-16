@@ -473,13 +473,15 @@ This facilitates switching between two buffers which are related"
 (defvar buffer-tree-current nil
   "The current node in the forest")
 
-(defun buffer-tree--check-current nil
+(defun buffer-tree--check nil
+  (unless buffer-trees
+    (user-error "Forest is empty"))
   (unless buffer-tree-current
     (user-error "No node selected")))
 
 (defun buffer-tree-switch-to-current nil
   (interactive)
-  (buffer-tree--check-current)
+  (buffer-tree--check)
   (buffer-tree--switch))
 
 (defsubst buffer-tree--switch nil
@@ -506,7 +508,7 @@ make the current buffer a root node."
 
 (defun buffer-tree-up nil
   (interactive)
-  (buffer-tree--check-current)
+  (buffer-tree--check)
   (let ((parent (plist-get buffer-tree-current :parent)))
     (unless parent
       (user-error "Cannot go up, on a root"))
@@ -516,7 +518,7 @@ make the current buffer a root node."
 (defun buffer-tree-down nil
   "Move to the first child"
   (interactive)
-  (buffer-tree--check-current)
+  (buffer-tree--check)
   (let ((children (plist-get buffer-tree-current :children)))
     (unless children
       (user-error "Cannot go down, on a leaf"))
@@ -551,7 +553,7 @@ make the current buffer a root node."
   "Insert a the current buffer as a node after the current node and make the new
 node the current one"
   (interactive)
-  (buffer-tree--check-current)
+  (buffer-tree--check)
   (let ((parent (plist-get buffer-tree-current :parent))
         node)
     (if parent
@@ -568,7 +570,7 @@ node the current one"
   "Insert a the current buffer as a node after the current node and make the new
 node the current one"
   (interactive)
-  (buffer-tree--check-current)
+  (buffer-tree--check)
   (let ((parent (plist-get buffer-tree-current :parent))
         node)
     (if parent
@@ -585,7 +587,7 @@ node the current one"
   "Remove the subtree of the current node and select the parent. This doesn't
 kill the buffer. When the current node is a root, selects the next one."
   (interactive)
-  (buffer-tree--check-current)
+  (buffer-tree--check)
   (let* ((parent (plist-get buffer-tree-current :parent))
          next-current)
     (if parent
@@ -611,6 +613,7 @@ kill the buffer. When the current node is a root, selects the next one."
 
 (defun buffer-tree-select nil
   (interactive)
+  (buffer-tree--check)
   (let* ((treevis-parent-func 'buffer-tree-parent-func)
          (treevis-name-func 'buffer-tree-name-func)
          (treevis-children-func 'buffer-tree-children-func)
@@ -618,7 +621,6 @@ kill the buffer. When the current node is a root, selects the next one."
     (when node
       (setq buffer-tree-current node)
       (buffer-tree--switch))))
-
 
 ;;####################
 ;; ** map
@@ -631,6 +633,7 @@ kill the buffer. When the current node is a root, selects the next one."
   (define-key my-buffer-map "\C-n" 'buffer-tree-down)
   (define-key my-buffer-map "\C-c" 'buffer-tree-switch-to-current)
   (define-key my-buffer-map "\C-k" 'buffer-tree-pop)
+  (define-key my-buffer-map "\C-e" 'buffer-tree-select)
   (define-key my-buffer-map "f" 'buffer-tree-new-sibling-after)
   (define-key my-buffer-map "b" 'buffer-tree-new-sibling-before)
   (define-key my-buffer-map (kbd "C-SPC") 'buffer-tree-new-node)
