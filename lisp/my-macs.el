@@ -283,21 +283,22 @@ PRED but if no other element passes it then nil will be returned."
             (setq result current) (throw :break nil)))))
     result))
 
-(defun my-list-neighbor (list elt &optional left)
+(defun my-list-neighbor (list elt direction)
   "Return the neighbor of ELT in LIST or nil when ELT is not in LIST. This is
-either the left neighbor when LEFT is non-nil or the right one. The right
-neighbor of the last element is the first element, and the left neighbor of the
-first element is the last element."
-  (cond (left
+either the previous neighbor when DIRECTION is :prev or the next one when
+DIRECTION is :next. The right neighbor of the last element is the first element,
+and the left neighbor of the first element is the last element."
+  (cond ((eq direction :prev)
          (if (eq (car list) elt)
              (car (last list))
            (car (my-list-prev-cons
                  list (lambda (other-elt) (eq elt other-elt))))))
           
-        (t
+        ((eq direction :next)
          (let ((tail (memq elt list)))
            (when tail
-             (if (cdr tail) (cadr tail) (car list)))))))
+             (if (cdr tail) (cadr tail) (car list)))))
+        (t (error "Invalid direction: %s" direction))))
 
 (defun my-list-add-after (list elt new)
   "Returns a list formed by adding NEW after ELT. Modifies LIST"

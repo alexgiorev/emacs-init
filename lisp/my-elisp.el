@@ -74,6 +74,11 @@ it as the symbol's value"
 ;;########################################
 ;;prefix
 (defvar my-prefix nil)
+
+(defun my-prefix-set (start end)
+  (interactive "r")
+  (setq my-prefix (buffer-substring start end)))
+
 (defun my-prefix-symbol nil
   (interactive)
   (unless my-prefix
@@ -83,6 +88,11 @@ it as the symbol's value"
         (beginning-of-thing 'symbol)
       (error (forward-thing 'symbol -1)))
     (insert my-prefix "-")))
+
 (define-key emacs-lisp-mode-map (kbd "C-M-.") 'my-prefix-symbol)
+;;########################################
+;; misc
+(dolist (symbol '(plist-put plist-get))
+  (put symbol 'lisp-indent-function 2))
 ;; ########################################
 (provide 'my-elisp)

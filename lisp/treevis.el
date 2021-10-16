@@ -250,7 +250,7 @@ selected or nil when the user quit without selecting a node."
                    (if parent (funcall treevis-children-func parent)
                      treevis-select-forest)
                    treevis-select-current
-                   (eq direction :prev))))
+                   direction)))
     (unless (eq sibling treevis-select-current)
       (setq treevis-select-current sibling)
       (treevis-select--mark-current))))

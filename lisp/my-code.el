@@ -1,5 +1,5 @@
 ;; useful for copying functions into Anki
-(defun my-kill-code-remove-indent (beg end)
+(defun my-save-code-remove-indent (beg end)
   (interactive "r")
   (save-excursion
     (goto-char beg) (beginning-of-line) (setq beg (point))  
@@ -13,7 +13,7 @@
 
 (with-eval-after-load 'prog-mode
   (define-key prog-mode-map
-    (kbd "C-c M-w") 'my-kill-code-remove-indent))
+    (kbd "C-c M-w") 'my-save-code-remove-indent))
 
 ;; ########################################
 (require 'cpath)

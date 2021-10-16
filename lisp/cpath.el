@@ -250,7 +250,7 @@ the roto of the first top-level tree."
 (defvar cpath-navigation-current-face '(:foreground "white" :background "black")
   "The face of the heading corresponding to the current node")
 
-(define-derived-mode cpath-navigation-mode special-mode "cpath-navigation"
+(define-derived-mode cpath-navigation-mode special-mode "Call-Path-Navigation"
   ;;########################################
   ;; insert an org-like representation of `cpath-trees', additionally
   ;; associating via text properties each heading with an actual node
@@ -316,7 +316,7 @@ the current one."
         branch-child new-branch-child)
     (unless (or (null children) (null (cdr children)))
       (setq branch-child (cpath-node-get-branch-child cpath-current-node)
-            new-branch-child (my-list-neighbor children branch-child (eq direction :prev)))
+            new-branch-child (my-list-neighbor children branch-child direction))
       (cpath-node-set-branch-child cpath-current-node new-branch-child)
       (cpath-navigation--mark-branch))))
 
@@ -335,7 +335,7 @@ the current one."
   (interactive)
   (cpath--check-current)
   (let* ((current-tree (cpath--current-root))
-         (next-tree (my-list-neighbor cpath-trees current-tree)))
+         (next-tree (my-list-neighbor cpath-trees current-tree :next)))
     (unless (eq current-tree next-tree)
       (setq cpath-current-node next-tree))
     (cpath-navigation--mark-branch)))
@@ -345,7 +345,7 @@ the current one."
   (interactive)
   (cpath--check-current)
   (let* ((current-tree (cpath--current-root))
-         (prev-tree (my-list-neighbor cpath-trees current-tree :left)))
+         (prev-tree (my-list-neighbor cpath-trees current-tree :prev)))
     (unless (eq current-tree prev-tree)
       (setq cpath-current-node prev-tree))
     (cpath-navigation--mark-branch)))

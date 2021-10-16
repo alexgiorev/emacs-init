@@ -531,7 +531,7 @@ make the current buffer a root node."
   (let* ((parent (plist-get buffer-tree-current :parent))
          (sibling (my-list-neighbor
                    (if parent (plist-get parent :children) buffer-trees)
-                   buffer-tree-current)))
+                   buffer-tree-current :next)))
     (if (eq sibling buffer-tree-current)
         (message "next same as current")
       (setq buffer-tree-current sibling)
@@ -543,7 +543,7 @@ make the current buffer a root node."
   (let* ((parent (plist-get buffer-tree-current :parent))
          (sibling (my-list-neighbor
                    (if parent (plist-get parent :children) buffer-trees)
-                   buffer-tree-current :left)))
+                   buffer-tree-current :prev)))
     (if (eq sibling buffer-tree-current)
         (message "prev same as current")
       (setq buffer-tree-current sibling)
@@ -594,7 +594,7 @@ kill the buffer. When the current node is a root, selects the next one."
         (progn (plist-put parent :children
                           (delq buffer-tree-current (plist-get parent :children)))
                (setq next-current parent))
-      (setq next-current (my-list-neighbor buffer-trees buffer-tree-current))
+      (setq next-current (my-list-neighbor buffer-trees buffer-tree-current :next))
       (when (eq next-current buffer-tree-current)
         (setq next-current nil))
       (setq buffer-trees (delq buffer-tree-current buffer-trees)))
