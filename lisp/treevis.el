@@ -191,17 +191,18 @@ associated with NODE"
   "Ask the user to select a node from FOREST, which is a list of trees. When
 CURRENT is non-nil, set CURRENT as the initial selected node. Returns the node
 selected or nil when the user quit without selecting a node."
-  (let ((selection-buffer (get-buffer-create treevis-select--buffer-name))
-        result)
-    (switch-to-buffer-other-window selection-buffer)
-    (treevis-select-mode)
-    (setq treevis-select-current (or current (car forest))
-          treevis-select-forest forest)
-    (treevis-select--draw-forest forest)
-    (recursive-edit)
-    (setq result treevis-select-current)
-    (kill-buffer-and-window)
-    result))
+  (when forest
+    (let ((selection-buffer (get-buffer-create treevis-select--buffer-name))
+          result)
+      (switch-to-buffer-other-window selection-buffer)
+      (treevis-select-mode)
+      (setq treevis-select-current (or current (car forest))
+            treevis-select-forest forest)
+      (treevis-select--draw-forest forest)
+      (recursive-edit)
+      (setq result treevis-select-current)
+      (kill-buffer-and-window)
+      result)))
 
 (defun treevis-select--draw-forest (forest)
   (read-only-mode -1) (erase-buffer)
