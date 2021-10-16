@@ -34,10 +34,10 @@ randomly"
 Ignores blank lines."
   (let ((result 1000))
     (my-maplines
-     beg end
-     (lambda ()
-       (unless (looking-at "^[[:blank:]]*$")
-         (setq result (min result (current-indentation))))))
+        (lambda nil
+          (unless (looking-at "^[[:blank:]]*$")
+            (setq result (min result (current-indentation)))))
+     beg end)
     result))
 
 (defun my-reduce-indentation (amount)
@@ -298,6 +298,15 @@ first element is the last element."
          (let ((tail (memq elt list)))
            (when tail
              (if (cdr tail) (cadr tail) (car list)))))))
+
+(defun my-list-add-after (list elt new)
+  "Returns a list formed by adding NEW after ELT. Modifies LIST"
+  (catch :break
+    (my-loop-cons (cell list)
+      (when (eq (car cell) elt)
+        (setcdr cell (cons new (cdr cell)))
+        (throw :break nil))))
+  list)
 
 ;; ########################################
 ;; lines
