@@ -308,6 +308,15 @@ first element is the last element."
         (throw :break nil))))
   list)
 
+(defun my-list-add-before (list elt new)
+  "Returns a list formed by adding NEW before ELT. Modifies LIST (unless ELT is
+the head of LIST)"
+  (let ((cell (my-list-prev-cons list (lambda (x) (eq x elt)))))
+    (if (not cell)
+        (cons new list)
+      (setcdr cell (cons new (cdr cell)))
+      list)))
+
 ;; ########################################
 ;; lines
 (defvar my-blank-line-re "^[ \t]*$"
