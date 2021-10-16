@@ -926,7 +926,8 @@ FUNC."
 (defun my-org-tempdone-after-state-change nil
   (if (string= org-state "TEMPDONE")
       (unless (string= org-last-state "TEMPDONE")
-        (org-entry-put (point) "TEMPDONE_UNDO" org-last-state))
+        (org-entry-put (point) "TEMPDONE_UNDO" org-last-state)
+        (org-hide-entry))
     (when (string= org-last-state "TEMPDONE")
       (org-entry-delete (point) "TEMPDONE_UNDO"))))
 
