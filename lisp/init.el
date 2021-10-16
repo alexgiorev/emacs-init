@@ -485,14 +485,14 @@ This facilitates switching between two buffers which are related"
 (defsubst buffer-tree--switch nil
   (switch-to-buffer (plist-get buffer-tree-current :buffer)))
 
-(defun buffer-tree-new-node (&optional arg)
+(defun buffer-tree-new-node (&optional root-p)
   "Append the current buffer as a child of the current node and make it the
 current node. When no node is selected, or when called with a prefix argument,
 make the current buffer a root node."
   (interactive "P")
   (let* ((buffer (current-buffer))
          parent node)
-    (if (or arg (null buffer-tree-current))
+    (if (or root-p (null buffer-tree-current))
         (progn (setq node (list :buffer buffer))
                (setq buffer-trees (append buffer-trees (list node))))
       (when (eq (plist-get buffer-tree-current :buffer) buffer)
@@ -526,28 +526,99 @@ make the current buffer a root node."
 (defun buffer-tree-next nil
   "Go to the next sibling. When on the last child of the parent, cycle back to the first one"
   (interactive)
-  (let ((sibling (my-list-neighbor (plist-get buffer-tree-current :children)
-                                   buffer-tree-current)))
+  (let* ((parent (plist-get buffer-tree-current :parent))
+         (sibling (my-list-neighbor
+                   (if parent (plist-get parent :children) buffer-trees)
+                   buffer-tree-current)))
     (if (eq sibling buffer-tree-current)
-        (message "Only child")
-      (setq buffer-tree-current sibling)))
-  (buffer-tree--switch))
+        (message "next same as current")
+      (setq buffer-tree-current sibling)
+      (buffer-tree--switch))))
 
 (defun buffer-tree-prev nil
   "Go to the previous sibling. When on the first child of the parent, cycle to the last one"
   (interactive)
-  (let ((sibling (my-list-neighbor (plist-get buffer-tree-current :children)
-                                   buffer-tree-current :left)))
+  (let* ((parent (plist-get buffer-tree-current :parent))
+         (sibling (my-list-neighbor
+                   (if parent (plist-get parent :children) buffer-trees)
+                   buffer-tree-current :left)))
     (if (eq sibling buffer-tree-current)
-        (message "Only child")
-      (setq buffer-tree-current sibling)))
-  (buffer-tree--switch))
+        (message "prev same as current")
+      (setq buffer-tree-current sibling)
+      (buffer-tree--switch))))
 
+(defun buffer-tree-new-sibling-after nil
+  "Insert a the current buffer as a node after the current node and make the new
+node the current one"
+  (interactive)
+  (buffer-tree--check-current)
+  (let ((parent (plist-get buffer-tree-current :parent))
+        node)
+    (if parent
+        (progn (setq node (list :buffer (current-buffer) :parent parent))
+               (plist-put parent :children
+                 (my-list-add-after (plist-get parent :children)
+                                    buffer-tree-current
+                                    node)))
+      (setq node (list :buffer (current-buffer)))
+      (my-list-add-after buffer-trees buffer-tree-current node))
+    (setq buffer-tree-current node)))
+
+(defun buffer-tree-new-sibling-before nil
+  "Insert a the current buffer as a node after the current node and make the new
+node the current one"
+  (interactive)
+  (buffer-tree--check-current)
+  (let ((parent (plist-get buffer-tree-current :parent))
+        node)
+    (if parent
+        (progn (setq node (list :buffer (current-buffer) :parent parent))
+               (plist-put parent :children
+                 (my-list-add-before (plist-get parent :children)
+                                     buffer-tree-current
+                                     node)))
+      (setq node (list :buffer (current-buffer)))
+      (my-list-add-before buffer-trees buffer-tree-current node))
+    (setq buffer-tree-current node)))
+      
 (defun buffer-tree-pop nil
   "Remove the subtree of the current node and select the parent. This doesn't
 kill the buffer. When the current node is a root, selects the next one."
   (interactive)
-  (error "TODO"))
+  (buffer-tree--check-current)
+  (let* ((parent (plist-get buffer-tree-current :parent))
+         next-current)
+    (if parent
+        (progn (plist-put parent :children
+                          (delq buffer-tree-current (plist-get parent :children)))
+               (setq next-current parent))
+      (setq next-current (my-list-neighbor buffer-trees buffer-tree-current))
+      (when (eq next-current buffer-tree-current)
+        (setq next-current nil))
+      (setq buffer-trees (delq buffer-tree-current buffer-trees)))
+    (setq buffer-tree-current next-current)
+    (if next-current
+        (buffer-tree--switch)
+      (message "Popped last node"))))
+
+;; treevis functions
+(defun buffer-tree-parent-func (node)
+  (plist-get node :parent))
+(defun buffer-tree-name-func (node)
+  (buffer-name (plist-get node :buffer)))
+(defun buffer-tree-children-func (node)
+  (plist-get node :children))
+
+(defun buffer-tree-select nil
+  (interactive)
+  (let* ((treevis-parent-func 'buffer-tree-parent-func)
+         (treevis-name-func 'buffer-tree-name-func)
+         (treevis-children-func 'buffer-tree-children-func)
+         (node (treevis-select buffer-trees buffer-tree-current)))
+    (when node
+      (setq buffer-tree-current node)
+      (buffer-tree--switch))))
+
 
 ;;####################
 ;; ** map
@@ -559,8 +630,16 @@ kill the buffer. When the current node is a root, selects the next one."
   (define-key my-buffer-map "\C-p" 'buffer-tree-up)
   (define-key my-buffer-map "\C-n" 'buffer-tree-down)
   (define-key my-buffer-map "\C-c" 'buffer-tree-switch-to-current)
+  (define-key my-buffer-map "\C-k" 'buffer-tree-pop)
+  (define-key my-buffer-map "f" 'buffer-tree-new-sibling-after)
+  (define-key my-buffer-map "b" 'buffer-tree-new-sibling-before)
   (define-key my-buffer-map (kbd "C-SPC") 'buffer-tree-new-node)
   (define-key my-buffer-map "\C-l" 'list-buffers)
   (define-key my-buffer-map "\C-s" 'my-buffer-switch-to-spouse)
   (define-key my-buffer-map "\C-r" 'my-buffer-marry))
-(global-set-key "\C-x\C-b" my-buffer-map)
+(progn 
+  (global-set-key [up] 'buffer-tree-up)
+  (global-set-key [down] 'buffer-tree-down)
+  (global-set-key [right] 'buffer-tree-next)
+  (global-set-key [left] 'buffer-tree-prev)
+  (global-set-key "\C-x\C-b" my-buffer-map))
