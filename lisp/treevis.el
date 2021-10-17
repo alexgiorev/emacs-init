@@ -26,39 +26,8 @@ sees a node as a plist with a :parent property")
 (defun treevis-parent-dunc-default (node)
   (plist-get node :parent))
 
+;;########################################
 ;; draw
-(defvar treevis-brushes
-  '(("double1" "╚═╗╠║")
-    ("double2" "╘═╕╞│")
-    ("light" "└─┐├│")
-    ("heavy1" "┕━┒┠┃")
-    ("heavy2" "┗━┓┣┃")))
-(defvar treevis-brush (cadr (assoc "double1" treevis-brushes)))
-(defsubst treevis--up-right nil
-  (char-to-string (aref treevis-brush 0)))
-(defsubst treevis--horizontal nil
-  (char-to-string (aref treevis-brush 1)))
-(defsubst treevis--down-left nil
-  (char-to-string (aref treevis-brush 2)))
-(defsubst treevis--vertical-right nil
-  (char-to-string (aref treevis-brush 3)))
-(defsubst treevis--vertical nil
-  (char-to-string (aref treevis-brush 4)))
-(defun treevis--brush-width nil
-  (treevis--string-width (treevis--horizontal)))
-(defun treevis--string-width (string)
-  "Return the size of STRING expressed in units the width of a space character"
-  (/ (treevis--string-pixel-width string)
-     (treevis--string-pixel-width " ")))
-(defun treevis--string-pixel-width (string)
-  "This only works for strings which fit into a visual line"
-  (let (str-pixels)
-    (insert string)
-    (setq str-pixels (car (window-text-pixel-size
-                           nil (- (point) (length string)) (point))))
-    (delete-region (- (point) (length string)) (point))
-    str-pixels))
-
 (defun treevis-draw (tree)
   "Make sure to call on an empty line"
   (treevis-draw-node tree))
@@ -83,21 +52,19 @@ sees a node as a plist with a :parent property")
         (my-loop-cons (pair children-markers)
           (setq child-start (car pair))
           (if (cdr pair)
-              ;; a connector equivalent to "╠═"
-              (setq connector (concat (treevis--vertical-right) (treevis--horizontal))
+              (setq connector "╠═"
                     child-end (cadr pair))
-            ;; a connector equivalent to "╚═"
-            (setq connector (concat (treevis--up-right) (treevis--horizontal))
+            (setq connector "╚═"
                   child-end (point-max)))
           (goto-char child-start)
           (insert connector)
           (unless (= (progn (beginning-of-line 2) (point)) child-end)
-            (indent-rigidly (point) child-end (* 2 (treevis--brush-width)))))
+            (indent-rigidly (point) child-end 2)))
         ;; connect connectors
         (my-maplines
             (lambda nil
               (when (= (char-after) ?\s)
-                (delete-char (treevis--brush-width)) (insert (treevis--vertical))))
+                (delete-char 1) (insert "║")))
             (point-min) (car (last children-markers)))
         ;; insert NODE's text and associate the text with NODE through a text property
         (setq name (funcall treevis-name-func node)
@@ -153,19 +120,19 @@ associated with NODE"
        (point) (+ (point) (length (funcall treevis-name-func node)))))))
 
 (defun treevis-mark--column nil
-  (do-while
-    (beginning-of-line 0)
-    (skip-chars-forward " ")
-    (if (looking-at (regexp-opt (list (treevis--vertical) (treevis--vertical-right))))
-        (treevis--mark (point) (1+ (point)))
-      (goto-char (1- (line-end-position)))
-      (treevis--mark (point) (1+ (point)))
-      (end-do-while))))
+  "Assumes that point is on an already marked ╚ connector. Marks the column of
+the connector (i.e. up to and including the first ╗ connector)"
+  (let ((column (current-column)))
+  (while (not (= (char-after) ?╗))
+    (beginning-of-line 0) (forward-char column)
+    (treevis--mark (point) (1+ (point))))))
 
 (defun treevis-mark--row nil
-  (let ((end (point))
-        (regexp (regexp-opt (list (treevis--up-right) (treevis--vertical-right)))))
-    (if (re-search-backward regexp (line-beginning-position) t)
+  "Marks from point up to and including the first ╚ or ╠ connector and returns
+t. Returns nil when there is no such connector (which means that the root has
+been marked) or when the root line has been marked."
+  (let ((end (point)))
+    (if (re-search-backward "╚\\|╠" (line-beginning-position) t)
         (progn (treevis--mark (point) end) t)
       (beginning-of-line)
       (treevis--mark (point) end)
