@@ -52,9 +52,14 @@ branch is then a path from the root where each internal node is so marked."
 (defun cpath-node-get-branch-child (node)
   "Returns the child which defines the current branch of NODE. Returns nil when
 NODE is a leaf."
-  (car (seq-drop-while (lambda (node)
-                         (not (plist-get node :branch)))
-                       (plist-get node :children))))
+  (let* ((children (plist-get node :children))
+         result)
+    (when children
+      (setq result (car (seq-drop-while
+                         (lambda (node) (not (plist-get node :branch)))
+                         children)))
+      (or result (progn (cpath-node-set-branch-child node (car children))
+                        (car children))))))
 
 (defsubst cpath-node-leafp (node)
   (null (plist-get node :children)))
@@ -161,9 +166,12 @@ with a prefix argument, makes a top-level call."
 (defun cpath-down nil
   (interactive)
   (cpath--check-current)
-  (let ((child (cpath-node-get-branch-child cpath-current-node)))
-    (unless child
+  (let ((child (cpath-node-get-branch-child cpath-current-node))
+        (children (plist-get cpath-current-node :children)))
+    (unless children
       (user-error "Cannot move down, at bottom"))
+    (unless child
+      (user-error "Cannot move down, no branch child"))
     (setq cpath-current-node child)
     (cpath--jump)))
 
