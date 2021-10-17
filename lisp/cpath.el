@@ -272,6 +272,7 @@ the roto of the first top-level tree."
   (read-only-mode 1)
   ;;########################################
   (cpath-navigation--mark-branch)
+  (treevis-goto-node cpath-current-node)
   (setq cursor-type nil))
 
 (defun cpath-navigation--mark-branch nil
