@@ -93,6 +93,7 @@ add a backlink as a BACKLINK property."
                (not (eobp)))))))
 
 (defun my-yank-from-pdf nil
+  (interactive)
   (let (text)
     (with-temp-buffer
       (yank) (beginning-of-buffer)
@@ -165,6 +166,7 @@ add a backlink as a BACKLINK property."
 (progn
   (define-key my-org-yank-map "l" 'my-org-yank-list)
   (define-key my-org-yank-map "u" 'my-yank-unfill)
+  (define-key my-org-yank-map "p" 'my-yank-from-pdf)
   (define-key my-org-yank-map "e" 'my-org-yank-unfill-elisp-comment)
   (define-key my-org-yank-map "r" 'my-org-yank-random-child)
   (define-key my-org-yank-map "z" 'my-org-yank-anki-cloze))
