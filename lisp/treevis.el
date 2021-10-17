@@ -205,12 +205,12 @@ selected or nil when the user quit without selecting a node."
       result)))
 
 (defun treevis-select--draw-forest (forest)
-  (read-only-mode -1) (erase-buffer)
-  (dolist (tree forest)
-    (treevis-draw tree) (insert "\n"))
-  (treevis-mark-node treevis-select-current
-                     treevis-select-current-face)
-  (read-only-mode 1))
+  (let ((inhibit-read-only t))
+    (erase-buffer)
+    (dolist (tree forest)
+      (treevis-draw tree) (insert "\n"))
+    (treevis-mark-node treevis-select-current
+                       treevis-select-current-face)))
 
 ;; TODO: Use `defface'
 (defvar treevis-select-branch-face '(:foreground "black" :background "yellow")
