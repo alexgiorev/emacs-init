@@ -346,7 +346,8 @@ the current one."
          (next-tree (my-list-neighbor cpath-trees current-tree :next)))
     (unless (eq current-tree next-tree)
       (setq cpath-current-node next-tree))
-    (cpath-navigation--mark-branch)))
+    (cpath-navigation--mark-branch))
+  (cpath-navigation--jump))
 
 (defun cpath-navigation-prev-tree nil
   "Set the current node to be the root of the top-level tree preceding the current one"
@@ -356,7 +357,8 @@ the current one."
          (prev-tree (my-list-neighbor cpath-trees current-tree :prev)))
     (unless (eq current-tree prev-tree)
       (setq cpath-current-node prev-tree))
-    (cpath-navigation--mark-branch)))
+    (cpath-navigation--mark-branch))
+  (cpath-navigation--jump))
 
 (defun cpath-navigation-quit nil
   (interactive)
