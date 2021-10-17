@@ -155,14 +155,12 @@ associated with NODE"
 (defun treevis-mark--column nil
   (do-while
     (beginning-of-line 0)
-    (when (search-forward (treevis--down-left) (line-end-position) t)
-      (backward-char)
+    (skip-chars-forward " ")
+    (if (looking-at (regexp-opt (list (treevis--vertical) (treevis--vertical-right))))
+        (treevis--mark (point) (1+ (point)))
+      (goto-char (1- (line-end-position)))
       (treevis--mark (point) (1+ (point)))
-      (end-do-while))
-    (re-search-forward (regexp-opt (list (treevis--vertical) (treevis--vertical-right)))
-                       (line-end-position))
-    (backward-char)
-    (treevis--mark (point) (1+ (point)))))
+      (end-do-while))))
 
 (defun treevis-mark--row nil
   (let ((end (point))
