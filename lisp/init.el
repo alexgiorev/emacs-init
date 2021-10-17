@@ -604,6 +604,7 @@ kill the buffer. When the current node is a root, selects the next one."
       (message "Popped last node"))))
 
 ;; treevis functions
+(require 'treevis)
 (defun buffer-tree-parent-func (node)
   (plist-get node :parent))
 (defun buffer-tree-name-func (node)

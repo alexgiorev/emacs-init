@@ -365,3 +365,6 @@ selected or nil when the user quit without selecting a node."
      (lambda (file)
        (not (string-match "/\\.$\\|/\\.\\.$" file)))
      (directory-files path t))))
+
+;;####################
+(provide 'treevis)
