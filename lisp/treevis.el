@@ -76,9 +76,6 @@ sees a node as a plist with a :parent property")
          child-start (1+ child-start) treevis--node-property node)
         (goto-char (point-max))))))
 
-;;########################################
-;; utils
-
 (defun treevis-goto-node (node)
   (beginning-of-buffer)
   (text-property-search-forward
@@ -148,9 +145,9 @@ been marked) or when the root line has been marked."
 
 ;;########################################
 ;; treevis-select
+
 ;;####################
 ;; variables
-
 (defvar treevis-select--buffer-name "*treevis-select*")
 (defvar-local treevis-select-current nil)
 (defvar-local treevis-select-forest nil)
@@ -256,7 +253,8 @@ the current one."
   (let ((children (funcall treevis-children-func treevis-select-current))
         branch-child new-branch-child)
     (unless (or (null children) (null (cdr children)))
-      (setq branch-child (treevis-select-get-branch-child treevis-select-current)
+      (setq branch-child (funcall treevis-select-get-branch-child-func
+                                  treevis-select-current)
             new-branch-child (my-list-neighbor children branch-child direction))
       (funcall treevis-select-set-branch-child-func
                treevis-select-current
