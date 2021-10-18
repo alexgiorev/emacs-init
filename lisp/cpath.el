@@ -81,52 +81,6 @@ Assumes a call path is active"
       (setq current parent))
     current))
 
-(defun cpath-org-tree nil
-  "Return a string representing the current call tree in the org format
-Assumes a call path is active"
-  (with-temp-buffer
-    (cpath-depth-first-walk
-     (lambda (node depth)
-       (insert (make-string (1+ depth) ?*) " "
-               (plist-get node :name) "\n")))
-    (buffer-string)))
-
-(defun cpath-depth-first-walk (func &optional root postorder)
-  "Traverse in depth-first order the subtree whose root is ROOT and call FUNC on
-each node. The traversal is in pre-order (parent called before children), unless
-POSTORDER is non-nil. ROOT defaults to the current root, but it can be any node,
-in which case the traversal is performed on the subtree of the node. FUNC
-accepts two arguments: the current node and its depth from the root. FUNC is
-called on a parent before it is called on a child. The root itself has depth
-zero, its children have depth one, etc."
-  (let* ((root (or root (cpath--current-root)))
-         ;; Each stack element corresponds to a node in the tree and has the
-         ;; form [NODE CHILDREN DEPTH]
-         (stack (list (vector root (plist-get root :children) 0)))
-         head node children child)
-    (while stack
-      (setq head (car stack)
-            node (aref head 0)
-            children (aref head 1)
-            depth (aref head 2))
-      (if postorder
-          (if children
-              (progn (setq child (pop children))
-                     (aset head 1 children)
-                     (push (vector child
-                                   (plist-get child :children)
-                                   (1+ depth))
-                           stack))
-            (funcall func node depth)
-            (pop stack))
-        (if node
-            (progn (funcall func node depth)
-                   (aset head 0 nil)
-                   (when (not children) (pop stack)))
-          (setq child (pop children))
-          (if children (aset head 1 children) (pop stack))
-          (push (vector child (plist-get child :children) (1+ depth)) stack))))))
-      
 (defsubst cpath--jump nil
   (my-jump-to-marker (plist-get cpath-current-node :marker)))
 
@@ -196,174 +150,13 @@ the roto of the first top-level tree."
     (message "Pruned subtree of \"%s\""
              (plist-get current :name))))
 
-(defun cpath-save-org-tree nil
-  "Stores in the kill ring a representation of the current call tree in the org format"
+;; No need to override the treevis functions for name, parent and children, as
+;; they assume a plist node. Only override the `treevis-select' functions
+(defun cpath-select nil
   (interactive)
-  (cpath--check-current)
-  (kill-new (cpath-org-tree)))
-
-(defun cpath-branch nil
-  "Change the branch of the current node. Shows a list of options about the next step."
-  (interactive)
-  (cpath--check-current)
-  (let ((names (mapcar (lambda (child)
-                         (if (plist-get child :branch)
-                             (cons (plist-get child :name) t)
-                           (plist-get child :name)))
-                       (plist-get cpath-current-node :children)))
-        choice child)
-    (unless names (user-error "On a leaf"))
-    (with-temp-buffer
-      (rename-buffer "*cpath-branch*")
-      (org-mode)
-      (insert "1. "
-              (if (consp (car names))
-                  (format "*%s*" (caar names))
-                (car names))
-              "\n")
-      (dolist (name (cdr names))
-        (org-insert-item)
-        (insert (if (consp name) (format "*%s*" (car name)) name) "\n"))
-      (save-window-excursion
-        (switch-to-buffer-other-window (current-buffer))
-        (setq choice
-              (if (< (length names) 10)
-                  (1+ (- (read-char-exclusive "Enter number") ?1))
-                (read-number "Enter number: "))))
-      (when (> choice (length names))
-        (user-error "%s is not a valid choice"))
-      (setq child (nth (1- choice) (plist-get cpath-current-node :children)))
-      (cpath-node-set-branch-child cpath-current-node child)
-      (message "Set branch of current node to \"%s\"" (plist-get child :name)))))
-
-;;--------------------
-;; navigation
-
-(defvar cpath-navigation-mode-map nil)
-(let ((map (make-keymap)))
-  (progn
-    (define-key map "p" 'cpath-navigation-up)
-    (define-key map "n" 'cpath-navigation-down)
-    (define-key map "f" 'cpath-navigation-branch-next)
-    (define-key map "b" 'cpath-navigation-branch-prev)
-    (define-key map "q" 'cpath-navigation-quit)
-    (define-key map "\C-p" 'cpath-navigation-prev-tree)
-    (define-key map "\C-n" 'cpath-navigation-next-tree)
-    (define-key map (kbd "RET") 'cpath-navigation-quit))
-  (setq cpath-navigation-mode-map map))
-
-;; TODO: Use `defface'
-(defvar cpath-navigation-branch-face '(:foreground "black" :background "yellow")
-  "The face of the headings corresponding to the nodes of the current branch")
-(defvar cpath-navigation-current-face '(:foreground "white" :background "black")
-  "The face of the heading corresponding to the current node")
-
-(define-derived-mode cpath-navigation-mode special-mode "Call-Path-Navigation"
-  ;;########################################
-  ;; insert an org-like representation of `cpath-trees', additionally
-  ;; associating via text properties each heading with an actual node
-  (setq treevis-name-func (lambda (node) (plist-get node :name))
-        treevis-children-func (lambda (node) (plist-get node :children)))
-  (read-only-mode -1)
-  (erase-buffer)
-  (dolist (tree cpath-trees)
-    (treevis-draw tree)
-    (insert "\n"))
-  (read-only-mode 1)
-  ;;########################################
-  (cpath-navigation--mark-branch)
-  (treevis-goto-node cpath-current-node)
-  (setq cursor-type nil))
-
-(defun cpath-navigation--mark-branch nil
-  (treevis-unmark)
-  ;; mark the current branch
-  (let ((node (cpath--current-root)))
-    (while (not (cpath-node-leafp node))
-      (setq node (cpath-node-get-branch-child node)))
-    (treevis-mark-branch node cpath-navigation-branch-face)
-    (treevis-mark-node cpath-current-node cpath-navigation-current-face)))
-
-(defvar cpath-navigation-buffer-name "*cpath-navigation*")
-(defun cpath-navigate nil
-  "Show navigation buffer"
-  (interactive)
-  (cpath--check-current)
-  (let ((nbuffer (get-buffer-create cpath-navigation-buffer-name)))
-    (switch-to-buffer-other-window nbuffer)
-    (cpath-navigation-mode)
-    (cpath-navigation--jump)))
-
-(defsubst cpath-navigation--jump nil
-  (select-window (previous-window))
-  (cpath--jump)
-  (select-window (next-window)))
-
-(defun cpath-navigation-up nil
-  (interactive)
-  (let ((parent (plist-get cpath-current-node :parent)))
-    (unless parent
-      (user-error "Cannot move up, at root"))
-    (setq cpath-current-node parent)
-    (cpath-navigation--mark-branch)
-    (cpath-navigation--jump)))
-
-(defun cpath-navigation-down nil
-  (interactive)
-  (let ((child (cpath-node-get-branch-child cpath-current-node)))
-    (unless child
-      (user-error "Cannot move down, at bottom"))
-    (setq cpath-current-node child)
-    (cpath-navigation--mark-branch)
-    (cpath-navigation--jump)))
-
-(defun cpath-navigation--branch (direction)
-  "When DIRECTION is :next, set the branch child to the one following the
-current one. When DIRECTION is :prev, set the branch child to the one preceding
-the current one."
-  (let ((children (plist-get cpath-current-node :children))
-        branch-child new-branch-child)
-    (unless (or (null children) (null (cdr children)))
-      (setq branch-child (cpath-node-get-branch-child cpath-current-node)
-            new-branch-child (my-list-neighbor children branch-child direction))
-      (cpath-node-set-branch-child cpath-current-node new-branch-child)
-      (cpath-navigation--mark-branch))))
-
-(defun cpath-navigation-branch-next nil
-  "Set the branch child to the one preceding the current one"
-  (interactive)
-  (cpath-navigation--branch :next))
-
-(defun cpath-navigation-branch-prev nil
-  "Set the branch child to the one preceding the current one"
-  (interactive)
-  (cpath-navigation--branch :prev))
-
-(defun cpath-navigation-next-tree nil
-  "Set the current node to be the root of the top-level tree following the current one"
-  (interactive)
-  (cpath--check-current)
-  (let* ((current-tree (cpath--current-root))
-         (next-tree (my-list-neighbor cpath-trees current-tree :next)))
-    (unless (eq current-tree next-tree)
-      (setq cpath-current-node next-tree))
-    (cpath-navigation--mark-branch))
-  (cpath-navigation--jump))
-
-(defun cpath-navigation-prev-tree nil
-  "Set the current node to be the root of the top-level tree preceding the current one"
-  (interactive)
-  (cpath--check-current)
-  (let* ((current-tree (cpath--current-root))
-         (prev-tree (my-list-neighbor cpath-trees current-tree :prev)))
-    (unless (eq current-tree prev-tree)
-      (setq cpath-current-node prev-tree))
-    (cpath-navigation--mark-branch))
-  (cpath-navigation--jump))
-
-(defun cpath-navigation-quit nil
-  (interactive)
-  (kill-buffer-and-window))
+  (let ((treevis-select-get-branch-child-func 'cpath-node-get-branch-child)
+        (treevis-select-set-branch-child-func 'cpath-node-set-branch-child))
+    (treevis-select cpath-trees cpath-current-node)))
 
 ;;########################################
 ;; keymap
@@ -374,7 +167,7 @@ the current one."
   (define-key cpath-map "n" 'cpath-down)
   (define-key cpath-map "d" 'cpath-prune)
   (define-key cpath-map " " 'cpath-call)
-  (define-key cpath-map "v" 'cpath-navigate))
+  (define-key cpath-map "e" 'cpath-select))
 (define-key prog-mode-map "\C-cp" cpath-map)
 ;;########################################
 (provide 'cpath)
