@@ -418,7 +418,7 @@ current buffer"
 ;;########################################
 (when (get-buffer "*scratch*")
   (kill-buffer "*scratch*")
-  (find-file-noselect "/tmp/scratch.el"))
+  (find-file-noselect "~/scratch/scratch.el"))
 
 ;;########################################
 (require 'undo-tree)
