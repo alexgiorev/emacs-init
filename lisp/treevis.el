@@ -243,7 +243,8 @@ branch is then a path from the root where each internal node is so marked."
 
 (defun treevis-select-down nil
   (interactive)
-  (let ((branch-child (treevis-select-get-branch-child treevis-select-current)))
+  (let ((branch-child (funcall treevis-select-get-branch-child-func
+                               treevis-select-current)))
     (unless branch-child (user-error "Cannot go down, on a leaf"))
     (setq treevis-select-current branch-child)
     (treevis-select-mark-branch)))
