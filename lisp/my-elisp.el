@@ -67,7 +67,8 @@ it as the symbol's value"
 (progn
   (define-key my-elisp-eval-map "\C-e" 'eval-last-sexp)
   (define-key my-elisp-eval-map "\C-b" 'eval-buffer)
-  (define-key my-elisp-eval-map "\C-r" 'eval-region)
+  (define-key my-elisp-eval-map "\C-r"
+    (lambda (start end) (interactive "r") (eval-region start end) (deactivate-mark)))
   (define-key my-elisp-eval-map "\C-v" 'my-elisp-eval-defvar))
 (define-key emacs-lisp-mode-map (kbd "C-x C-e") my-elisp-eval-map)
 
