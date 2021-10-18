@@ -174,7 +174,8 @@ selected or nil when the user quit without selecting a node."
       (treevis-select-mode)
       (setq treevis-select-current (or current (car forest))
             treevis-select-forest forest
-            treevis-select-branch-children nil)
+            treevis-select-branch-children
+            (treevis-select-branch-children-init))
       (treevis-select--draw-forest forest)
       (recursive-edit)
       (setq result treevis-select-current)
@@ -187,6 +188,15 @@ selected or nil when the user quit without selecting a node."
     (dolist (tree forest)
       (treevis-draw tree) (insert "\n"))
     (treevis-select--mark-branch)))
+
+(defun treevis-select-branch-children-init nil
+  (let ((result nil)
+        (node treevis-select-current)
+        parent)
+    (while (setq parent (funcall treevis-parent-func node))
+      (push (cons parent node) result)
+      (setq node parent))
+    result))
 
 (defun treevis-select-set-branch-child (node child)
   "Sets up CHILD as PARENT's next step in its branch.
