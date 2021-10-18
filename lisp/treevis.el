@@ -67,10 +67,8 @@ sees a node as a plist with a :parent property")
                 (delete-char 1) (insert "║")))
             (point-min) (car (last children-markers)))
         ;; insert NODE's text and associate the text with NODE through a text property
-        (setq name (funcall treevis-name-func node)
-              node-string (concat name (treevis--horizontal) (treevis--down-left)))
-        (indent-rigidly (point-min) (point-max)
-                        (+ (length name) (treevis--brush-width)))
+        (setq node-string (concat (funcall treevis-name-func node) "═╗"))
+        (indent-rigidly (point-min) (point-max) (1- (length node-string)))
         (beginning-of-buffer)
         (setq child-start (point)) (insert node-string "\n")
         (put-text-property
