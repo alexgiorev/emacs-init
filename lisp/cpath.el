@@ -154,6 +154,8 @@ the roto of the first top-level tree."
 ;; they assume a plist node. Only override the `treevis-select' functions
 (defun cpath-select nil
   (interactive)
+  (unless cpath-trees
+    (user-error "Forest is empty"))
   (let* ((treevis-select-get-branch-child-func 'cpath-node-get-branch-child)
          (treevis-select-set-branch-child-func 'cpath-node-set-branch-child)
          (node (treevis-select cpath-trees cpath-current-node)))
