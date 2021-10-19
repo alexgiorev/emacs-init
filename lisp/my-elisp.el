@@ -17,15 +17,13 @@
 (define-key emacs-lisp-mode-map (kbd "M-s d") 'my-elisp-isearch-defun)
 
 (defun my-elisp-defun-name nil
+  "Return the second symbol in the top-level sexp at point. This is useful for
+the sexps which serve as definitions, and it gets the symbol being defined"
   (save-excursion
-    (beginning-of-line)
-    (unless (looking-at my-elisp-defun-re)
-      (beginning-of-defun))
-    (let (beg end)
-      (forward-symbol 2) (setq end (point))
-      (forward-symbol -1) (setq start (point))
-      (buffer-substring-no-properties start end))))
-
+    (beginning-of-line) (search-forward "(" (line-end-position) t)
+    (unless (bolp) (beginning-of-defun))
+    (forward-symbol 2) (symbol-name (symbol-at-point))))
+    
 (defun my-elisp-save-defun-name nil
   "Puts in the kill ring the name of the current defun. Useful when taking notes
 about the function."
