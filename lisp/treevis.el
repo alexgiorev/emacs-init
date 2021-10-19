@@ -271,6 +271,22 @@ the current one."
   (interactive)
   (treevis-select--branch :prev))
 
+(defun treevis-select-next-tree nil
+  (interactive)
+  (let* ((current-root (treevis-select--current-root))
+         (next-root (my-list-neighbor treevis-select-forest current-root :next)))
+    (unless (eq current-root next-root)
+      (setq treevis-select-current next-root)
+      (treevis-select-mark-branch))))
+
+(defun treevis-select-prev-tree nil
+  (interactive)
+  (let* ((current-root (treevis-select--current-root))
+         (prev-root (my-list-neighbor treevis-select-forest current-root :prev)))
+    (unless (eq current-root prev-root)
+      (setq treevis-select-current prev-root)
+      (treevis-select-mark-branch))))
+
 (defun treevis-select-choose nil
   (interactive)
   (exit-recursive-edit)
