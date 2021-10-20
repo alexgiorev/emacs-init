@@ -603,6 +603,7 @@ kill the buffer. When the current node is a root, selects the next one."
         (buffer-tree--switch)
       (message "Popped last node"))))
 
+;;####################
 ;; treevis functions
 (require 'treevis)
 (defun buffer-tree-parent-func (node)
@@ -622,6 +623,38 @@ kill the buffer. When the current node is a root, selects the next one."
     (when node
       (setq buffer-tree-current node)
       (buffer-tree--switch))))
+
+;;####################
+;; removing nodes
+
+(defun buffer-tree-remove-buffer-nodes (buffer)
+  "Remove all nodes (and the trees they define) in the `buffer-trees' forest which hold BUFFER"
+  (let* ((nodes nil)
+         (removed-current (eq (plist-get buffer-tree-current :buffer) buffer)))
+    (dolist (tree buffer-trees)
+      (my-tree-depth-first-walk
+       (lambda (node depth)
+         (when (eq (plist-get node :buffer) buffer)
+           (push node nodes)))
+       tree))
+    (dolist (node nodes)
+      (buffer-tree-remove-subtree node :check))
+    (when removed-current
+      (setq buffer-tree-current (car buffer-trees)))))
+      
+(defun buffer-tree-remove-subtree (subtree &optional check)
+  "SUBTREE is the root of the subtree to remove. When CHECK is non-nil, nothing
+will happen if SUBTREE is not a node in the `buffer-trees' forest. Make sure
+that after calling `buffer-tree-current' is not one of the nodes removed."
+  (when (or (not check) (memq (my-tree-root subtree) buffer-trees))
+    (let* ((parent (plist-get subtree :parent)))
+      (if parent
+          (progn (plist-put parent :children
+                   (delq subtree (plist-get parent :children))))
+        (setq buffer-trees (delq subtree buffer-trees))))))
+
+(add-hook 'kill-buffer-hook
+          (lambda nil (buffer-tree-remove-buffer-nodes (current-buffer))))
 
 ;;####################
 ;; ** map
