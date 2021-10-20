@@ -130,6 +130,7 @@ the data. Flushes the data."
 (defun my-sched-schedule (&optional interval)
   "Schedule the entry at point INTERVAL days into the future. When INTERVAL is nil, ask the user"
   (interactive)
+  (my-sched--load-maybe)
   (let* ((eid (org-id-get))
          (sched (my-sched--get-sched eid))
          (prompt (if sched
@@ -151,6 +152,7 @@ today.")
 
 (defun my-sched-ring-reset nil
   (interactive)
+  (my-sched--load-maybe)
   (let* ((ids (mapcar (lambda (sched) (plist-get sched :id))
                       (my-sched--due-today)))
          (length (length ids)))
@@ -171,15 +173,16 @@ today.")
 
 (defun my-sched-ring-jump nil
   (interactive)
+  (my-sched-ring--check)
   (let (did-open)
-  (while (and my-sched-ring (not did-open))
-    (ignore-errors
-      (org-id-open (car my-sched-ring) nil)
-      (setq did-open t))
+    (while (and my-sched-ring (not did-open))
+      (ignore-errors
+        (org-id-open (car my-sched-ring) nil)
+        (setq did-open t))
+      (unless did-open
+        (my-circlist-pop 'my-sched-ring)))
     (unless did-open
-      (my-circlist-pop 'my-sched-ring)))
-  (unless did-open
-    (my-sched-ring--check))))
+      (my-sched-ring--check))))
 
 (defun my-sched-ring-next nil
   (interactive)
@@ -216,8 +219,3 @@ today.")
 
 ;;########################################
 (provide 'my-sched)
-
-;;########################################
-;; initialization
-
-(my-sched--load-maybe)
