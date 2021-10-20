@@ -371,4 +371,43 @@ BODY."
   (remove-overlays (point-min) (point-max) :my-highlight t))
 
 ;;########################################
+;; trees
+(defvar my-tree-children-func 'my-tree-children-func-default)
+(defun my-tree-children-func-default (node)
+  (plist-get node :children))
+
+(defun my-tree-depth-first-walk (func root &optional postorder)
+  "Traverse in depth-first order the subtree whose root is ROOT and call FUNC on
+each node. The traversal is in pre-order (FUNC is called on a parent called
+before any of its children), unless POSTORDER is non-nil. FUNC accepts two
+arguments: the current node and its depth from the root. The root itself has
+depth zero, its children have depth one, etc."
+  (let* (;; Each stack element corresponds to a node in the tree and has the
+         ;; form [NODE CHILDREN DEPTH]
+         (stack (list (vector root (funcall my-tree-children-func root) 0)))
+         head node children child)
+    (while stack
+      (setq head (car stack)
+            node (aref head 0)
+            children (aref head 1)
+            depth (aref head 2))
+      (if postorder
+          (if children
+              (progn (setq child (pop children))
+                     (aset head 1 children)
+                     (push (vector child
+                                   (funcall my-tree-children-func child)
+                                   (1+ depth))
+                           stack))
+            (funcall func node depth)
+            (pop stack))
+        (if node
+            (progn (funcall func node depth)
+                   (aset head 0 nil)
+                   (when (not children) (pop stack)))
+          (setq child (pop children))
+          (if children (aset head 1 children) (pop stack))
+          (push (vector child (funcall my-tree-children-func child) (1+ depth)) stack))))))
+
+;;########################################
 (provide 'my-macs)
