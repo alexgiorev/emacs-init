@@ -162,7 +162,7 @@ its default branch child is the first child")
   "A function which accepts a node and a child and sets the child as the branch
   child of the node")
 ;; TODO: Use `defface'
-(defvar treevis-select-branch-face '(:foreground "black" :background "yellow")
+(defvar treevis-select-branch-face '(:foreground "black" :weight bold)
   "The face of the headings corresponding to the nodes of the current branch")
 (defvar treevis-select-current-face '(:foreground "white" :background "black")
   "The face of the heading corresponding to the current node")
@@ -195,7 +195,8 @@ selected or nil when the user quit without selecting a node."
 (defsubst treevis-select-draw-forest (forest)
   (let ((inhibit-read-only t))
     (erase-buffer)
-    (dolist (tree forest) (treevis-draw tree) (insert "\n"))))
+    (dolist (tree forest) (treevis-draw tree) (insert "\n"))
+    (put-text-property (point-min) (point-max) 'face 'shadow)))
 
 (defun treevis-select-branch-children-init nil
   (let ((result nil)
@@ -229,7 +230,8 @@ branch is then a path from the root where each internal node is so marked."
     (while (setq branch-child (funcall treevis-select-get-branch-child-func node))
       (setq node branch-child))
     (treevis-mark-branch node treevis-select-branch-face)
-    (treevis-mark-node treevis-select-current treevis-select-current-face)))
+    (treevis-mark-node treevis-select-current treevis-select-current-face)
+    (treevis-goto-node treevis-select-current)))
 
 (defun treevis-select-up nil
   (interactive)
