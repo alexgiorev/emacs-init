@@ -372,9 +372,25 @@ BODY."
 
 ;;########################################
 ;; trees
-(defvar my-tree-children-func 'my-tree-children-func-default)
+(defvar my-tree-children-func 'my-tree-children-func-default
+  "The function which returns the list of children for the node. By default, a
+node is treated as a plist with a :children property which maps to this list")
 (defun my-tree-children-func-default (node)
   (plist-get node :children))
+
+(defvar my-tree-parent-func 'my-tree-parent-func-default
+  "The function which returns the parent of a node. By default, a node is
+treated as a plist with a :parent property which maps to the parent")
+(defun my-tree-parent-func-default (node)
+  (plist-get node :parent))
+
+(defun my-tree-root (node)
+  "Return the root of the tree of NODE. This is defined to be the ancestor which
+doesn't have a parent"
+  (let (parent)
+    (while (setq parent (funcall my-tree-parent-func node))
+      (setq node parent))
+    node))
 
 (defun my-tree-depth-first-walk (func root &optional postorder)
   "Traverse in depth-first order the subtree whose root is ROOT and call FUNC on
@@ -387,10 +403,8 @@ depth zero, its children have depth one, etc."
          (stack (list (vector root (funcall my-tree-children-func root) 0)))
          head node children child)
     (while stack
-      (setq head (car stack)
-            node (aref head 0)
-            children (aref head 1)
-            depth (aref head 2))
+      (setq head (car stack) node (aref head 0)
+            children (aref head 1) depth (aref head 2))
       (if postorder
           (if children
               (progn (setq child (pop children))
