@@ -24,24 +24,31 @@ ID. The ID is the same one you would get if you were to parse the line and
 fetch the :id attribute")
 
 (defun my-sched--find-sched (eid)
-  "Positions point on the line holding the scheduling information corresponding
-to the entry having EID as its ID"
+  "Positions point on the beginning of the line holding the scheduling
+information corresponding to the entry having EID as its ID. If there is no such
+line, returns nil. Otherwise, returns a non-nil value."
   (beginning-of-buffer)
   (when (text-property-search-forward my-sched--id-property eid 'string=)
-    (beginning-of-line)))
+    (beginning-of-line) :found))
 
-(defun my-sched--goto-sched (sched)
+(defsubst my-sched--goto-sched (sched)
   (my-sched--find-sched (plist-get sched :id)))
 
 (defun my-sched--flush-sched (sched)
   (with-current-buffer my-sched--data-buffer
     (if (my-sched--goto-sched sched)
         (progn (delete-region
-                (point) (progn (forward-sexp) (point)))
-               (prin1 sched (current-buffer)))
+                (point) (line-end-position))
+               (prin1 sched (current-buffer))
+               (beginning-of-line))
       (end-of-buffer)
-      (prin1 sched (current-buffer)))
-    (save-buffer))
+      (prin1 sched (current-buffer)) (insert "\n")
+      (beginning-of-line 0))
+    (my-sched--associate-line (plist-get sched :id))
+    (write-region nil nil (buffer-file-name my-sched--data-buffer)
+                  nil :no-write-message)
+    ;; avoid query when killing
+    (set-buffer-modified-p nil))
   (bury-buffer my-sched--data-buffer))
 
 (defun my-sched--load-maybe nil
@@ -50,16 +57,15 @@ to the entry having EID as its ID"
     (setq my-sched--data-buffer (find-file-noselect my-sched--data-file))
     (with-current-buffer my-sched--data-buffer
       (emacs-lisp-mode)
-      (rename-buffer "my-sched--data-buffer")
+      (rename-buffer " *my-sched--data-buffer*")
       (setq my-sched--data (my-read-buffer))
       ;; associate lines with IDs
       (beginning-of-buffer)
       (dolist (sched my-sched--data)
-        (put-text-property
-         (point) (1+ (point))
-         my-sched--id-property
-         (plist-get sched :id))
-        (beginning-of-line 2)))))
+        (my-sched--associate-line (plist-get sched :id))
+        (beginning-of-line 2))
+      ;; avoid query when killing
+      (set-buffer-modified-p nil))))
 
 (defun my-sched--reload nil
   (setq my-sched--data nil)
@@ -67,6 +73,12 @@ to the entry having EID as its ID"
   (setq my-sched--data-buffer nil)
   (my-sched--load-maybe)
   nil)
+
+(defun my-sched--associate-line (id)
+  "Associate the current line in `my-sched--data-buffer' with ID. Assumes that
+point is on the beginning of the line."
+  (put-text-property (point) (1+ (point))
+                     my-sched--id-property id))
 
 ;;########################################
 ;; Scheduling
@@ -115,9 +127,8 @@ the data. Flushes the data."
 ;;########################################
 ;; * commands
 
-(defun my-sched-schedule nil
-  "Ask the user for a number and schedule the entry at point for that many days
-into the future"
+(defun my-sched-schedule (&optional interval)
+  "Schedule the entry at point INTERVAL days into the future. When INTERVAL is nil, ask the user"
   (interactive)
   (let* ((eid (org-id-get))
          (sched (my-sched--get-sched eid))
@@ -125,7 +136,7 @@ into the future"
                      (format "Interval (last was %s): "
                              (plist-get sched :interval))
                    "Interval: "))
-         (new-interval (read-number prompt)))
+         (new-interval (or interval (read-number prompt))))
     (unless sched
       (setq eid (org-id-get-create))
       (setq sched (my-sched--create-sched eid)))
