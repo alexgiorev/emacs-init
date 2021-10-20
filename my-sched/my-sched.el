@@ -1,6 +1,6 @@
 (require 'my-macs)
 
-;; ----------------------------------------
+;;########################################
 ;; time utilities
 
 (defun my-sched--today (&optional time)
@@ -8,23 +8,27 @@
                      (- 86400 (car (current-time-zone))))))
     (/ my-epoch 86400)))
 
-;; ----------------------------------------
+;;########################################
 ;; persistent-storage
 
 (defvar my-sched--data nil)
-(defvar my-sched--data-file "~/.emacs.d/my-sched/data")
+(defvar my-sched--data-file (concat user-emacs-directory "my-sched/data"))
 (defvar my-sched--data-buffer nil
   "The buffer which stores serialized scheduling data. It visits `my-sched--data-file'.")
 (defvar my-sched--id-regexp-format ":id +%S"
   "Useful for finding the text of the record corresponding to the entry having a
 particular ID")
+(defvar my-sched--id-property (make-symbol "my-sched-id")
+  "The property which associates a line in `my-sched--data-buffer' with an
+ID. The ID is the same one you would get if you were to parse the line and
+fetch the :id attribute")
 
 (defun my-sched--find-sched (eid)
-  "Positions point before the opening parenthesis of the plist corresponding to
-the entry having EID as its id."
+  "Positions point on the line holding the scheduling information corresponding
+to the entry having EID as its ID"
   (beginning-of-buffer)
-  (when (re-search-forward (format my-sched--id-regexp-format eid) nil t)
-    (search-backward "(")))
+  (when (text-property-search-forward my-sched--id-property eid 'string=)
+    (beginning-of-line)))
 
 (defun my-sched--goto-sched (sched)
   (my-sched--find-sched (plist-get sched :id)))
@@ -47,7 +51,15 @@ the entry having EID as its id."
     (with-current-buffer my-sched--data-buffer
       (emacs-lisp-mode)
       (rename-buffer "my-sched--data-buffer")
-      (setq my-sched--data (my-read-buffer)))))
+      (setq my-sched--data (my-read-buffer))
+      ;; associate lines with IDs
+      (beginning-of-buffer)
+      (dolist (sched my-sched--data)
+        (put-text-property
+         (point) (1+ (point))
+         my-sched--id-property
+         (plist-get sched :id))
+        (beginning-of-line 2)))))
 
 (defun my-sched--reload nil
   (setq my-sched--data nil)
@@ -56,7 +68,7 @@ the entry having EID as its id."
   (my-sched--load-maybe)
   nil)
 
-;; ----------------------------------------
+;;########################################
 ;; Scheduling
 
 (defun my-sched--get-sched (eid)
@@ -100,7 +112,7 @@ the data. Flushes the data."
      (lambda (record) (<= (plist-get record :due) today))
      my-sched--data)))
 
-;; ----------------------------------------
+;;########################################
 ;; * commands
 
 (defun my-sched-schedule nil
@@ -191,10 +203,10 @@ today.")
 
 (define-key org-mode-map "\C-cs" my-sched-map)
 
-;; ----------------------------------------
+;;########################################
 (provide 'my-sched)
 
-;; ----------------------------------------
+;;########################################
 ;; initialization
 
 (my-sched--load-maybe)
