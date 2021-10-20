@@ -564,7 +564,8 @@ node the current one"
                                     node)))
       (setq node (list :buffer (current-buffer)))
       (my-list-add-after buffer-trees buffer-tree-current node))
-    (setq buffer-tree-current node)))
+    (setq buffer-tree-current node))
+  (message "New node"))
 
 (defun buffer-tree-new-sibling-before nil
   "Insert a the current buffer as a node after the current node and make the new
@@ -581,7 +582,8 @@ node the current one"
                                      node)))
       (setq node (list :buffer (current-buffer)))
       (my-list-add-before buffer-trees buffer-tree-current node))
-    (setq buffer-tree-current node)))
+    (setq buffer-tree-current node))
+  (message "New node"))
       
 (defun buffer-tree-pop nil
   "Remove the subtree of the current node and select the parent. This doesn't
