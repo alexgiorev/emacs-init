@@ -20,7 +20,7 @@
   "Return the second symbol in the top-level sexp at point. This is useful for
 the sexps which serve as definitions, and it gets the symbol being defined"
   (save-excursion
-    (beginning-of-line) (search-forward "(" (line-end-position) t)
+    (beginning-of-line) (skip-chars-forward "[[:space:]]")
     (unless (bolp) (beginning-of-defun))
     (forward-symbol 2) (symbol-name (symbol-at-point))))
     
