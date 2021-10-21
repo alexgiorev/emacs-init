@@ -311,7 +311,7 @@ the current one."
   (let ((new-current (or (funcall treevis-parent-func treevis-select-current)
                          (my-list-neighbor treevis-select-forest
                                            treevis-select-current
-                                           :next))))
+                                           :next :different))))
     (funcall treevis-select-prune-func treevis-select-current)
     (unless new-current (treevis-select-quit))
     (setq treevis-select-current new-current)
