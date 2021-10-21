@@ -108,9 +108,15 @@ nil, use the current buffer."
     (my-read-buffer)))
 
 ;; ########################################
+;; time
 
 (defsubst my-int-time nil
   (time-convert (current-time) 'integer))
+
+(defsubst my-time-today (&optional time)
+  (let ((my-epoch (- (or time (my-int-time))
+                     (- 86400 (car (current-time-zone))))))
+    (/ my-epoch 86400)))
 
 ;; ########################################
 (defsubst my-randint (low high)

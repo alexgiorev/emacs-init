@@ -1,14 +1,6 @@
 (require 'my-macs)
 
 ;;########################################
-;; time utilities
-
-(defun my-sched--today (&optional time)
-  (let ((my-epoch (- (or time (my-int-time))
-                     (- 86400 (car (current-time-zone))))))
-    (/ my-epoch 86400)))
-
-;;########################################
 ;; persistent-storage
 
 (defvar my-sched--data nil)
@@ -112,14 +104,14 @@ scheduling data and return it."
   "Schedule SCHED for INTERVAL days from today. Assumes that SCHED is already in
 the data. Flushes the data."
   (let* ((interval (max 0 interval))
-         (day (+ (my-sched--today) interval)))
+         (day (+ (my-time-today) interval)))
     (plist-put sched :due day)
     (plist-put sched :interval interval)
     (my-sched--flush-sched sched)))
 
 (defun my-sched--due-today nil
   "Return a list of the records which are due today"
-  (let* ((today (my-sched--today)))
+  (let* ((today (my-time-today)))
     (seq-filter
      (lambda (record) (<= (plist-get record :due) today))
      my-sched--data)))
@@ -214,7 +206,6 @@ today.")
   (define-key my-sched-map "j" 'my-sched-ring-jump)
   (define-key my-sched-map "o" 'my-sched-ring-pop)
   (define-key my-sched-map "s" 'my-sched-schedule))
-
 (define-key org-mode-map "\C-cs" my-sched-map)
 
 ;;########################################
