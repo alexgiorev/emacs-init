@@ -986,10 +986,22 @@ non-nil, undo regardless of date."
 (add-hook 'org-mode-hook
           'my-org-tempdone-undo-buffer)
 
-(defvar my-org-todo-map (make-sparse-keymap))
+;; ########################################
+;; nodes
+
+(defun my-org-node-date nil
+  (interactive)
+  (let ((timestamp (with-temp-buffer
+                     (org-insert-time-stamp (current-time) nil :inactive)
+                     (buffer-substring-no-properties (point-min) (point-max)))))
+    (org-entry-put nil "DATE" timestamp)))
+
+(defvar my-org-node-map (make-sparse-keymap)
+  "Binds keys to commands which work on nodes")
 (progn
-  (define-key my-org-todo-map "d" 'my-org-tempdone-days))
-(define-key org-mode-map "\C-ct" my-org-todo-map)
+  (define-key my-org-node-map "t" 'my-org-tempdone-days)
+  (define-key my-org-node-map "d" 'my-org-node-date))
+(define-key org-mode-map "\C-ce" my-org-node-map)
 
 ;;########################################
 (provide 'my-org)
