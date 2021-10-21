@@ -290,7 +290,8 @@ entries from the file."
         (type "|" "DECL(e)" "FACT" "CONCEPT(c)" "SOURCE" "EXAMPLES" "TEMP")
         (type "QUESTION(q)" "|" "ANSWERED" "ANSWER(a)")
         (type "PROBLEM(p)" "|" "SOLVED" "SOLUTION(o)" "PROBLEM_DECL")
-        (type "EXPLORE(x)" "EXPERIMENT" "ACTION" "HOOK" "LATER" "IDEA(i)" "READ(r)" "|")))
+        (type "IDEA(i)" "|" "IDEA_DECL")
+        (type "EXPLORE(x)" "EXPERIMENT" "ACTION" "HOOK" "LATER" "READ(r)" "|")))
 
 ;; so that level 2 entries are also considered when refiling
 (setq org-refile-targets
@@ -935,6 +936,23 @@ FUNC."
     (when (string= org-last-state "TEMPDONE")
       (org-entry-delete (point) "TEMPDONE_UNDO"))))
 
+(defun my-org-tempdone (&optional days)
+  (let ((state (org-get-todo-state))
+        (org-after-todo-state-change-hook
+         (remq 'my-org-tempdone-after-state-change
+               org-after-todo-state-change-hook))
+        (day (and days (+ (my-time-today) days))))
+    (unless (string= state "TEMPDONE")
+      (org-todo "TEMPDONE")
+      (org-entry-put nil "TEMPDONE_UNDO" state)
+      (when day
+        (org-entry-put nil "TEMPDONE_UNDO_DAY" (number-to-string day)))      
+      (org-hide-entry))))
+
+(defun my-org-tempdone-days (days)
+  (interactive "nDays: ")
+  (my-org-tempdone days))
+
 (defun my-org-tempdone-undo-buffer nil
   "Go through the accessible portion of the current buffer and undo the TEMDONE entries"
   (interactive)
@@ -946,21 +964,32 @@ FUNC."
    'my-org-tempdone-undo start end)
   (deactivate-mark))
 
-(defun my-org-tempdone-undo nil
-  "If the current entry is a TEMPDONE, undo it. Otherwise do nothing"
+(defun my-org-tempdone-undo (&optional force)
+  "If the current entry is a TEMPDONE, undo it. If a TEMPDONE date is present,
+don't undo unless it refers to today or a day that has passed. If FORCE is
+non-nil, undo regardless of date."
   (interactive)
-  (when (string= (org-get-todo-state) "TEMPDONE")
-    (let ((old (org-entry-get (point) "TEMPDONE_UNDO")))
-      (unless old
-        (error "TEMPDONE entry missing TEMPDONE_UNDO property"))
-      (org-entry-delete (point) "TEMPDONE_UNDO")
-      (org-todo old))))
+  (let (old day)
+    (when (string= (org-get-todo-state) "TEMPDONE")
+      (setq day (ignore-errors (string-to-number (org-entry-get nil "TEMPDONE_UNDO_DAY"))))
+      (when (or force (not day) (<= day (my-time-today)))
+        (setq old (org-entry-get nil "TEMPDONE_UNDO"))
+        (unless old
+          (error "TEMPDONE entry missing TEMPDONE_UNDO property"))
+        (org-entry-delete nil "TEMPDONE_UNDO")
+        (org-entry-delete nil "TEMPDONE_UNDO_DAY")
+        (org-todo old)))))
 
 (add-hook 'org-after-todo-state-change-hook
           'my-org-tempdone-after-state-change)
 
 (add-hook 'org-mode-hook
           'my-org-tempdone-undo-buffer)
+
+(defvar my-org-todo-map (make-sparse-keymap))
+(progn
+  (define-key my-org-todo-map "d" 'my-org-tempdone-days))
+(define-key org-mode-map "\C-ct" my-org-todo-map)
 
 ;;########################################
 (provide 'my-org)
