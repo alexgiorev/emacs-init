@@ -154,13 +154,34 @@ been marked) or when the root line has been marked."
 (defvar-local treevis-select-branch-children nil
   "An alist which maps a node do its branch child. If a node does not appear,
 its default branch child is the first child")
+
 (defvar treevis-select-get-branch-child-func 'treevis-select-get-branch-child
   "A function which accepts a node and returns the 'next' child on the current
   branch. Following a succession of such 'branch children' from a root defines a
   branch")
+
+(defun treevis-select-set-branch-child (node child)
+  "Sets up CHILD as PARENT's next step in its branch.
+Only one child of a node is marked as the next one in the current branch. A
+branch is then a path from the root where each internal node is so marked."
+  (let ((cell (assoc node treevis-select-branch-children)))
+    (if cell (setcdr cell child)
+      (push (cons node child) treevis-select-branch-children))))
+
 (defvar treevis-select-set-branch-child-func 'treevis-select-set-branch-child
   "A function which accepts a node and a child and sets the child as the branch
   child of the node")
+
+(defun treevis-select-get-branch-child (node)
+  "Returns nil only when NODE is a leaf. The default branch child is the first child"
+  (let* ((cell (assoc node treevis-select-branch-children)))
+    (if cell (cdr cell)
+      (car (funcall treevis-children-func node)))))
+
+(defvar treevis-select-prune-func nil
+  "A function which accepts an and is supposed to remove its tree from the
+forest. By default this is nil, which means that if `treevis-select-prune' is
+invoked nothing will happen.")
 ;; TODO: Use `defface'
 (defvar treevis-select-branch-face '(:foreground "black" :weight bold)
   "The face of the headings corresponding to the nodes of the current branch")
@@ -185,12 +206,15 @@ selected or nil when the user quit without selecting a node."
             treevis-select-forest forest
             treevis-select-branch-children
             (treevis-select-branch-children-init))
-      (treevis-select-draw-forest forest)
-      (treevis-select-mark-branch)
+      (treevis-select-redraw)
       (recursive-edit)
       (setq result treevis-select-current)
       (kill-buffer-and-window)
       result)))
+
+(defun treevis-select-redraw nil
+  (treevis-select-draw-forest forest)
+  (treevis-select-mark-branch))
 
 (defsubst treevis-select-draw-forest (forest)
   (let ((inhibit-read-only t))
@@ -206,20 +230,6 @@ selected or nil when the user quit without selecting a node."
       (push (cons parent node) result)
       (setq node parent))
     result))
-
-(defun treevis-select-set-branch-child (node child)
-  "Sets up CHILD as PARENT's next step in its branch.
-Only one child of a node is marked as the next one in the current branch. A
-branch is then a path from the root where each internal node is so marked."
-  (let ((cell (assoc node treevis-select-branch-children)))
-    (if cell (setcdr cell child)
-      (push (cons node child) treevis-select-branch-children))))
-
-(defun treevis-select-get-branch-child (node)
-  "Returns nil only when NODE is a leaf. The default branch child is the first child"
-  (let* ((cell (assoc node treevis-select-branch-children)))
-    (if cell (cdr cell)
-      (car (funcall treevis-children-func node)))))
 
 (defun treevis-select-mark-branch nil
   (treevis-unmark)
@@ -294,6 +304,19 @@ the current one."
   (exit-recursive-edit)
   (treevis-select-exit))
 
+(defun treevis-select-prune nil
+  (interactive)
+  (unless treevis-select-prune-func
+    (user-error "Cannot prune, treevis-select-prune-func is nil"))
+  (let ((new-current (or (funcall treevis-parent-func treevis-select-current)
+                         (my-list-neighbor treevis-select-forest
+                                           treevis-select-current
+                                           :next))))
+    (funcall treevis-select-prune-func treevis-select-current)
+    (unless new-current (treevis-select-quit))
+    (setq treevis-select-current new-current)
+    (treevis-select-redraw)))
+
 (defun treevis-select-quit nil
   (interactive)
   (setq treevis-select-current nil)
@@ -307,7 +330,7 @@ the current one."
          (parent (funcall treevis-parent-func current)))
     (while parent
       (setq current parent)
-      (setq parent (funcall treevis-parent-func treevis-select-current)))
+      (setq parent (funcall treevis-parent-func current)))
     current))
 
 (defsubst treevis-select--mark-current nil
@@ -315,18 +338,17 @@ the current one."
 
 ;;####################
 
-(defvar treevis-select-mode-map nil)
-(let ((map (make-sparse-keymap)))
-  (progn
-    (define-key map "p" 'treevis-select-up)
-    (define-key map "n" 'treevis-select-down)
-    (define-key map "f" 'treevis-select-branch-next)
-    (define-key map "b" 'treevis-select-branch-prev)
-    (define-key map "q" 'treevis-select-quit)
-    (define-key map "\C-p" 'treevis-select-prev-tree)
-    (define-key map "\C-n" 'treevis-select-next-tree)
-    (define-key map (kbd "RET") 'treevis-select-choose))
-  (setq treevis-select-mode-map map))
+(defvar treevis-select-mode-map (make-sparse-keymap))
+(progn
+  (define-key treevis-select-mode-map "p" 'treevis-select-up)
+  (define-key treevis-select-mode-map "n" 'treevis-select-down)
+  (define-key treevis-select-mode-map "f" 'treevis-select-branch-next)
+  (define-key treevis-select-mode-map "b" 'treevis-select-branch-prev)
+  (define-key treevis-select-mode-map "q" 'treevis-select-quit)
+  (define-key treevis-select-mode-map "k" 'treevis-select-prune)
+  (define-key treevis-select-mode-map "\C-p" 'treevis-select-prev-tree)
+  (define-key treevis-select-mode-map "\C-n" 'treevis-select-next-tree)
+  (define-key treevis-select-mode-map (kbd "RET") 'treevis-select-choose))
 
 ;;########################################
 ;; fun utilities
