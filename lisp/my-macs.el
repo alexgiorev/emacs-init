@@ -289,22 +289,26 @@ PRED but if no other element passes it then nil will be returned."
             (setq result current) (throw :break nil)))))
     result))
 
-(defun my-list-neighbor (list elt direction)
+(defun my-list-neighbor (list elt direction &optional different)
   "Return the neighbor of ELT in LIST or nil when ELT is not in LIST. This is
 either the previous neighbor when DIRECTION is :prev or the next one when
-DIRECTION is :next. The right neighbor of the last element is the first element,
-and the left neighbor of the first element is the last element."
-  (cond ((eq direction :prev)
-         (if (eq (car list) elt)
-             (car (last list))
-           (car (my-list-prev-cons
-                 list (lambda (other-elt) (eq elt other-elt))))))
+DIRECTION is :next. This function cycles the list, so that the next neighbor of
+the last element is the first element, and the previous neighbor of the first
+element is the last element. This means that when there is only one element, it
+is its own previous and next neighbor. If you want the function to return nil
+when LIST is a singleton, give a non-nil DIFFERENT argument"
+  (unless (and different (not (cdr list)))
+    (cond ((eq direction :prev)
+           (if (eq (car list) elt)
+               (car (last list))
+             (car (my-list-prev-cons
+                   list (lambda (other-elt) (eq elt other-elt))))))
           
-        ((eq direction :next)
-         (let ((tail (memq elt list)))
-           (when tail
-             (if (cdr tail) (cadr tail) (car list)))))
-        (t (error "Invalid direction: %s" direction))))
+          ((eq direction :next)
+           (let ((tail (memq elt list)))
+             (when tail
+               (if (cdr tail) (cadr tail) (car list)))))
+          (t (error "Invalid direction: %s" direction)))))
 
 (defun my-list-add-after (list elt new)
   "Returns a list formed by adding NEW after ELT. Modifies LIST"
