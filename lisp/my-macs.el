@@ -381,6 +381,217 @@ BODY."
   (remove-overlays (point-min) (point-max) :my-highlight t))
 
 ;;########################################
+;; forest
+
+(defvar forest-marker (make-symbol "forest-marker"))
+(defun forest nil
+  "Return an empty forest"
+  (list :type forest-marker :current nil :children nil))
+
+;;####################
+;; forest-misc
+
+(defsubst forest-root-p (node)
+  (eq (plist-get :type (plist-get node :parent) forest-marker)))
+
+(defun forest-root (node)
+  "Return the root of the tree of NODE. This is defined to be the ancestor which
+doesn't have a parent"
+  (while (not forest-root-p node)
+    (setq node (plist-get node :parent))))
+
+(defsubst forest-set-current (forest node)
+  "Set NODE as the current of FOREST and return NODE, and also make NODE the
+branch child of its parent."
+  (plist-put forest :current node)
+  (when node (forest-set-branch-child node))
+  node)
+
+(defsubst forest-current (forest)
+  "Return FOREST's current node, or nil when there is no current"
+  (plist-get forest :current))
+
+(defsubst forest-empty-p (forest)
+  (null (plist-get forest :children)))
+
+(defun forest-depth-first-walk (func root &optional postorder)
+  "Traverse in depth-first order the subtree whose root is ROOT and call FUNC on
+each node. The traversal is in pre-order (FUNC is called on a parent called
+before any of its children), unless POSTORDER is non-nil. FUNC accepts two
+arguments: the current node and its depth from the root. The root itself has
+depth zero, its children have depth one, etc."
+  (let* (;; Each stack element corresponds to a node in the tree and has the
+         ;; form [NODE CHILDREN DEPTH]
+         (stack (list (vector root (plist-get root :children) 0)))
+         head node children child prune-p)
+    (while stack
+      (setq head (car stack) node (aref head 0)
+            children (aref head 1) depth (aref head 2))
+      (if postorder
+          (if children
+              (progn (setq child (pop children))
+                     (aset head 1 children)
+                     (push (vector child
+                                   (plist-get child :children)
+                                   (1+ depth))
+                           stack))
+            (funcall func node depth)
+            (pop stack))
+        (if node
+            (progn (setq prune-p t)
+                   (catch 'forest-walk-prune
+                     (funcall func node depth) (setq prune-p nil))
+                   (if (or prune-p (not children)) (pop stack)
+                     (aset head 0 nil)))
+          (setq child (pop children))
+          (if children (aset head 1 children) (pop stack))
+          (push (vector child (plist-get child :children) (1+ depth)) stack))))))
+
+(defun forest--check (forest)
+  (unless (forest-empty-p forest)
+    (error "Forest is empty"))
+  (unless (forest-current forest)
+    (error "Forest doesn't have a current node set")))
+
+(defun forest-branch-child (node)
+  "Returns the branch child of NODE. Returns nil IFF node is a leaf"
+  (let* ((children (plist-get node :children))
+         result)
+    (when children
+      (setq result (car (seq-drop-while
+                         (lambda (node) (not (plist-get node :branch-child-p)))
+                         children)))
+      (or result (car children)))))
+
+(defun forest-set-branch-child (child)
+  "Sets up CHILD as its parent's next step on its branch.
+Only one child of a node is marked as the next one in the current branch. A
+branch is then a path from the root where each internal node is so marked."
+  (unless (forest-root-p child)
+    (let ((parent plist-get child :parent))
+      (dolist (child (plist-get parent :children))
+        (plist-put child :branch-child-p nil))
+      (plist-put child :branch-child-p t))))
+
+(defun forest-get-sibling (node direction)
+  "Return the previous or next sibling, depending on DIRECTION, which is one of
+(:prev :next). When NODE is an only child, return nil."
+  (let* ((siblings (plist-get (plist-get node :parent) :children)))
+    (when (cddr siblings)
+      (my-list-neighbor siblings node direction))))
+
+(defun forest-in-forest-p (forest node)
+  "Return t when NODE is a FOREST node"
+  (let (parent)
+    (while (setq parent (plist-get node :parent))
+      (setq node parent))
+    (eq forest node)))
+
+;;####################
+;; forest-node-creation
+
+(defun forest--new-child (parent &rest properties)
+  (let ((node (copy-sequence properties)))
+    (plist-put node :parent parent)
+    (plist-put parent :children
+      (nconc (plist-get parent :children) (list node)))
+    node))
+
+(defsubst forest-new-root (forest &rest properties)
+  "Add a new root in FOREST and return the new node. The PROPERTIES must be a
+property list, and the properties will be attached to the new node."
+  (forest-set-current forest (apply 'forest--new-child forest properties)))
+
+(defun forest-new-child (forest &rest properties)
+  "Add a new child of the current node of FOREST. When there is no current node,
+adds the node as a root. The new node becomes the current one and is returned"
+  (let* ((parent (or (forest-current forest) forest)))
+    (forest-set-current (apply 'forest--new-child parent properties))))
+
+(defun forest-new-sibling (forest direction &rest properties)
+  "Add a new sibling to the current node and make it current. When DIRECTION is
+:next, the sibling is ordered after the current node, and when DIRECTION is
+:prev before it. When the current node is a root, a new root is created again
+ordered based on DIRECTION. When there is no current node, a new root is
+created."
+  (let ((current (forest-current forest))
+        node parent func)
+    (if (not current)
+        (apply 'forest-new-root forest properties)
+      (setq parent (plist-get current :parent)
+            list-add-func (cond ((eq direction :prev) 'my-list-add-before)
+                                ((eq direction :next) 'my-list-add-after)
+                                (t (error "Invalid direction: %s" direction)))
+            node (copy-sequence properties))
+      (plist-put node :parent parent)
+      (plist-put parent :children
+        (funcall list-add-func (plist-get parent :children) node))
+      (forest-set-current forest node))))
+
+;;####################
+;; node removal
+
+(defun forest-prune (forest)
+  "Remove the whole tree whose root is the current node. The new current node
+will be the next sibling if there is one and otherwise the parent."
+  (let* ((current (forest-current forest))
+         (parent (plist-get current :parent))
+         (next-current (or (forest-get-sibling current :next)
+                           (and (not (forest-root-p current)) parent))))
+    (plist-put parent :children
+      (delq current (plist-get parent :children)))
+    (plist-put current :parent nil)
+    (forest-set-current next-current)))
+
+(defun forest-prune-all (forest pred)
+  "For all nodes which pass PRED, remove them and their subtrees"
+  (let (nodes (current (forest-current forest)))
+    (dolist (root (plist-get forest :children))
+      (forest-depth-first-walk
+       (lambda (node depth)
+         (when (funcall pred node)
+           (push node nodes) (throw 'forest-walk-prune)))
+       root))
+    (dolist (node nodes)
+      (forest-set-current forest node) (forest-prune forest))
+    (unless (forest-in-forest-p forest current)
+      (forest-set-current forest (car (plist-get forest :children))))))
+(put 'forest-prune-all 'lisp-indent-function 1)
+      
+;;####################
+;; navigation
+
+(defun forest-goto-parent (forest)
+  "Set the current node as the parent of the current one. Signals an error when
+the current is a root."
+  (forest--check forest)
+  (let* ((current (forest-current forest))
+         (parent (plist-get current :parent)))
+    (when (forest-root-p current)
+      (error "Cannot go up, on root"))
+    (forest-set-current forest parent)))
+
+(defun forest-goto-child (forest)
+  "Set the current node as the branch child of the current one. Signals an error when
+the current is a leaf."  
+  (forest--check forest)
+  (let* ((current (forest-current forest))
+         (branch-child (forest-branch-child current)))
+    (unless branch-child
+      (error "Cannot go down, on a leaf"))
+    (forest-set-current forest branch-child)))
+
+(defun forest-goto-sibling (forest direction)
+  "Set the current node as the next sibling (when DIRECTION is :next) or the
+previous one (when DIRECTION is :prev) of the current one. Signals an error when
+the current is an only child. The next sibling of the last child is the first
+child. When on a root, this returns the next root."
+  (let* ((sibling (forest-get-sibling (forest-current forest) direction)))
+    (unless sibling
+      (error "Cannot go to sibling, the current node is an only child"))
+    (forest-set-current forest sibling)))
+  
+;;########################################
 ;; trees
 
 (defvar my-tree-children-func 'my-tree-children-func-default
@@ -433,9 +644,6 @@ depth zero, its children have depth one, etc."
           (setq child (pop children))
           (if children (aset head 1 children) (pop stack))
           (push (vector child (funcall my-tree-children-func child) (1+ depth)) stack))))))
-
-;;########################################
-;; forest
 
 ;;########################################
 (provide 'my-macs)
