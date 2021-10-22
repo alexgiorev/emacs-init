@@ -137,18 +137,30 @@ with a prefix argument, makes a top-level call."
 (defun cpath-prune nil
   "Deletes the current subtree and the parent becomes the new current node. When
 the current node is a root, removes the whole tree and the current node becomes
-the roto of the first top-level tree."
+the root of the first top-level tree."
   (interactive)
   (cpath--check-current)
   (let ((current cpath-current-node)
         (parent (plist-get cpath-current-node :parent)))
+    (cpath--prune cpath-current-node)
+    (setq cpath-current-node (or parent (car cpath-trees)))
+    (message "Pruned subtree of \"%s\"" (plist-get current :name))))
+
+(defun cpath--prune (node)
+  "Remove the tree whose root is NODE. Make sure to adjust `cpath-current-node'
+if it was one of the nodes removed."
+  (let* ((parent (plist-get node :parent)))
     (if parent
-        (progn (setq cpath-current-node parent)
-               (cpath-node-delete-child parent current))
-      (setq cpath-trees (delq current cpath-trees))
-      (setq cpath-current-node (car cpath-trees)))
-    (message "Pruned subtree of \"%s\""
-             (plist-get current :name))))
+        (progn (plist-put parent :children
+                 (delq node (plist-get parent :children))))
+      (setq cpath-trees (delq node cpath-trees)))
+    (plist-put node :parent nil)))
+
+(defsubst cpath-in-forest-p (node)
+  "Returns non-nil when NODE is a node in the `cpath-trees' forest. This is
+useful because sometimes nodes leave the forest because an ancestor was
+removed."
+  (not (null (memq (my-tree-root node) cpath-trees))))
 
 ;; No need to override the treevis functions for name, parent and children, as
 ;; they assume a plist node. Only override the `treevis-select' functions
@@ -158,10 +170,14 @@ the roto of the first top-level tree."
     (user-error "Forest is empty"))
   (let* ((treevis-select-get-branch-child-func 'cpath-node-get-branch-child)
          (treevis-select-set-branch-child-func 'cpath-node-set-branch-child)
+         (treevis-select-prune-func 'cpath--prune)
          (node (treevis-select cpath-trees cpath-current-node)))
-    (when node
-      (setq cpath-current-node node)
-      (cpath--jump))))
+    (if node
+        (progn (setq cpath-current-node node)
+               (cpath--jump))
+      ;; no node was selected, but the current one could have been pruned
+      (unless (cpath-in-forest-p cpath-current-node)
+        (setq cpath-current-node (car cpath-trees))))))
 
 ;;########################################
 ;; keymap
