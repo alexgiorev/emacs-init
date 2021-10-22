@@ -382,6 +382,7 @@ BODY."
 
 ;;########################################
 ;; trees
+
 (defvar my-tree-children-func 'my-tree-children-func-default
   "The function which returns the list of children for the node. By default, a
 node is treated as a plist with a :children property which maps to this list")
@@ -432,6 +433,9 @@ depth zero, its children have depth one, etc."
           (setq child (pop children))
           (if children (aset head 1 children) (pop stack))
           (push (vector child (funcall my-tree-children-func child) (1+ depth)) stack))))))
+
+;;########################################
+;; forest
 
 ;;########################################
 (provide 'my-macs)

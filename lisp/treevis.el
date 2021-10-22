@@ -149,11 +149,16 @@ been marked) or when the root line has been marked."
 ;;####################
 ;; variables
 (defvar treevis-select--buffer-name "*treevis-select*")
+
 (defvar-local treevis-select-current nil)
 (defvar-local treevis-select-forest nil)
+
 (defvar-local treevis-select-branch-children nil
-  "An alist which maps a node do its branch child. If a node does not appear,
+  "An alist which maps a node to its branch child. If a node does not appear,
 its default branch child is the first child")
+
+;;##########
+;; branch children
 
 (defvar treevis-select-get-branch-child-func 'treevis-select-get-branch-child
   "A function which accepts a node and returns the 'next' child on the current
@@ -177,6 +182,8 @@ branch is then a path from the root where each internal node is so marked."
   (let* ((cell (assoc node treevis-select-branch-children)))
     (if cell (cdr cell)
       (car (funcall treevis-children-func node)))))
+
+;;##########
 
 (defvar treevis-select-prune-func nil
   "A function which accepts an and is supposed to remove its tree from the
@@ -313,6 +320,7 @@ the current one."
                                            treevis-select-current
                                            :next :different))))
     (funcall treevis-select-prune-func treevis-select-current)
+    (debug)
     (unless new-current (treevis-select-quit))
     (setq treevis-select-current new-current)
     (treevis-select-redraw)))

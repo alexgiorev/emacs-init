@@ -659,7 +659,8 @@ that after calling `buffer-tree-current' is not one of the nodes removed."
       (if parent
           (progn (plist-put parent :children
                    (delq subtree (plist-get parent :children))))
-        (setq buffer-trees (delq subtree buffer-trees))))))
+        (setq buffer-trees (delq subtree buffer-trees)))
+      (plist-put subtree :parent nil))))
 
 (add-hook 'kill-buffer-hook
           (lambda nil (buffer-tree-remove-buffer-nodes (current-buffer))))
