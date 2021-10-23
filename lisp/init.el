@@ -522,7 +522,8 @@ node the current one"
   (buffer-forest--check)
   (forest-prune buffer-forest)
   (when (forest-empty-p buffer-forest)
-    (message "Forest is now empty")))
+    (message "Forest is now empty"))
+  (buffer-forest--switch))
 
 (defun buffer-forest-select nil
   (interactive)
