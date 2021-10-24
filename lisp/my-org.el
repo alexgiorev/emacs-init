@@ -522,7 +522,8 @@ subtree of the entry."
                        (progn
                          ;; Move the subtree to the temp buffer and position point
                          ;; at its end so that the search continues after it.
-                         (let ((subtree (my-org-tree-text)))
+                         (let ((subtree (buffer-substring-no-properties
+                                         (point) (progn (org-end-of-subtree t t) (point)))))
                            (with-current-buffer temp-buffer
                              (save-excursion (insert subtree))
                              (my-org-tree-set-level 1)
@@ -784,7 +785,11 @@ beginning of the heading when it has no title."
   (looking-at org-complex-heading-regexp)
   (when (match-string 4) (goto-char (match-beginning 4))))
 
-;; ** trees
+(defsubst org-goto-root nil
+  (while (org-up-heading-safe)))
+  
+;;####################
+;; misc-trees
 
 (defun my-org-tree-set-level (level)
   "Promote/demote the subtree at point so that its root has level LEVEL"
