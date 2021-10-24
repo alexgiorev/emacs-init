@@ -508,7 +508,8 @@ branch is then a path from the root where each internal node is so marked."
 (defsubst forest-current-root (forest)
   (let ((node (forest-current forest)))
     (while (not (forest-root-p node))
-      (setq node (plist-get node :parent)))))
+      (setq node (plist-get node :parent)))
+    node))
 
 ;;####################
 ;; forest-node-creation
