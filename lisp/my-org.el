@@ -1007,4 +1007,118 @@ non-nil, undo regardless of date."
 (define-key org-mode-map "\C-ce" my-org-node-map)
 
 ;;########################################
+;; org-dyn
+
+(defvar-local org-dyn-connection-A-prop nil)
+(defvar-local org-dyn-connection-B-prop nil)
+(defvar-local org-dyn-buffer-A nil)
+(defun org-dyn-create (buffer-B pred)
+  "In BUFFER-B create a dynamic view based on which entries pass PRED in the
+current buffer. PRED is a predicate function called at the beginning of each
+entry, except that if an entry passes PRED the search continues past its tree"
+  ;; setup BUFFER-B
+  (setq buffer-B (get-buffer-create buffer-B))
+  (let ((buffer-A (current-buffer)))
+    (with-current-buffer buffer-B
+      (erase-buffer) (org-mode)
+      (setq org-dyn-connection-A-prop (make-symbol "org-dyn-connection-A"))
+      (setq org-dyn-connection-B-prop (make-symbol "org-dyn-connection-B"))
+      (setq org-dyn-buffer-A buffer-A)))
+  (save-excursion
+    (beginning-of-buffer)
+    (when (or (org-on-heading-p) (outline-next-heading))
+      (do-while
+        (if (save-excursion (funcall pred))
+            (let* ((connection (make-symbol "connection"))
+                   (prop-A (buffer-local-value 'org-dyn-connection-A-prop buffer-B))
+                   (tree-beginning (point)) (tree-end (my-org-tree-end-pos t t))
+                   (subtree (buffer-substring-no-properties
+                             tree-beginning tree-end)))
+              (org-dyn--connect prop-A connection) (goto-char tree-end)
+              (with-current-buffer buffer-B
+                (save-excursion (insert subtree))
+                (my-org-tree-set-level 1)
+                (org-dyn--connect org-dyn-connection-B-prop connection)
+                (end-of-buffer))
+              ;; only continue the loop when
+              ;; on a heading after the subtree
+              (not (eobp)))
+          (outline-next-heading)))))
+  (switch-to-buffer buffer-B) (org-set-startup-visibility))
+
+(defun org-dyn--check-dyn-buffer nil
+  (unless (and org-dyn-buffer-A org-dyn-connection-A-prop org-dyn-connection-B-prop)
+    (user-error "Current buffer not a dynamic buffer"))
+  (unless (buffer-live-p org-dyn-buffer-A)
+    (user-error "BUFFER-A is not alive")))
+
+(defun org-dyn-get-connection nil
+  (let ((connection (get-text-property (point) org-dyn-connection-B-prop)))
+    (unless connection
+      (user-error "Current root is missing the connecting text property"))
+    connection))
+  
+(defun org-dyn-goto-original nil
+  (interactive)
+  (let ((prop-A org-dyn-connection-A-prop)
+        (connection nil))
+    (org-dyn--check-dyn-buffer)
+    (org-goto-root)
+    (setq connection (org-dyn-get-connection))
+    (switch-to-buffer org-dyn-buffer-A) (beginning-of-buffer)
+    (org-dyn--find-A prop-A connection)
+    (when (invisible-p (point))
+      (org-show-set-visibility 'canonical))))
+
+(defsubst org-dyn--find-A (prop-A connection)
+  (if (text-property-search-forward prop-A connection 'eq)
+      (backward-char)
+    (user-error "Cannot find NODE-A")))
+
+(defsubst org-dyn--connect (prop connection)
+  "Assumes `org-dyn-connection-A-prop' is set and
+that point is at the beginning of the tree"
+  (put-text-property (point) (1+ (point)) prop connection)
+  (put-text-property (point) (1+ (point))
+                     'rear-nonsticky
+                     (cons prop (get-text-property (point) 'rear-nonsticky))))
+
+(defun org-dyn-push nil
+  (interactive)
+  (org-dyn--check-dyn-buffer)
+  (save-excursion
+    (org-goto-root)
+    (let ((title (org-no-properties (org-get-heading t t t t)))
+          (connection (org-dyn-get-connection))
+          (prop-A org-dyn-connection-A-prop)
+          level-A text-B visibility-B)
+      (setq text-B (my-org-tree-text :no-properties)
+            visibility-B (my-org-tree-get-visibility))
+      (with-current-buffer org-dyn-buffer-A
+        (org-with-wide-buffer
+         (org-dyn--find-A prop-A connection)
+         (setq level-A (funcall outline-level))
+         (narrow-to-region (point) (my-org-tree-end-pos t t))
+         (delete-region (point-min) (point-max))
+         (save-excursion (insert text-B))
+         (my-org-tree-set-visibility visibility-B)
+         (my-org-tree-set-level level-A)
+         (org-dyn--connect prop-A connection)))
+      (message "Pushed \"%s\"" title))))
+
+(defun org-dyn-from-expr nil
+  (interactive)
+  (let* ((buffer-name (read-string "Buffer: "))
+         (pred-body (read--expression "Boolean expr: "))
+         (pred `(lambda nil ,pred-body)))
+    (org-dyn-create buffer-name pred)))
+  
+(defvar org-dyn-map (make-sparse-keymap))
+(progn
+  (define-key org-dyn-map "\C-g" 'org-dyn-goto-original)
+  (define-key org-dyn-map "\C-p" 'org-dyn-push)
+  (define-key org-dyn-map "\C-e" 'org-dyn-from-expr))
+(define-key org-mode-map (kbd "C-c C-d") org-dyn-map)
+
+;;########################################
 (provide 'my-org)
