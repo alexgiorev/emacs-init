@@ -360,16 +360,16 @@ BODY."
          ,@body
          (setq ,var (cdr ,var))))))
 
-(defvar do-while--break-symbol (make-symbol ":do-while--break"))
-(defmacro do-while (&rest body)
-  "Keep evaluating BODY until `end-do-while' is called"
+(defvar loop--break-symbol (make-symbol ":loop--break"))
+(defmacro loop (&rest body)
+  "Keep evaluating BODY until `end-loop' is called"
   (declare (indent 0))
-  `(catch do-while--break-symbol
+  `(catch loop--break-symbol
      (while t
        ,@body)))
-(defsubst end-do-while (&optional result)
-  "End the nearest enclosing `do-while' loop"
-  (throw do-while--break-symbol result))
+(defsubst end-loop (&optional result)
+  "End the nearest enclosing `loop' loop"
+  (throw loop--break-symbol result))
 
 ;; ########################################
 ;; highlight
