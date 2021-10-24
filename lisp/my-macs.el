@@ -371,6 +371,11 @@ BODY."
   "End the nearest enclosing `loop' loop"
   (throw loop--break-symbol result))
 
+(defmacro do-while (&rest body)
+  "Keep evaluating BODY until it evaluates to nil"
+  (declare (indent 0))
+  `(while (progn ,@body)))
+
 ;; ########################################
 ;; highlight
 
