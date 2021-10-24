@@ -1044,7 +1044,8 @@ entry, except that if an entry passes PRED the search continues past its tree"
               ;; on a heading after the subtree
               (not (eobp)))
           (outline-next-heading)))))
-  (switch-to-buffer buffer-B) (org-set-startup-visibility))
+  (with-current-buffer buffer-B
+    (org-set-startup-visibility)))
 
 (defun org-dyn--check-dyn-buffer nil
   (unless (and org-dyn-buffer-A org-dyn-connection-A-prop org-dyn-connection-B-prop)
@@ -1113,13 +1114,27 @@ that point is at the beginning of the tree"
   (let* ((buffer-name (read-buffer "Buffer: "))
          (pred-body (read--expression "Boolean expr: "))
          (pred `(lambda nil ,pred-body)))
-    (org-dyn-create buffer-name pred)))
-  
+    (org-dyn-create buffer-name pred)
+    (switch-to-buffer buffer-name)))
+
+(defun org-dyn-remove nil
+  "Removes the entry at point and its connected entry"
+  (interactive)
+  (org-dyn--check-dyn-buffer)
+  (org-goto-root)
+  (let ((prop-A org-dyn-connection-A-prop)
+        (connection (org-dyn-get-connection)))
+    (with-current-buffer org-dyn-buffer-A
+      (org-dyn--find-A prop-A connection)
+      (my-org-tree-delete))
+    (my-org-tree-delete)))
+
 (defvar org-dyn-map (make-sparse-keymap))
 (progn
   (define-key org-dyn-map "\C-g" 'org-dyn-goto-original)
   (define-key org-dyn-map "\C-p" 'org-dyn-push)
-  (define-key org-dyn-map "\C-e" 'org-dyn-from-expr))
+  (define-key org-dyn-map "\C-e" 'org-dyn-from-expr)
+  (define-key org-dyn-map "\C-r" 'org-dyn-remove))
 (define-key org-mode-map (kbd "C-c C-d") org-dyn-map)
 
 ;;########################################
