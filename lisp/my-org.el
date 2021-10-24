@@ -1063,12 +1063,13 @@ entry, except that if an entry passes PRED the search continues past its tree"
   (let ((prop-A org-dyn-connection-A-prop)
         (connection nil))
     (org-dyn--check-dyn-buffer)
-    (org-goto-root)
-    (setq connection (org-dyn-get-connection))
-    (switch-to-buffer org-dyn-buffer-A) (beginning-of-buffer)
-    (org-dyn--find-A prop-A connection)
-    (when (invisible-p (point))
-      (org-show-set-visibility 'canonical))))
+    (save-excursion
+      (org-goto-root)
+      (setq connection (org-dyn-get-connection))
+      (switch-to-buffer org-dyn-buffer-A) (beginning-of-buffer)
+      (org-dyn--find-A prop-A connection)
+      (when (invisible-p (point))
+        (org-show-set-visibility 'canonical)))))
 
 (defsubst org-dyn--find-A (prop-A connection)
   (if (text-property-search-forward prop-A connection 'eq)
@@ -1096,6 +1097,7 @@ that point is at the beginning of the tree"
             visibility-B (my-org-tree-get-visibility))
       (with-current-buffer org-dyn-buffer-A
         (org-with-wide-buffer
+         (beginning-of-buffer)
          (org-dyn--find-A prop-A connection)
          (setq level-A (funcall outline-level))
          (narrow-to-region (point) (my-org-tree-end-pos t t))
@@ -1108,7 +1110,7 @@ that point is at the beginning of the tree"
 
 (defun org-dyn-from-expr nil
   (interactive)
-  (let* ((buffer-name (read-string "Buffer: "))
+  (let* ((buffer-name (read-buffer "Buffer: "))
          (pred-body (read--expression "Boolean expr: "))
          (pred `(lambda nil ,pred-body)))
     (org-dyn-create buffer-name pred)))
