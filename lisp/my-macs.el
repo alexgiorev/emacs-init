@@ -334,6 +334,13 @@ the head of LIST)"
       (setcdr cell (cons new (cdr cell)))
       list)))
 
+(defun my-list-add (list elt new direction)
+  "Return a list formed by adding NEW before (when DIRECTION is :prev) or after
+(when DIRECTION is :next) ELT."
+  (cond ((eq direction :next) (my-list-add-after list elt new))
+        ((eq direction :prev) (my-list-add-before list elt new))
+        (t (error "Invalid direction: %s" direction))))
+
 ;; ########################################
 ;; lines
 (defvar my-blank-line-re "^[ \t]*$"
