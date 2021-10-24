@@ -931,7 +931,8 @@ FUNC."
         (org-entry-put (point) "TEMPDONE_UNDO" org-last-state)
         (org-hide-entry))
     (when (string= org-last-state "TEMPDONE")
-      (org-entry-delete (point) "TEMPDONE_UNDO"))))
+      (org-entry-delete nil "TEMPDONE_UNDO")
+      (org-entry-delete nil "TEMPDONE_UNDO_DAY"))))
 
 (defun my-org-tempdone (&optional days)
   (let ((state (org-get-todo-state))
