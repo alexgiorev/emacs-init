@@ -2,8 +2,8 @@
 (require 'ol)
 (require 'org-id)
 (require 'my-macs)
-(require 'my-sched (concat user-emacs-directory "my-sched/my-sched.el"))
-(require 'my-org-vars (concat user-emacs-directory "my-org-vars/my-org-vars.el"))
+(require 'my-sched (concat (file-name-directory load-file-name) "my-sched/my-sched.el"))
+(require 'my-org-vars (concat (file-name-directory load-file-name) "my-org-vars/my-org-vars.el"))
 
 (define-key global-map "\C-ca" 'org-agenda)
 (setq org-log-done nil)
@@ -522,16 +522,13 @@ subtree of the entry."
                        (progn
                          ;; Move the subtree to the temp buffer and position point
                          ;; at its end so that the search continues after it.
-                         (let ((subtree
-                                (buffer-substring
-                                 (point)
-                                 (progn (org-end-of-subtree t t) (point)))))
+                         (let ((subtree (my-org-tree-text)))
                            (with-current-buffer temp-buffer
                              (save-excursion (insert subtree))
                              (my-org-tree-set-level 1)
                              (end-of-buffer)))
-                         ;; only continue the loop if on a heading after the
-                         ;; subtree
+                         ;; only continue the loop when
+                         ;; on a heading after the subtree
                          (and (not (eobp)) (org-on-heading-p)))
                      (outline-next-heading))))))
         (with-current-buffer temp-buffer
