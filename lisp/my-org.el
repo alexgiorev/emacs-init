@@ -787,7 +787,15 @@ beginning of the heading when it has no title."
 
 (defsubst org-goto-root nil
   (while (org-up-heading-safe)))
-  
+
+(defun my-org-level-count (level)
+  (interactive "nLevel: ")
+  (let ((count 0))
+    (org-map-region
+     (lambda nil (when (= level (org-current-level)) (cl-incf count)))
+     (point-min) (point-max))
+    (if (called-interactively-p t) (message "%s" count) count)))
+
 ;;####################
 ;; misc-trees
 
