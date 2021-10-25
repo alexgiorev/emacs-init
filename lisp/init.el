@@ -414,6 +414,7 @@ current buffer"
 ;;########################################
 ;; * registers
 (set-register ?r "(region-beginning) (region-end)")
+(set-register ?p "(point-min) (point-max)")
 
 ;;########################################
 (when (get-buffer "*scratch*")
