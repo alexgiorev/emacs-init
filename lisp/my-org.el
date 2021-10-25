@@ -1072,6 +1072,7 @@ entry, except that if an entry passes PRED the search continues past its tree"
           (setq org-dyn--next-connection (1+ org-dyn--next-connection))))))
 
 (defun org-dyn--find (connection)
+  (beginning-of-buffer)
   (if (text-property-search-forward :org-dyn-connection connection 'eq)
       (backward-char)
     (user-error "Cannot find NODE-A")))
@@ -1089,7 +1090,7 @@ entry, except that if an entry passes PRED the search continues past its tree"
     (save-excursion
       (org-goto-root)
       (setq connection (org-dyn-get-connection))
-      (switch-to-buffer org-dyn-buffer-A) (beginning-of-buffer)
+      (switch-to-buffer org-dyn-buffer-A)
       (org-dyn--find connection)
       (when (invisible-p (point))
         (org-show-set-visibility 'canonical)))))
@@ -1106,7 +1107,6 @@ entry, except that if an entry passes PRED the search continues past its tree"
             visibility-B (my-org-tree-get-visibility))
       (with-current-buffer org-dyn-buffer-A
         (org-with-wide-buffer
-         (beginning-of-buffer)
          (org-dyn--find connection)
          (setq level-A (funcall outline-level))
          (narrow-to-region (point) (my-org-tree-end-pos t t))
