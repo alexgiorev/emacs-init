@@ -1062,7 +1062,14 @@ entry, except that if an entry passes PRED the search continues past its tree"
     connection))
 
 (defsubst org-dyn--get-connection nil
-  (get-text-property (point) :org-dyn-connection))
+  "Assumes it is called with point at the beginning of a heading"
+  (let ((connection (get-text-property (point) :org-dyn-connection))
+        (pos nil))
+    (or connection
+        (progn
+          (setq pos (next-single-property-change
+                     (point) :org-dyn-connection nil (line-end-position)))
+          (and pos (get-text-property pos :org-dyn-connection))))))
 
 (defvar org-dyn--next-connection 0)
 (defun org-dyn--connection-get-create nil
@@ -1074,14 +1081,15 @@ entry, except that if an entry passes PRED the search continues past its tree"
 (defun org-dyn--find (connection)
   (beginning-of-buffer)
   (if (text-property-search-forward :org-dyn-connection connection 'eq)
-      (backward-char)
+      (beginning-of-line)
     (user-error "Cannot find NODE-A")))
 
 (defun org-dyn--connect (connection)
-  (put-text-property (point) (1+ (point)) :org-dyn-connection connection)
-  (put-text-property
-   (point) (1+ (point)) 'rear-nonsticky
-   (cons :org-dyn-connection (get-text-property (point) 'rear-nonsticky))))
+  "Assumes it is called on a heading"
+  (let ((start (line-beginning-position))
+        (end (line-end-position)))
+    (put-text-property start end :org-dyn-connection connection)
+    (put-text-property start end 'rear-nonsticky (list :org-dyn-connection))))
 
 (defun org-dyn-goto-original nil
   (interactive)
