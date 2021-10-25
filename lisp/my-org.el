@@ -1056,9 +1056,11 @@ entry, except that if an entry passes PRED the search continues past its tree"
     (user-error "BUFFER-A is not alive")))
 
 (defun org-dyn-get-connection nil
-  (let ((connection (org-dyn--get-connection)))
+  "Move to the root of the dynamic tree and
+return the value of its connection property"
+  (let ((connection (org-dyn--up)))
     (unless connection
-      (user-error "Current root is missing the connecting text property"))
+      (user-error "missing connecting text property"))
     connection))
 
 (defsubst org-dyn--get-connection nil
@@ -1091,12 +1093,22 @@ entry, except that if an entry passes PRED the search continues past its tree"
     (put-text-property start end :org-dyn-connection connection)
     (put-text-property start end 'rear-nonsticky (list :org-dyn-connection))))
 
+(defun org-dyn--up nil
+  "Move up the ancestors until you arrive at a node with a connection property
+and return the value of the property."
+  (let (connection)
+    (org-back-to-heading)
+    (loop
+      (if (setq connection (org-dyn--get-connection))
+          (end-loop)
+        (unless (org-up-heading-safe) (end-loop))))
+    connection))
+  
 (defun org-dyn-goto-original nil
   (interactive)
   (let (connection)
     (org-dyn--check-dyn-buffer)
     (save-excursion
-      (org-goto-root)
       (setq connection (org-dyn-get-connection))
       (switch-to-buffer org-dyn-buffer-A)
       (org-dyn--find connection)
@@ -1107,9 +1119,8 @@ entry, except that if an entry passes PRED the search continues past its tree"
   (interactive)
   (org-dyn--check-dyn-buffer)
   (save-excursion
-    (org-goto-root)
-    (let ((title (org-no-properties (org-get-heading t t t t)))
-          (connection (org-dyn-get-connection))
+    (let* ((connection (org-dyn-get-connection))
+           (title (org-no-properties (org-get-heading t t t t)))
           level-A text-B visibility-B)
       (setq text-B (my-org-tree-text :no-properties)
             visibility-B (my-org-tree-get-visibility))
@@ -1133,24 +1144,49 @@ entry, except that if an entry passes PRED the search continues past its tree"
     (org-dyn-create buffer-name pred)
     (switch-to-buffer buffer-name)))
 
-(defun org-dyn-remove nil
+(defun org-dyn-remove-AB nil
   "Removes the entry at point and its connected entry"
   (interactive)
   (org-dyn--check-dyn-buffer)
-  (let* ((root-pos (save-excursion (org-goto-root) (point)))
-         (connection (save-excursion
-                       (goto-char root-pos) (org-dyn-get-connection))))
-    (with-current-buffer org-dyn-buffer-A
-      (org-dyn--find connection)
-      (my-org-tree-delete))
+  (let* (root-pos connection)
+    (setq root-pos
+          (save-excursion
+            (setq connection (org-dyn-get-connection)) (point)))
+    (org-dyn--remove-A connection)
     (goto-char root-pos) (my-org-tree-delete)))
+
+(defun org-dyn--remove-A (connection)
+  "Signals an error when the node-A cannot be found in `org-dyn-buffer-A'"
+  (with-current-buffer org-dyn-buffer-A
+    (org-dyn--find connection)
+    (my-org-tree-delete)))
+
+(defun org-dyn-remove-A-region (start end)
+  "Remove from buffer-A all headings which correspond to a dynamic heading in
+the region in the current dynamic buffer"
+  (interactive "r")
+  (org-dyn--check-dyn-buffer)
+  (let (connection failures)
+    (org-map-region
+     (lambda nil
+       (when (setq connection (org-dyn--get-connection))
+         (condition-case nil
+             (org-dyn--remove-A connection)
+           (error (push (org-get-heading t t t t) failures)))))
+     start end)
+    (if failures
+        (with-help-window "*org-dyn-log*"
+          (princ "The following nodes could not be deleted: \n")
+          (princ (mapconcat (lambda (title) (concat "* " title))
+                            failures "\n")))
+      (message "All removed successfully"))))
 
 (defvar org-dyn-map (make-sparse-keymap))
 (progn
   (define-key org-dyn-map "\C-g" 'org-dyn-goto-original)
   (define-key org-dyn-map "\C-p" 'org-dyn-push)
   (define-key org-dyn-map "\C-e" 'org-dyn-from-expr)
-  (define-key org-dyn-map "\C-r" 'org-dyn-remove))
+  (define-key org-dyn-map "\C-r" 'org-dyn-remove-AB))
 (define-key org-mode-map (kbd "C-c C-d") org-dyn-map)
 
 ;;########################################
