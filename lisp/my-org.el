@@ -40,6 +40,52 @@
   (define-key org-mode-map (kbd "C-c w p") 'my-widen-to-parent))
 
 ;; ########################################
+;; my date format
+
+(defsubst my-org-date--goto-first nil
+  (beginning-of-buffer)
+  (let ((found-p
+         (re-search-forward
+          (concat "^\\* " org-ts-regexp-inactive) nil t)))
+    (beginning-of-line)
+    found-p))
+
+(defun my-org-date--find-create (date-string)
+  "Puts point on the top-level heading corresponding to DATE-STRING"
+  (if (not (my-org-date--goto-first))
+      (progn (ensure-end-newline)
+             (insert "* " date-string "\n")
+             (beginning-of-line 0))
+    (loop
+      (let ((title (org-get-heading t t t t)))
+        (cond ((string= date-string title) (beginning-of-line) (end-loop))
+              ((string< date-string title)
+               (insert "* " date-string "\n") (beginning-of-line 0)
+               (end-loop))
+              (t (unless (org-goto-sibling)
+                   (end-of-buffer) (ensure-end-newline)
+                   (insert "* " date-string "\n") (beginning-of-line 0)
+                   (end-loop))))))))
+
+(defun my-org-date-send (file)
+  "Assumes the current buffer is in my date format. Sends the entry at point
+into a different file which should also have the date format"
+  (interactive "fFile: ")
+  (save-excursion
+    (org-back-to-heading)
+    (unless (= 2 (funcall outline-level))
+      (user-error "Current heading not level 2"))
+    (let ((buffer (current-buffer))
+          (date-string (save-excursion
+                         (org-up-heading-safe) (org-get-heading t t t t)))
+          (tree (my-org-tree-text :no-props)))
+      (with-current-buffer (find-file-noselect file)
+        (org-with-wide-buffer
+         (my-org-date--find-create date-string)
+         (org-end-of-subtree t t) (ensure-end-newline)
+         (insert tree)))
+      (my-org-tree-delete))))
+
 (defun my-new-entry-today (&optional arg)
   "Assumes the top-level headlines are timestamps. Inserts a new child in
 today's entry. If there is no entry for today, creates it. When called with ARG,
