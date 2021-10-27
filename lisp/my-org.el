@@ -796,6 +796,11 @@ beginning of the heading when it has no title."
      (point-min) (point-max))
     (if (called-interactively-p t) (message "%s" count) count)))
 
+(defsubst org-goto-first-heading nil
+  (interactive)
+  (beginning-of-buffer)
+  (unless (org-on-heading-p) (outline-next-heading)))
+
 ;;####################
 ;; misc-trees
 
