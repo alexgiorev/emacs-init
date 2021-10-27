@@ -53,7 +53,7 @@
 (defun my-org-date--find-create (date-string)
   "Puts point on the top-level heading corresponding to DATE-STRING"
   (if (not (my-org-date--goto-first))
-      (progn (ensure-end-newline)
+      (progn (ensure-newline)
              (insert "* " date-string "\n")
              (beginning-of-line 0))
     (loop
@@ -63,7 +63,7 @@
                (insert "* " date-string "\n") (beginning-of-line 0)
                (end-loop))
               (t (unless (org-goto-sibling)
-                   (end-of-buffer) (ensure-end-newline)
+                   (end-of-buffer) (ensure-newline)
                    (insert "* " date-string "\n") (beginning-of-line 0)
                    (end-loop))))))))
 
@@ -82,7 +82,7 @@ into a different file which should also have the date format"
       (with-current-buffer (find-file-noselect file)
         (org-with-wide-buffer
          (my-org-date--find-create date-string)
-         (org-end-of-subtree t t) (ensure-end-newline)
+         (org-end-of-subtree t t) (ensure-newline)
          (insert tree)))
       (my-org-tree-delete))))
 
