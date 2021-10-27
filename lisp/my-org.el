@@ -801,6 +801,9 @@ beginning of the heading when it has no title."
   (beginning-of-buffer)
   (unless (org-on-heading-p) (outline-next-heading)))
 
+(defsubst org-insert-child nil
+  (org-insert-heading-after-current) (org-demote))
+
 ;;####################
 ;; misc-trees
 
@@ -829,10 +832,11 @@ beginning of the heading when it has no title."
 (defsubst my-org-tree-end-pos (&rest args)
   (save-excursion (apply 'org-end-of-subtree args) (point)))
 
-(defsubst my-org-tree-delete nil
+(defsubst my-org-tree-delete (&optional extract)
   (save-excursion
     (org-back-to-heading t)
-    (delete-region (point) (my-org-tree-end-pos t t))))
+    (funcall (if extract 'delete-and-extract-region 'delete-region)
+             (point) (my-org-tree-end-pos t t))))
 
 (defun my-org-tree-filter (pred &optional skip-root)
   "Keep in the tree at point only the nodes which satisfy PRED, which is a
