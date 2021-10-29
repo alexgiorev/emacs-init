@@ -55,6 +55,7 @@ randomly"
     result))
 
 ;;########################################
+;; indendation
 
 (defun my-touch-left (beg end)
   (interactive "r")
@@ -79,47 +80,9 @@ Assumes that point is at the beginning of the line."
     (skip-chars-forward "[[:blank:]]" (+ start amount))
     (delete-region start (point))))
 
-(defun my-maplines (fun beg end)
-  (declare (indent 0))
-  (unless (= (point-min) (point-max))
-    (save-excursion
-      (setq end (copy-marker end))
-      (unwind-protect
-          (progn
-            (goto-char beg) (beginning-of-line)
-            (while (when (<= (point) end)
-                     (save-excursion (funcall fun))
-                     (beginning-of-line 2)
-                     (not (eobp)))))
-        (set-marker end nil)))))
-(put 'my-maplines 'lisp-indent-function 2)
-
-(defun delete-current-line ()
-  (interactive)
-  (delete-region (progn (beginning-of-line) (point))
-                 (progn (end-of-line)
-                        (if (not (eobp)) (forward-char))
-                        (point))))
-
-(defun line-length (&optional N)
-  (setq N (or N 0))
-  (save-excursion
-    (forward-line N)
-    (- (progn (end-of-line) (point))
-       (progn (beginning-of-line) (point)))))
-
-(defun my-count-preceding-empty-lines ()
-  (save-excursion
-    (let ((empty-lines 0))
-      (beginning-of-line 0)
-      (while (when (looking-at "^\n")
-               (cl-incf empty-lines)
-               (unless (bobp) 
-                 (beginning-of-line 0)
-                 :continue-loop)))
-      empty-lines)))
-
 ;; ########################################
+;; reading
+
 (defun my-read-buffer (&optional buffer)
   "Return a list of the top-level forms in the current buffer. When omitted or
 nil, use the current buffer."
@@ -187,15 +150,8 @@ whether the element is inserted before or after CLIST in the circular list."
     head))
       
 ;; ########################################
-(defun my-jump-to-marker (marker)
-  (unless (marker-buffer marker)
-    (error "Cannot jump to a marker whose buffer is nil"))
-  (unless (marker-position marker)
-    (error "Cannot jump to a marker whose position is nil"))
-  (switch-to-buffer (marker-buffer marker))
-  (goto-char marker))
+;; plists
 
-;; ########################################
 (defsubst my-plist-foreach (func plist)
   "Call FUNC on each (key,value) pair in PLIST and return nil.
 FUNC should accept two arguments KEY and VALUE"
@@ -203,46 +159,6 @@ FUNC should accept two arguments KEY and VALUE"
     (while current
       (funcall func (car current) (car (setq current  (cdr current))))
       (setq current (cdr current)))))
-
-;; ########################################
-
-(defun my-same-line (pos1 pos2)
-  (save-excursion
-    (= (progn (goto-char pos1) (line-beginning-position))
-       (progn (goto-char pos2) (line-beginning-position)))))
-
-;; ########################################
-
-(defun my-buffer-overlay-substring (start end)
-  "Returns the overlay string at the region (START END).
-The format of an overlay string is a pair whose first element is a string and
-whose second element is a list of triples (START END PROPS)"
-  (let* ((overlays (overlays-in start end))
-         ;; Skip the overlays which set the face, including the `region' face
-         (overlays (seq-filter (lambda (overlay)
-                                 (not (overlay-get overlay 'face)))
-                               overlays))
-         (overlays-data
-          (mapcar (lambda (overlay)
-                    (list (- (overlay-start overlay) start)
-                          (- (overlay-end overlay) start)
-                          (overlay-properties overlay)))
-                  overlays)))
-    (cons (buffer-substring-no-properties start end)
-          overlays-data)))
-
-(defun my-insert-overlay-string (ostr)
-  (let ((string (car ostr))
-        (triples (cdr ostr))
-        (base (point))
-        overlay)
-    (save-excursion (insert string))
-    (dolist (triple triples)
-      (pcase-let ((`(,start ,end ,props) triple))
-        (setq overlay (make-overlay (+ base start) (+ base end)))
-        (my-plist-foreach
-         (apply-partially 'overlay-put overlay)
-         props)))))
 
 ;; ########################################
 ;; * alists
@@ -267,6 +183,7 @@ removed."
         (when current
           (setcdr prev (cdr current))
           (car current))))))
+
 ;; ########################################
 ;; * lists
 (defun my-list-index (elt list &optional test)
@@ -340,11 +257,6 @@ the head of LIST)"
   (cond ((eq direction :next) (my-list-add-after list elt new))
         ((eq direction :prev) (my-list-add-before list elt new))
         (t (error "Invalid direction: %s" direction))))
-
-;; ########################################
-;; lines
-(defvar my-blank-line-re "^[ \t]*$"
-  "Regexp which matches a blank line")
 
 ;; ########################################
 ;; loops
@@ -574,7 +486,7 @@ will be the next sibling if there is one and otherwise the parent."
       (forest-depth-first-walk
        (lambda (node depth)
          (when (funcall pred node)
-           (push node nodes) (throw 'forest-walk-prune)))
+           (push node nodes) (throw 'forest-walk-prune nil)))
        root))
     (dolist (node nodes)
       (forest-set-current forest node) (forest-prune forest))
@@ -965,6 +877,99 @@ the current one."
      (lambda (file)
        (not (string-match "/\\.$\\|/\\.\\.$" file)))
      (directory-files path t))))
+
+;;########################################
+;; misc
+
+(defun my-maplines (fun beg end)
+  (declare (indent 0))
+  (unless (= (point-min) (point-max))
+    (save-excursion
+      (setq end (copy-marker end))
+      (unwind-protect
+          (progn
+            (goto-char beg) (beginning-of-line)
+            (while (when (<= (point) end)
+                     (save-excursion (funcall fun))
+                     (beginning-of-line 2)
+                     (not (eobp)))))
+        (set-marker end nil)))))
+(put 'my-maplines 'lisp-indent-function 2)
+
+(defun delete-current-line ()
+  (interactive)
+  (delete-region (progn (beginning-of-line) (point))
+                 (progn (end-of-line)
+                        (if (not (eobp)) (forward-char))
+                        (point))))
+
+(defun line-length (&optional N)
+  (setq N (or N 0))
+  (save-excursion
+    (forward-line N)
+    (- (progn (end-of-line) (point))
+       (progn (beginning-of-line) (point)))))
+
+(defun my-count-preceding-empty-lines ()
+  (save-excursion
+    (let ((empty-lines 0))
+      (beginning-of-line 0)
+      (while (when (looking-at "^\n")
+               (cl-incf empty-lines)
+               (unless (bobp) 
+                 (beginning-of-line 0)
+                 :continue-loop)))
+      empty-lines)))
+
+(defun my-jump-to-marker (marker)
+  (unless (marker-buffer marker)
+    (error "Cannot jump to a marker whose buffer is nil"))
+  (unless (marker-position marker)
+    (error "Cannot jump to a marker whose position is nil"))
+  (switch-to-buffer (marker-buffer marker))
+  (goto-char marker))
+
+(defun my-same-line (pos1 pos2)
+  (save-excursion
+    (= (progn (goto-char pos1) (line-beginning-position))
+       (progn (goto-char pos2) (line-beginning-position)))))(defun my-buffer-overlay-substring (start end)
+  "Returns the overlay string at the region (START END).
+The format of an overlay string is a pair whose first element is a string and
+whose second element is a list of triples (START END PROPS)"
+  (let* ((overlays (overlays-in start end))
+         ;; Skip the overlays which set the face, including the `region' face
+         (overlays (seq-filter (lambda (overlay)
+                                 (not (overlay-get overlay 'face)))
+                               overlays))
+         (overlays-data
+          (mapcar (lambda (overlay)
+                    (list (- (overlay-start overlay) start)
+                          (- (overlay-end overlay) start)
+                          (overlay-properties overlay)))
+                  overlays)))
+    (cons (buffer-substring-no-properties start end)
+          overlays-data)))
+
+(defun my-insert-overlay-string (ostr)
+  (let ((string (car ostr))
+        (triples (cdr ostr))
+        (base (point))
+        overlay)
+    (save-excursion (insert string))
+    (dolist (triple triples)
+      (pcase-let ((`(,start ,end ,props) triple))
+        (setq overlay (make-overlay (+ base start) (+ base end)))
+        (my-plist-foreach
+         (apply-partially 'overlay-put overlay)
+         props)))))
+
+(defvar my-blank-line-re "^[ \t]*$"
+  "Regexp which matches a blank line")
+
+(defsubst ensure-newline nil
+  "Useful when point is at the end of the buffer"
+  (unless (= (char-before) ?\n)
+    (insert-char ?\n)))
 
 ;;########################################
 (provide 'my-macs)
