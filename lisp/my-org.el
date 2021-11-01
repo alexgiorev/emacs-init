@@ -991,7 +991,7 @@ FUNC."
 
 
 ;; ########################################
-;; * tempdone
+;; TEMP and TEMPDONE
 
 (defun my-org-tempdone-after-state-change nil
   (if (string= org-state "TEMPDONE")
@@ -1048,7 +1048,6 @@ non-nil, undo regardless of date."
 
 (add-hook 'org-after-todo-state-change-hook
           'my-org-tempdone-after-state-change)
-
 (add-hook 'org-mode-hook
           'my-org-tempdone-undo-buffer)
 
@@ -1062,11 +1061,17 @@ non-nil, undo regardless of date."
                      (buffer-substring-no-properties (point-min) (point-max)))))
     (org-entry-put nil "DATE" timestamp)))
 
+(defun my-org-node-add-source nil
+  (interactive)
+  (let ((source (read-string "SOURCE: ")))
+    (org-entry-put nil "SOURCE" source)))
+
 (defvar my-org-node-map (make-sparse-keymap)
   "Binds keys to commands which work on nodes")
 (progn
   (define-key my-org-node-map "t" 'my-org-tempdone-days)
-  (define-key my-org-node-map "d" 'my-org-node-date))
+  (define-key my-org-node-map "d" 'my-org-node-date)
+  (define-key my-org-node-map "s" 'my-org-node-add-source))
 (define-key org-mode-map "\C-ce" my-org-node-map)
 
 ;;########################################
