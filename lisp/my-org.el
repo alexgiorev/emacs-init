@@ -176,7 +176,7 @@ add a backlink as a BACKLINK property."
     (with-temp-buffer
       (yank) (unfill-region (point-min) (point-max))
       (setq text (buffer-string)))
-    (insert text)))
+    (push-mark) (insert text)))
 
 (defun my-org-yank-unfill-elisp-comment nil
   (interactive)
