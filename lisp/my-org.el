@@ -8,11 +8,11 @@
 (define-key global-map "\C-ca" 'org-agenda)
 (setq org-log-done nil)
 
-;; ########################################
+;;════════════════════════════════════════════════════════════
 (setq-default org-startup-folded t)
 (add-hook 'org-mode-hook (lambda nil (electric-indent-local-mode -1)))
 
-;; ########################################
+;;════════════════════════════════════════════════════════════
 
 (defun my-org-isearch-headlines nil
   (interactive)
@@ -25,7 +25,7 @@
 
 (define-key org-mode-map (kbd "M-s e") 'my-org-isearch-headlines)
 
-;; ########################################
+;;════════════════════════════════════════════════════════════
 ;; widen to parent
 
 (defun my-widen-to-parent nil
@@ -39,7 +39,7 @@
 (with-eval-after-load 'org
   (define-key org-mode-map (kbd "C-c w p") 'my-widen-to-parent))
 
-;; ########################################
+;;════════════════════════════════════════════════════════════
 ;; my date format
 
 (defsubst my-org-date--goto-first nil
@@ -121,7 +121,7 @@ add a backlink as a BACKLINK property."
 (with-eval-after-load 'org
   (define-key org-mode-map (kbd "C-c n") 'my-new-entry-today))
 
-;; ########################################
+;;════════════════════════════════════════════════════════════
 ;; * yanking
 
 (defun my-org-yank-list nil
@@ -219,7 +219,7 @@ add a backlink as a BACKLINK property."
 (define-key org-mode-map "\C-cy" my-org-yank-map)
 (global-set-key "\C-\M-y" 'my-yank-unfill)
 
-;; ########################################
+;;════════════════════════════════════════════════════════════
 
 (defun my-wrap-entry nil
   (interactive)
@@ -238,7 +238,7 @@ add a backlink as a BACKLINK property."
 (with-eval-after-load 'org
   (define-key org-mode-map "\C-ch" 'my-wrap-entry))
 
-;; ########################################
+;;════════════════════════════════════════════════════════════
 
 (defun my-org-insert-random-child nil
   (interactive)
@@ -267,7 +267,7 @@ result in faster runtime."
              (setq list-of-posns (cons (point) list-of-posns)))))
       (unless dont-reverse (reverse list-of-posns)))))
 
-;; ########################################
+;;════════════════════════════════════════════════════════════
 
 (defun my-org-insert-merged-files (files)
   "Merge the org files FILES and insert into the current buffer.
@@ -297,7 +297,7 @@ entries from the file."
      (lambda (file) (setq list (cons file list))))
     (reverse list)))
 
-;; ########################################
+;;════════════════════════════════════════════════════════════
 (defun my-org-narrow-random-top-entry nil
   (interactive)
   (widen)
@@ -363,7 +363,7 @@ entries from the file."
             (push (cons ?c "#+CAPTION: ")
                   register-alist)))
 
-;;########################################
+;;════════════════════════════════════════════════════════════
 ;; Capture
 
 (define-key global-map (kbd "C-c c c") 'org-capture)
@@ -410,7 +410,7 @@ entries from the file."
         (entry (assoc "x" org-capture-templates)))
     (setcar (nthcdr 3 entry) new-target)))
 
-;;########################################
+;;════════════════════════════════════════════════════════════
 (with-eval-after-load 'org
   (define-key org-mode-map "\C-a" 'org-beginning-of-line)
   (define-key org-mode-map "\C-e" 'org-end-of-line)
@@ -439,7 +439,7 @@ function with no arguments called with point at the beginning of the heading"
 (setq-default org-fontify-done-headline nil)
 (setq org-blank-before-new-entry '((heading . nil) (plain-list-item . nil)))
 (setq org-cycle-separator-lines 0)
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;════════════════════════════════════════════════════════════
 ;; links
 
 (setq org-id-link-to-org-use-id t)
@@ -478,7 +478,7 @@ function with no arguments called with point at the beginning of the heading"
   (define-key org-mode-map (kbd "C-c C-l") nil)
   (define-key org-mode-map (kbd "C-c C-l") my-org-link-prefix-map))
 
-;; ########################################
+;;════════════════════════════════════════════════════════════
 ;; * source code
 
 (defun my-org-yank-code (lang)
@@ -523,7 +523,7 @@ function with no arguments called with point at the beginning of the heading"
       (my-org-yank-code "python"))))
 (define-key org-mode-map (kbd "C-c b") my-org-block-map)
 
-;; ########################################
+;;════════════════════════════════════════════════════════════
 
 (defun my-org-paste-subtree-advice (old-func &rest args)
   "I don't like that the function sometimes inserts blank lines after it pastes
@@ -540,7 +540,7 @@ and if the `org-paste-subtree' inserted extra, they are deleted."
 
 (advice-add 'org-paste-subtree :around 'my-org-paste-subtree-advice)
 
-;; ########################################
+;;════════════════════════════════════════════════════════════
 
 (defun my-org-meta-return-advice (FUN &optional arg)
   (if (equal arg '(64))
@@ -549,7 +549,7 @@ and if the `org-paste-subtree' inserted extra, they are deleted."
 
 (advice-add 'org-meta-return :around 'my-org-meta-return-advice)
 
-;; ########################################
+;;════════════════════════════════════════════════════════════
 
 (defun my-org-collect-entries (pred)
   "Collect all entries which pass PRED and return them as a string.
@@ -589,14 +589,14 @@ subtree of the entry."
           (end (save-excursion (org-end-of-subtree t t) (point))))
       (not (null (re-search-forward regexp end t))))))
 
-;; ########################################
+;;════════════════════════════════════════════════════════════
 ;; opening ID links should visit them in the same buffer
 
 (with-eval-after-load 'org
   (setcdr (assoc 'file org-link-frame-setup)
           'find-file))
 
-;; ########################################
+;;════════════════════════════════════════════════════════════
 ;; my-org-ring
 
 (defvar my-org-ring nil
@@ -696,7 +696,7 @@ and whose positions are always explictily set.")
 
 (define-key org-mode-map "\C-cr" my-org-ring-map)
 
-;; ########################################
+;;════════════════════════════════════════════════════════════
 
 (defun my-org-restart-preserve-visibility nil
   "Restart org-mode but don't change visibility"
@@ -718,7 +718,7 @@ and whose positions are always explictily set.")
        (pcase-let ((`((,start . ,end) . ,invisible) attrs))
          (org-flag-region start end t invisible))))))
 
-;; ########################################
+;;════════════════════════════════════════════════════════════
 
 (defun my-org-id-get-tree (eid)
   "Returns as a string the entry having id EID or nil if no such entry"
@@ -730,7 +730,7 @@ and whose positions are always explictily set.")
          (org-back-to-heading t)
          (my-org-tree-text :no-properties))))))
 
-;; ########################################
+;;════════════════════════════════════════════════════════════
 ;; * clones
 
 (defvar my-org-id-link-re
@@ -821,7 +821,7 @@ Point must be on a CLONE entry for this to work."
                   (org-entry-put nil "ID" orig-id))
                 :dont-delete)))))))))
 
-;; ########################################
+;;════════════════════════════════════════════════════════════
 ;; * misc
 
 (defsubst my-org-move-to-title nil
@@ -850,7 +850,7 @@ beginning of the heading when it has no title."
 (defsubst org-insert-child nil
   (org-insert-heading-after-current) (org-demote))
 
-;;####################
+;;════════════════════
 ;; misc-trees
 
 (defun my-org-tree-set-level (level)
@@ -990,7 +990,7 @@ FUNC."
           (kill-buffer buffer))))))
 
 
-;; ########################################
+;;════════════════════════════════════════════════════════════
 ;; TEMP and TEMPDONE
 
 (defun my-org-tempdone-after-state-change nil
@@ -1051,7 +1051,7 @@ non-nil, undo regardless of date."
 (add-hook 'org-mode-hook
           'my-org-tempdone-undo-buffer)
 
-;; ########################################
+;;════════════════════════════════════════════════════════════
 ;; nodes
 
 (defun my-org-node-date nil
@@ -1066,15 +1066,30 @@ non-nil, undo regardless of date."
   (let ((source (read-string "SOURCE: ")))
     (org-entry-put nil "SOURCE" source)))
 
+(defun my-org-node-bury nil
+  "Move the node at point to become the last child of its parent"
+  (interactive)
+  (org-back-to-heading)
+  (save-excursion
+    (let ((point (point))
+          (root-p (= 1 (org-current-level)))
+          (parent-pos (save-excursion (org-up-heading-safe) (point)))
+          (text (my-org-tree-delete :extract)))
+      (if root-p
+          (progn (end-of-buffer) (ensure-newline))
+        (goto-char parent-pos) (org-end-of-subtree t t) (ensure-newline))
+      (save-excursion (insert text)) (org-show-entry) (org-flag-subtree t))))
+
 (defvar my-org-node-map (make-sparse-keymap)
   "Binds keys to commands which work on nodes")
 (progn
   (define-key my-org-node-map "t" 'my-org-tempdone-days)
   (define-key my-org-node-map "d" 'my-org-node-date)
-  (define-key my-org-node-map "s" 'my-org-node-add-source))
+  (define-key my-org-node-map "s" 'my-org-node-add-source)
+  (define-key my-org-node-map "b" 'my-org-node-bury))
 (define-key org-mode-map "\C-ce" my-org-node-map)
 
-;;########################################
+;;════════════════════════════════════════════════════════════
 ;; org-dyn
 
 (defvar-local org-dyn-buffer-A nil)
@@ -1249,5 +1264,5 @@ the region in the current dynamic buffer"
   (define-key org-dyn-map "\C-r" 'org-dyn-remove-AB))
 (define-key org-mode-map (kbd "C-c C-d") org-dyn-map)
 
-;;########################################
+;;════════════════════════════════════════════════════════════
 (provide 'my-org)
