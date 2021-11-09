@@ -258,6 +258,16 @@ the head of LIST)"
         ((eq direction :prev) (my-list-add-before list elt new))
         (t (error "Invalid direction: %s" direction))))
 
+(defun my-list-remove (pred list-sym)
+  "Remove from the list stored at LIST-SYM the first element which satisifes PRED.
+Returns t when something was actually removed and nil otherwise."
+  (let ((list (symbol-value list-sym)) (prev-cons nil))
+    (when list
+      (if (funcall pred (car list))
+          (progn (set list-sym (cdr list)) t)
+        (setq prev-cons (my-list-prev-cons list pred))
+        (when prev-cons (setcdr prev-cons (cddr prev-cons)) t)))))
+
 ;; ########################################
 ;; loops
 
