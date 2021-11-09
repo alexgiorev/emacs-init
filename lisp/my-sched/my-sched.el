@@ -1,10 +1,10 @@
 (require 'my-macs)
 
-;;########################################
+;;════════════════════════════════════════
 ;; persistent-storage
 
 (defvar my-sched--data nil)
-(defvar my-sched--data-file (concat user-emacs-directory "my-sched/data"))
+(defvar my-sched--data-file (concat user-emacs-directory "lisp/my-sched/data"))
 (defvar my-sched--data-buffer nil
   "The buffer which stores serialized scheduling data. It visits `my-sched--data-file'.")
 (defvar my-sched--id-regexp-format ":id +%S"
@@ -37,11 +37,15 @@ line, returns nil. Otherwise, returns a non-nil value."
       (prin1 sched (current-buffer)) (insert "\n")
       (beginning-of-line 0))
     (my-sched--associate-line (plist-get sched :id))
+    (my-sched--write-data-buffer))
+  (bury-buffer my-sched--data-buffer))
+
+(defun my-sched--write-data-buffer nil
+  (with-current-buffer my-sched--data-buffer
     (write-region nil nil (buffer-file-name my-sched--data-buffer)
                   nil :no-write-message)
     ;; avoid query when killing
-    (set-buffer-modified-p nil))
-  (bury-buffer my-sched--data-buffer))
+    (set-buffer-modified-p nil)))
 
 (defun my-sched--load-maybe nil
   "Load scheduling data from the file if they are not already loaded"
@@ -72,7 +76,7 @@ point is on the beginning of the line."
   (put-text-property (point) (1+ (point))
                      my-sched--id-property id))
 
-;;########################################
+;;════════════════════════════════════════
 ;; Scheduling
 
 (defun my-sched--get-sched (eid)
@@ -116,7 +120,18 @@ the data. Flushes the data."
      (lambda (record) (<= (plist-get record :due) today))
      my-sched--data)))
 
-;;########################################
+(defun my-sched--remove (id)
+  "Removes the sched entry whose id is ID.
+It is removed both from the in-memory queue and the file."
+  (when (my-list-remove 'my-sched--data
+                        (lambda (elt) (string= (plist-get elt :id) id)))
+    (with-current-buffer my-sched--data-buffer
+      (when (my-sched--find-sched id)
+        (delete-current-line)
+        (my-sched--write-data-buffer)
+        t))))
+
+;;════════════════════════════════════════
 ;; * commands
 
 (defun my-sched-schedule (&optional interval)
@@ -134,6 +149,16 @@ the data. Flushes the data."
       (setq eid (org-id-get-create))
       (setq sched (my-sched--create-sched eid)))
     (my-sched--schedule sched new-interval)))
+
+(defun my-sched-remove nil
+  "Removes if present the node at point from the scheduler"
+  (interactive)
+  (let ((id (org-entry-get nil "ID")))
+    (if (not id)
+        (message "Node isn't scheduled")
+      (if (my-sched--remove id)
+          (message "Removed node")
+        (message "Node isn't scheduled")))))
 
 ;; ** ring commands
 
@@ -195,7 +220,7 @@ today.")
   (when (called-interactively-p 'interactive)
     (message "Popped link")))
 
-;;----------------------------------------
+;;════════════════════════════════════════
 ;; keymap
 
 (defvar my-sched-map (make-sparse-keymap))
@@ -205,8 +230,9 @@ today.")
   (define-key my-sched-map "n" 'my-sched-ring-next)
   (define-key my-sched-map "j" 'my-sched-ring-jump)
   (define-key my-sched-map "o" 'my-sched-ring-pop)
-  (define-key my-sched-map "s" 'my-sched-schedule))
+  (define-key my-sched-map "s" 'my-sched-schedule)
+  (define-key my-sched-map (kbd "DEL") 'my-sched-remove))
 (define-key org-mode-map "\C-cs" my-sched-map)
 
-;;########################################
+;;════════════════════════════════════════
 (provide 'my-sched)
