@@ -3,236 +3,175 @@
 ;;════════════════════════════════════════
 ;; persistent-storage
 
-(defvar my-sched--data nil)
-(defvar my-sched--data-file (concat user-emacs-directory "lisp/my-sched/data"))
-(defvar my-sched--data-buffer nil
-  "The buffer which stores serialized scheduling data. It visits `my-sched--data-file'.")
-(defvar my-sched--id-regexp-format ":id +%S"
-  "Useful for finding the text of the record corresponding to the entry having a
-particular ID")
-(defvar my-sched--id-property (make-symbol "my-sched-id")
-  "The property which associates a line in `my-sched--data-buffer' with an
-ID. The ID is the same one you would get if you were to parse the line and
-fetch the :id attribute")
+(defvar sched--queues-dir (concat user-emacs-directory "lisp/my-sched/queues/"))
+(defvar sched--queues :unloaded
+  "An alist of (name,queue) pairs or the symbol `:unloaded'.
+There is one queue per file in `sched--queues-dir'")
 
-(defun my-sched--find-sched (eid)
-  "Positions point on the beginning of the line holding the scheduling
-information corresponding to the entry having EID as its ID. If there is no such
-line, returns nil. Otherwise, returns a non-nil value."
-  (beginning-of-buffer)
-  (when (text-property-search-forward my-sched--id-property eid 'string=)
-    (beginning-of-line) :found))
+(defun sched--load-maybe nil
+  "Load queues if they aren't loaded yet"
+  (when (eq sched--queues :unloaded)
+    (setq sched--queues
+          (mapcar
+           (lambda (path)
+             (cons (file-name-sans-extension (file-name-nondirectory path))
+                   (org-pplist-make path)))
+           (directory-files sched--queues-dir :full "\\.queue$")))))
 
-(defsubst my-sched--goto-sched (sched)
-  (my-sched--find-sched (plist-get sched :id)))
-
-(defun my-sched--flush-sched (sched)
-  (with-current-buffer my-sched--data-buffer
-    (if (my-sched--goto-sched sched)
-        (progn (delete-region
-                (point) (line-end-position))
-               (prin1 sched (current-buffer))
-               (beginning-of-line))
-      (end-of-buffer)
-      (prin1 sched (current-buffer)) (insert "\n")
-      (beginning-of-line 0))
-    (my-sched--associate-line (plist-get sched :id))
-    (my-sched--write-data-buffer))
-  (bury-buffer my-sched--data-buffer))
-
-(defun my-sched--write-data-buffer nil
-  (with-current-buffer my-sched--data-buffer
-    (write-region nil nil (buffer-file-name my-sched--data-buffer)
-                  nil :no-write-message)
-    ;; avoid query when killing
-    (set-buffer-modified-p nil)))
-
-(defun my-sched--load-maybe nil
-  "Load scheduling data from the file if they are not already loaded"
-  (unless my-sched--data
-    (setq my-sched--data-buffer (find-file-noselect my-sched--data-file))
-    (with-current-buffer my-sched--data-buffer
-      (emacs-lisp-mode)
-      (rename-buffer " *my-sched--data-buffer*")
-      (setq my-sched--data (my-read-buffer))
-      ;; associate lines with IDs
-      (beginning-of-buffer)
-      (dolist (sched my-sched--data)
-        (my-sched--associate-line (plist-get sched :id))
-        (beginning-of-line 2))
-      ;; avoid query when killing
-      (set-buffer-modified-p nil))))
-
-(defun my-sched--reload nil
-  (setq my-sched--data nil)
-  (kill-buffer my-sched--data-buffer)
-  (setq my-sched--data-buffer nil)
-  (my-sched--load-maybe)
-  nil)
-
-(defun my-sched--associate-line (id)
-  "Associate the current line in `my-sched--data-buffer' with ID. Assumes that
-point is on the beginning of the line."
-  (put-text-property (point) (1+ (point))
-                     my-sched--id-property id))
+(defun sched--reload nil
+  (setq sched--queues :unloaded)
+  (sched--load-maybe))
 
 ;;════════════════════════════════════════
-;; Scheduling
+;; utils
 
-(defun my-sched--get-sched (eid)
-  "Return the scheduling record for the entry having id EID. If there is no
-scheduling data for that EID, return nil. If EID is nil, return nil."
-  (when eid
-    (seq-find (lambda (sched) (equal eid (plist-get sched :id)))
-              my-sched--data)))
+(defun sched--create-sched (eid queue)
+  "Create a new scheduling record for EID and return it"
+  (org-pplist-add queue :eid (list :due nil :interval nil)))
 
-(defun my-sched--create-sched (eid)
-  "Create a new scheduling record and insert into the `my-sched--data'. Assumes
-that there is no record under EID."
-  (let ((sched (list :id eid :due nil :interval nil)))
-    (add-to-list 'my-sched--data sched :append)
-    sched))
-
-(defun my-sched--get-sched-create (eid)
-  "A facility function. Return the scheduling record for the entry having id
-EID. If a record under that id doesn't exist, create one, attach it to the
-scheduling data and return it."
-  (unless eid
-    (error "EID cannot be nil"))
-  (let ((sched (my-sched--get-sched eid)))
-    (unless sched
-      (setq sched (my-sched--create-sched eid)))
-    sched))
-    
-(defun my-sched--schedule (sched interval)
-  "Schedule SCHED for INTERVAL days from today. Assumes that SCHED is already in
-the data. Flushes the data."
-  (let* ((interval (max 0 interval))
-         (day (+ (my-time-today) interval)))
-    (plist-put sched :due day)
-    (plist-put sched :interval interval)
-    (my-sched--flush-sched sched)))
-
-(defun my-sched--due-today nil
+(defun sched--due-today (queue)
   "Return a list of the records which are due today"
   (let* ((today (my-time-today)))
     (seq-filter
-     (lambda (record) (<= (plist-get record :due) today))
-     my-sched--data)))
+     (lambda (sched) (<= (plist-get sched :due) today))
+     (plist-get queue :list))))
 
-(defun my-sched--remove (id)
-  "Removes the sched entry whose id is ID.
-It is removed both from the in-memory queue and the file."
-  (when (my-list-remove 'my-sched--data
-                        (lambda (elt) (string= (plist-get elt :id) id)))
-    (with-current-buffer my-sched--data-buffer
-      (when (my-sched--find-sched id)
-        (delete-current-line)
-        (my-sched--write-data-buffer)
-        t))))
+(defun sched--read-queue nil
+  "Asks the user for a queue name and returns the object or nil if no queue by that name.
+Assumes that the queues are loaded"
+  (let* ((name (completing-read "Queue: " (my-alist-keys sched--queues)))
+         (queue (cdr (assoc name sched--queues))))
+    (unless queue (user-error "No queue with name %S" name))
+    queue))
 
 ;;════════════════════════════════════════
 ;; * commands
 
-(defun my-sched-schedule (&optional interval)
-  "Schedule the entry at point INTERVAL days into the future. When INTERVAL is nil, ask the user"
+(defun sched-make-queue nil
   (interactive)
-  (my-sched--load-maybe)
+  (sched--load-maybe)
+  (let ((name (read-string "Queue name: "))
+        queue)
+    (when (assoc name sched--queues)
+      (user-error "A queue with name %S already exists" name))
+    (setq path (concat sched--queues-dir name ".queue"))
+    (make-empty-file path)
+    (setq queue (org-pplist-make path))
+    (push (cons name queue) sched--queues)
+    (message "Queue %S created successfully")
+    queue))
+
+(defun sched-schedule nil
+  "Ask the user for a queue and an interval and schedule the node at point on
+that queue for that many days into the future."
+  (interactive)
+  (sched--load-maybe)
   (let* ((eid (org-id-get))
-         (sched (my-sched--get-sched eid))
+         (queue (sched--read-queue))
+         (sched (and eid (org-pplist-get queue eid)))
          (prompt (if sched
                      (format "Interval (last was %s): "
                              (plist-get sched :interval))
                    "Interval: "))
-         (new-interval (or interval (read-number prompt))))
+         (new-interval (read-number prompt)))
     (unless sched
-      (setq eid (org-id-get-create))
-      (setq sched (my-sched--create-sched eid)))
-    (my-sched--schedule sched new-interval)))
+      (setq eid (or eid (org-id-get-create)))
+      (setq sched (sched--create-sched eid queue)))
+    (sched--schedule sched new-interval)
+    (org-pplist-updated-plist queue sched :flush)))
 
-(defun my-sched-remove nil
-  "Removes if present the node at point from the scheduler"
+(defun sched--schedule (sched interval)
+  (let* ((interval (max 0 interval))
+         (day (+ (my-time-today) interval)))
+    (plist-put sched :due day)
+    (plist-put sched :interval interval)))
+
+(defun sched-remove nil
+  "Asks the user for a queue and removes the node at point from it"
   (interactive)
-  (let ((id (org-entry-get nil "ID")))
+  (let ((queue (sched--read-queue))
+        (eid (org-entry-get nil "ID")))
     (if (not id)
-        (message "Node isn't scheduled")
-      (if (my-sched--remove id)
+        (message "Node not in queue")
+      (if (org-pplist-remove queue eid)
           (message "Removed node")
-        (message "Node isn't scheduled")))))
+        (message "Node not in queue")))))
 
+;; ════════════════════
 ;; ** ring commands
 
-(defvar my-sched-ring nil
+(defvar sched-ring nil
   "A ring of entry ids.
 Typically holds the ids of due entries so that the user can read what is due for
 today.")
 
-(defun my-sched-ring-reset nil
+(defun sched-ring-reset nil
   (interactive)
-  (my-sched--load-maybe)
-  (let* ((ids (mapcar (lambda (sched) (plist-get sched :id))
-                      (my-sched--due-today)))
+  (sched--load-maybe)
+  (let* ((queue (sched--read-queue))
+         (ids (mapcar (lambda (sched) (plist-get sched :id))
+                      (sched--due-today queue)))
          (length (length ids)))
     (if ids
-        (setq my-sched-ring (my-circlist-make ids))
-      (setq my-sched-ring nil))
+        (setq sched-ring (my-circlist-make ids))
+      (setq sched-ring nil))
     (when (called-interactively-p 'interactive)
       (message "%s entries due" length))))
 
-(defun my-sched-ring--check nil
-  (if (not my-sched-ring)
+(defun sched-ring--check nil
+  (if (not sched-ring)
       (user-error "Ring is empty")))
 
-(defun my-sched-ring-jump nil
+(defun sched-ring-jump nil
   (interactive)
-  (my-sched-ring--check)
-  (org-id-open (car my-sched-ring) nil))
+  (sched-ring--check)
+  (org-id-open (car sched-ring) nil))
 
-(defun my-sched-ring-jump nil
+(defun sched-ring-jump nil
   (interactive)
-  (my-sched-ring--check)
+  (sched-ring--check)
   (let (did-open)
-    (while (and my-sched-ring (not did-open))
+    (while (and sched-ring (not did-open))
       (ignore-errors
-        (org-id-open (car my-sched-ring) nil)
+        (org-id-open (car sched-ring) nil)
         (setq did-open t))
       (unless did-open
-        (my-circlist-pop 'my-sched-ring)))
+        (my-circlist-pop 'sched-ring)))
     (unless did-open
-      (my-sched-ring--check))))
+      (sched-ring--check))))
 
-(defun my-sched-ring-next nil
+(defun sched-ring-next nil
   (interactive)
-  (my-sched-ring--check)
-  (setq my-sched-ring (cdr my-sched-ring))
-  (my-sched-ring-jump))
+  (sched-ring--check)
+  (setq sched-ring (cdr sched-ring))
+  (sched-ring-jump))
 
-(defun my-sched-ring-prev nil
+(defun sched-ring-prev nil
   (interactive)
-  (my-sched-ring--check)
-  (setq my-sched-ring (my-circlist-prev my-sched-ring))
-  (my-sched-ring-jump))
+  (sched-ring--check)
+  (setq sched-ring (my-circlist-prev sched-ring))
+  (sched-ring-jump))
 
-(defun my-sched-ring-pop nil
+(defun sched-ring-pop nil
   (interactive)
-  (my-sched-ring--check)
-  (my-circlist-pop 'my-sched-ring)
+  (sched-ring--check)
+  (my-circlist-pop 'sched-ring)
   (when (called-interactively-p 'interactive)
     (message "Popped link")))
 
 ;;════════════════════════════════════════
 ;; keymap
 
-(defvar my-sched-map (make-sparse-keymap))
+(defvar sched-map (make-sparse-keymap))
 (progn
-  (define-key my-sched-map "r" 'my-sched-ring-reset)
-  (define-key my-sched-map "p" 'my-sched-ring-prev)
-  (define-key my-sched-map "n" 'my-sched-ring-next)
-  (define-key my-sched-map "j" 'my-sched-ring-jump)
-  (define-key my-sched-map "o" 'my-sched-ring-pop)
-  (define-key my-sched-map "s" 'my-sched-schedule)
-  (define-key my-sched-map (kbd "DEL") 'my-sched-remove))
-(define-key org-mode-map "\C-cs" my-sched-map)
+  (define-key sched-map "r" 'sched-ring-reset)
+  (define-key sched-map "p" 'sched-ring-prev)
+  (define-key sched-map "n" 'sched-ring-next)
+  (define-key sched-map "j" 'sched-ring-jump)
+  (define-key sched-map "o" 'sched-ring-pop)
+  (define-key sched-map "s" 'sched-schedule)
+  (define-key sched-map (kbd "DEL") 'sched-remove))
+(define-key org-mode-map "\C-cs" sched-map)
 
 ;;════════════════════════════════════════
-(provide 'my-sched)
+(provide 'sched)
