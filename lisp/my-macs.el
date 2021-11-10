@@ -1,4 +1,4 @@
-;;########################################
+;;════════════════════════════════════════
 ;; random
 
 (defsubst my-randint (low high)
@@ -38,7 +38,7 @@ randomly"
       (vector-swap vec random-index (- size 1 N)))
     (append vec nil)))
 
-;;########################################
+;;════════════════════════════════════════
 ;; vectors
 
 (defsubst vector-swap (vec i1 i2)
@@ -54,7 +54,7 @@ randomly"
       (aset result index (+ low index)))
     result))
 
-;;########################################
+;;════════════════════════════════════════
 ;; indendation
 
 (defun my-touch-left (beg end)
@@ -80,7 +80,7 @@ Assumes that point is at the beginning of the line."
     (skip-chars-forward "[[:blank:]]" (+ start amount))
     (delete-region start (point))))
 
-;; ########################################
+;; ════════════════════════════════════════
 ;; reading
 
 (defun my-read-buffer (&optional buffer)
@@ -102,7 +102,7 @@ nil, use the current buffer."
     (insert-file-contents file)
     (my-read-buffer)))
 
-;; ########################################
+;; ════════════════════════════════════════
 ;; time
 
 (defsubst my-int-time nil
@@ -113,7 +113,7 @@ nil, use the current buffer."
                      (- 86400 (car (current-time-zone))))))
     (/ my-epoch 86400)))
 
-;; ########################################
+;; ════════════════════════════════════════
 ;; circular lists
 
 (defun my-circlist-make (list)
@@ -149,7 +149,7 @@ whether the element is inserted before or after CLIST in the circular list."
       (set var (cdr prev)))
     head))
       
-;; ########################################
+;; ════════════════════════════════════════
 ;; plists
 
 (defsubst my-plist-foreach (func plist)
@@ -160,7 +160,7 @@ FUNC should accept two arguments KEY and VALUE"
       (funcall func (car current) (car (setq current  (cdr current))))
       (setq current (cdr current)))))
 
-;; ########################################
+;; ════════════════════════════════════════
 ;; * alists
 
 ;; the utility of this function is that it enables the caller to see if
@@ -184,7 +184,10 @@ removed."
           (setcdr prev (cdr current))
           (car current))))))
 
-;; ########################################
+(defsubst my-alist-keys (alist)
+  (mapcar 'car alist))
+
+;; ════════════════════════════════════════
 ;; * lists
 (defun my-list-index (elt list &optional test)
   "Return the index in LIST where ELT first appears.
@@ -258,7 +261,7 @@ the head of LIST)"
         ((eq direction :prev) (my-list-add-before list elt new))
         (t (error "Invalid direction: %s" direction))))
 
-(defun my-list-remove (pred list-sym)
+(defun my-list-remove (list-sym pred)
   "Remove from the list stored at LIST-SYM the first element which satisifes PRED.
 Returns t when something was actually removed and nil otherwise."
   (let ((list (symbol-value list-sym)) (prev-cons nil))
@@ -268,7 +271,19 @@ Returns t when something was actually removed and nil otherwise."
         (setq prev-cons (my-list-prev-cons list pred))
         (when prev-cons (setcdr prev-cons (cddr prev-cons)) t)))))
 
-;; ########################################
+(defun my-list-delete-and-tell (list pred)
+  (let (prev-cons)
+    (when list
+      (if (funcall pred (car list))
+          (cons (cdr list) t)
+        (setq prev-cons (my-list-prev-cons list pred))
+        (if prev-cons
+          (progn (setcdr prev-cons (cddr prev-cons))
+                 (cons list t))
+          (cons list nil))))))
+  
+
+;; ════════════════════════════════════════
 ;; loops
 
 (defmacro my-loop-cons (var-list &rest body)
@@ -298,7 +313,7 @@ BODY."
   (declare (indent 0))
   `(while (progn ,@body)))
 
-;; ########################################
+;; ════════════════════════════════════════
 ;; highlight
 
 (defun my-add-face-overlay (start end face)
@@ -320,7 +335,7 @@ BODY."
   (interactive)
   (remove-overlays (point-min) (point-max) :my-highlight t))
 
-;; ########################################
+;; ════════════════════════════════════════
 ;; forest
 
 (defvar forest-marker (make-symbol "forest-marker"))
@@ -537,7 +552,7 @@ child. When on a root, this returns the next root."
       (error "Cannot go to sibling, the current node is an only child"))
     (forest-set-current forest sibling)))
   
-;;########################################
+;;════════════════════════════════════════
 ;; forest-draw
 
 (defvar forest-draw--node-property (make-symbol ":node")
@@ -553,7 +568,7 @@ plist with a :name property")
 (defun forest-name-func-default (node)
   (plist-get node :name))
 
-;;########################################
+;;════════════════════════════════════════
 ;; draw
 
 (defun forest-draw-tree (tree)
@@ -617,7 +632,7 @@ plist with a :name property")
     (get-text-property
      (1- (point)) forest-draw--node-property)))
 
-;;########################################
+;;════════════════════════════════════════
 ;; marking
 
 (defun forest-draw-mark-branch (leaf &optional face)
@@ -670,7 +685,7 @@ been marked) or when the root line has been marked."
 (defun forest-draw-unmark nil
   (remove-overlays (point-min) (point-max) :forest-draw-mark t))
 
-;;########################################
+;;════════════════════════════════════════
 ;; forest-select
 
 (defvar forest-select--buffer-name "*forest-select*")
@@ -816,7 +831,7 @@ the current one."
   (define-key forest-select-mode-map "\C-n" 'forest-select-next-tree)
   (define-key forest-select-mode-map (kbd "RET") 'forest-select-exit))
 
-;;########################################
+;;════════════════════════════════════════
 ;; fun utilities
 
 (defun forest-draw-from-org nil
@@ -888,7 +903,7 @@ the current one."
        (not (string-match "/\\.$\\|/\\.\\.$" file)))
      (directory-files path t))))
 
-;;########################################
+;;════════════════════════════════════════
 ;; misc
 
 (defun my-maplines (fun beg end)
@@ -981,5 +996,5 @@ whose second element is a list of triples (START END PROPS)"
   (unless (= (char-before) ?\n)
     (insert-char ?\n)))
 
-;;########################################
+;;════════════════════════════════════════
 (provide 'my-macs)
