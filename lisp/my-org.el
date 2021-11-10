@@ -1088,6 +1088,7 @@ non-nil, undo regardless of date."
   (define-key my-org-node-map "s" 'my-org-node-add-source)
   (define-key my-org-node-map "b" 'my-org-node-bury))
 (define-key org-mode-map "\C-ce" my-org-node-map)
+(define-key org-mode-map (kbd "C-.") 'my-org-node-bury)
 
 ;;════════════════════════════════════════════════════════════
 ;; org-dyn
@@ -1263,6 +1264,108 @@ the region in the current dynamic buffer"
   (define-key org-dyn-map "\C-e" 'org-dyn-from-expr)
   (define-key org-dyn-map "\C-r" 'org-dyn-remove-AB))
 (define-key org-mode-map (kbd "C-c C-d") org-dyn-map)
+
+;;════════════════════════════════════════
+;; org-pplist
+;;════════════════════
+;; org-pplist-utils
+
+(defvar org-pplist--id-property (make-symbol "org-pplist-id")
+  "The text property which associates a line in a pplist buffer with an entry
+ID. The ID is the same one you would get if you were to parse the line and
+fetch the :id attribute")
+
+(defsubst org-pplist--associate-line (eid)
+  "Assumes it is called inside a pplist buffer and that point is on the
+beginning of the line.  Associates the current line in with EID."
+  (put-text-property (point) (1+ (point)) org-pplist--id-property eid))
+
+(defun org-pplist--flush (pplist)
+  (with-current-buffer (plist-get pplist :buffer)
+    (write-region nil nil (buffer-file-name) nil :no-write-message)))
+
+(defun org-pplist--goto-plist (eid)
+  "Assumes it is called inside the buffer of a pplist. Moves point to the
+beginning of the line representing the plist corresponding to EID and returns
+t. If no such line exists, returns nil"
+  (beginning-of-buffer)
+  (when (text-property-search-forward org-pplist--id-property eid 'equal)
+    (beginning-of-line) :found))
+  
+;;════════════════════
+;; org-pplist-operations
+
+(defun org-pplist-make (path)
+  "Make a persistent plist corresponding to the file at PATH"
+  (let (buffer list result)
+    (if (setq buffer (get-file-buffer path))
+        (buffer-local-value 'org-pplist buffer)
+      (setq buffer (find-file-noselect path))
+      (with-current-buffer buffer
+        (emacs-lisp-mode)
+        (rename-buffer (concat " *" (file-name-nondirectory path) "*"))
+        (setq list (my-read-buffer))
+        ;; associate lines with IDs
+        (beginning-of-buffer)
+        (dolist (plist list)
+          (org-pplist--associate-line (plist-get plist :id))
+          (beginning-of-line 2))
+        ;; avoid query when killing
+        (set-buffer-modified-p nil)
+        (setq result (list :buffer buffer :path path :list list))
+        (setq-local org-pplist result)
+        result))))
+
+(defun org-pplist-get (pplist eid)
+  "Return the plist corresponding to EID in PPLIST"
+  (when eid
+    (seq-find (lambda (plist) (equal eid (plist-get plist :id)))
+              (plist-get pplist :list))))
+
+(defun org-pplist-add (pplist eid plist &optional flush)
+  (when (org-pplist-get pplist eid)
+    (error "plist corresponding to \"%s\" already exists" eid))
+  (setq plist (append (list :id eid) plist))
+  (plist-put pplist :list
+    (nconc (plist-get pplist :list) (list plist)))
+  ;; insert in pplist buffer
+  (with-current-buffer (plist-get pplist :buffer)
+    (end-of-buffer)
+    (prin1 plist (current-buffer)) (insert "\n")
+    (beginning-of-line 0)
+    (org-pplist--associate-line eid)
+    (set-buffer-modified-p nil)
+    (when flush (org-pplist--flush pplist)))
+  plist)
+
+(defun org-pplist-updated-plist (pplist plist &optional flush)
+  "This function must be called each time a plist of PPLIST is modified.
+Supplying a non-nil FLUSH argument will result in flushing PPLIST. Assumes that
+PLIST belongs to PPLIST."
+  (with-current-buffer (plist-get pplist :buffer)
+    (unless (org-pplist--goto-plist (plist-get plist :id))
+      (error "plist for \"%s\"not in pplist buffer" (plist-get plist :id)))
+    (delete-region (point) (line-end-position))
+    (prin1 plist (current-buffer))
+    (beginning-of-line)
+    (org-pplist--associate-line (plist-get plist :id))
+    (set-buffer-modified-p nil)
+    (when flush (org-pplist--flush pplist))))
+
+(defun org-pplist-remove (pplist eid &optional flush)
+  "Delete EID's plist from PPLIST and return t. If EID is has no plist in PPLIST, return nil"
+  (let ((list-and-flag (my-list-delete-and-tell
+                        (plist-get pplist :list)
+                        (lambda (elt) (string= (plist-get elt :id) eid)))))
+    (when (cdr list-and-flag)
+      (plist-put pplist :list (car list-and-flag))
+      (with-current-buffer (plist-get pplist :buffer)
+        (unless (org-pplist--goto-plist eid)
+          (error "Cannot find %S in pplist buffer" eid))
+        (delete-current-line)
+        (set-buffer-modified-p nil)
+        (when flush (org-pplist--flush pplist))
+        t))))
 
 ;;════════════════════════════════════════════════════════════
 (provide 'my-org)
