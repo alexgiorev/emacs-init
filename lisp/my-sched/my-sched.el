@@ -58,7 +58,7 @@ Assumes that the queues are loaded"
     (make-empty-file path)
     (setq queue (org-pplist-make path))
     (push (cons name queue) sched--queues)
-    (message "Queue %S created successfully")
+    (message "Queue %S created successfully" name)
     queue))
 
 (defun sched-schedule nil
@@ -121,11 +121,6 @@ today.")
 (defun sched-ring--check nil
   (if (not sched-ring)
       (user-error "Ring is empty")))
-
-(defun sched-ring-jump nil
-  (interactive)
-  (sched-ring--check)
-  (org-id-open (car sched-ring) nil))
 
 (defun sched-ring-jump nil
   (interactive)
