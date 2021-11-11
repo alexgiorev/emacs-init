@@ -1,4 +1,4 @@
-(require 'my-macs)
+c(require 'my-macs)
 
 ;;════════════════════════════════════════
 ;; persistent-storage
@@ -27,7 +27,7 @@ There is one queue per file in `sched--queues-dir'")
 
 (defun sched--create-sched (eid queue)
   "Create a new scheduling record for EID and return it"
-  (org-pplist-add queue :eid (list :due nil :interval nil)))
+  (org-pplist-add queue eid (list :due nil :interval nil)))
 
 (defun sched--due-today (queue)
   "Return a list of the records which are due today"
