@@ -2,7 +2,7 @@
 (require 'ol)
 (require 'org-id)
 (require 'my-macs)
-(require 'my-sched (concat (file-name-directory load-file-name) "my-sched/my-sched.el"))
+(require 'sched (concat (file-name-directory load-file-name) "sched/sched.el"))
 (require 'my-org-vars (concat (file-name-directory load-file-name) "my-org-vars/my-org-vars.el"))
 
 (define-key global-map "\C-ca" 'org-agenda)
@@ -444,13 +444,39 @@ function with no arguments called with point at the beginning of the heading"
 
 (setq org-id-link-to-org-use-id t)
 
+(defun my-org-get-link (&optional components)
+  (if current-prefix-arg
+      (let (custom-id link desc)
+        (unless (setq custom-id (org-entry-get nil "CUSTOM_ID"))
+          (org-entry-put
+           nil "CUSTOM_ID" (setq custom-id (my-org-custom-id-from-title))))
+        (setq link (concat "#" custom-id) desc (org-get-heading t t t t))
+        (if components (list link desc) (format "[[%s][%s]]" link desc)))
+    (org-store-link 1)))
+
+(defun my-org-store-link (arg)
+  (interactive "P")
+  (if arg
+      (push (my-org-get-link t) org-stored-links)
+    (org-store-link arg t)))
+
+(defun my-org-custom-id-from-title nil
+  (let ((title (org-get-heading t t t t)))
+    (with-temp-buffer
+      (insert title) (beginning-of-buffer)
+      (while (re-search-forward " +" nil t) (replace-match "-"))
+      (while (re-search-forward "[^[:alpha:]-]" nil t) (replace-match ""))
+      (downcase-region (point-min) (point-max))
+      (goto-char 0) (insert "CUSTOM_ID_")
+      (buffer-substring-no-properties (point-min) (point-max)))))
+
 (defun my-org-refile-link nil
   "Creates a link to the current entry and refiles it."
   (interactive)
   (save-excursion
     (let (link)
       (org-back-to-heading t)
-      (setq link (org-store-link 1))
+      (setq link (my-org-get-link))
       (org-insert-heading)
       (insert link)
       (org-refile))))
@@ -459,12 +485,12 @@ function with no arguments called with point at the beginning of the heading"
   (interactive)
   (save-excursion
     (org-back-to-heading t)
-    (kill-new (org-store-link 1))))
+    (kill-new (my-org-get-link))))
 
 (defvar my-org-link-prefix-map
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "C-i") 'org-insert-link)
-    (define-key map (kbd "C-s") 'org-store-link)
+    (define-key map (kbd "C-s") 'my-org-store-link)
     (define-key map (kbd "C-n") 'org-next-link)
     (define-key map (kbd "C-p") 'org-previous-link)
     (define-key map (kbd "C-r") 'my-org-refile-link)
