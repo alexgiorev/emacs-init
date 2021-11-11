@@ -343,7 +343,7 @@ BODY."
   "Return an empty forest"
   (list :type forest-marker :current nil :children nil))
 
-;;####################
+;;════════════════════
 ;; forest-misc
 
 (defsubst forest-root-p (node)
@@ -448,7 +448,7 @@ branch is then a path from the root where each internal node is so marked."
       (setq node (plist-get node :parent)))
     node))
 
-;;####################
+;;════════════════════
 ;; forest-node-creation
 
 (defun forest--new-child (parent &rest properties)
@@ -489,7 +489,7 @@ created."
         (funcall list-add-func (plist-get parent :children) current node))
       (forest-set-current forest node))))
 
-;;####################
+;;════════════════════
 ;; node removal
 
 (defun forest-prune (forest)
@@ -519,7 +519,7 @@ will be the next sibling if there is one and otherwise the parent."
       (forest-set-current forest (car (plist-get forest :children))))))
 (put 'forest-prune-all 'lisp-indent-function 1)
       
-;;####################
+;;════════════════════
 ;; navigation
 
 (defun forest-goto-parent (forest)
@@ -817,7 +817,7 @@ the current one."
   (forest-prune forest-select-forest)
   (forest-select-redraw))
 
-;;####################
+;;════════════════════
 
 (defvar forest-select-mode-map (make-sparse-keymap))
 (progn
@@ -832,7 +832,7 @@ the current one."
   (define-key forest-select-mode-map (kbd "RET") 'forest-select-exit))
 
 ;;════════════════════════════════════════
-;; fun utilities
+;; miscellaneous
 
 (defun forest-draw-from-org nil
   "Create a plist tree from the org tree at point"
@@ -866,12 +866,10 @@ the current one."
         entries)))
     (reverse entries)))
 
-;;####################
+(defun forest-draw-read-AST nil
+  (forest-draw-AST (save-excursion (read (current-buffer)))))
 
-(defun forest-draw-read-sexp nil
-  (forest-draw-from-sexp (save-excursion (read (current-buffer)))))
-
-(defun forest-draw-from-sexp (form)
+(defun forest-draw-AST (form)
   (cond ((consp form)
          (list :name "()"
                :children (mapcar 'forest-draw-from-sexp form)))
@@ -883,7 +881,30 @@ the current one."
                                "]")
                  :children nil))))
 
-;;####################
+(defun forest-from-sexp (sexp)
+  (let* ((tree (forest--sexp-to-tree sexp))
+         (forest (list :type forest-marker :current nil :children (list tree))))
+    (forest-set-current forest tree)
+    forest))
+
+(defun forest--sexp-to-tree (sexp)
+  "Assumes SEXP is an S-Expression where the only leaves are symbols.
+Each list begins either with a symbol or with a string."
+  (cond ((consp sexp)
+         (let ((node (list :name nil :parent nil :children nil))
+               (children (mapcar 'forest--sexp-to-tree (cdr sexp))))
+           (plist-put node :name (if (symbolp (car sexp))
+                                     (symbol-name (car sexp))
+                                   (car sexp)))
+           (mapc (lambda (child) (plist-put child :parent node))
+                 children)
+           (plist-put node :children children)
+           node))
+        ((symbolp sexp) (list :name (symbol-name sexp) :children nil))
+        ((stringp sexp) (list :name sexp :children nil))
+        (t (error "Only symbols and strings allowed, but found %S" sexp))))
+
+;; ════════════════════
 ;; visualizing directory trees
 
 (defun forest-draw-dir (path)
