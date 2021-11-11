@@ -314,7 +314,7 @@ BODY."
   `(while (progn ,@body)))
 
 ;; ════════════════════════════════════════
-;; highlight
+;; highlighting
 
 (defun my-add-face-overlay (start end face)
   (let ((overlay (make-overlay start end (current-buffer))))
@@ -325,7 +325,6 @@ BODY."
 
 ;; TODO: use `defface'
 (defvar my-highlight-face '(:foreground "white" :background "black"))
-
 (defun my-highlight-region (start end)
   (interactive "r")
   (let ((overlay (my-add-face-overlay start end my-highlight-face)))
@@ -335,6 +334,18 @@ BODY."
   (interactive)
   (remove-overlays (point-min) (point-max) :my-highlight t))
 
+(defvar my-highlight-faces-alist
+  '((?r . (:foreground "white" :background "red2"))))
+(defun my-highlight-from-char (start end)
+  (interactive "r")
+  (let* ((char (read-char))
+         (face (cdr (assoc char my-highlight-faces-alist)))
+         (my-highlight-face face))
+    (if (= char ?u) (my-unhighlight-all)
+      (if face (my-highlight-region start end)
+        (message "No face corresponding to '%c'" char)))))
+(define-key global-map (kbd "C-x r h") 'my-highlight-from-char)
+    
 ;; ════════════════════════════════════════
 ;; forest
 
@@ -699,7 +710,13 @@ its default branch child is the first child")
   "The face of the heading corresponding to the current node")
 
 (define-derived-mode forest-select-mode special-mode "Select-Node"
-  (setq cursor-type nil))
+  (setq cursor-type nil)
+  (make-local-variable 'post-command-hook)
+  (add-hook 'post-command-hook
+            (lambda nil
+              (let ((branch-child (forest-branch-child
+                                   (forest-current forest-select-forest))))
+                (when branch-child (forest-draw-goto-node branch-child))))))
 
 (defvar-local forest-select-forest nil)
 (defvar-local forest-select-initial-current nil)
