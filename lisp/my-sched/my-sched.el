@@ -91,7 +91,7 @@ that queue for that many days into the future."
   (interactive)
   (let ((queue (sched--read-queue))
         (eid (org-entry-get nil "ID")))
-    (if (not id)
+    (if (not eid)
         (message "Node not in queue")
       (if (org-pplist-remove queue eid)
           (message "Removed node")
