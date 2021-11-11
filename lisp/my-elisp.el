@@ -89,9 +89,11 @@ it as the symbol's value"
     (insert my-prefix "-")))
 
 (define-key emacs-lisp-mode-map (kbd "C-M-.") 'my-prefix-symbol)
+
 ;;########################################
 ;; misc
 (dolist (symbol '(plist-put plist-get))
   (put symbol 'lisp-indent-function 2))
+
 ;; ########################################
 (provide 'my-elisp)

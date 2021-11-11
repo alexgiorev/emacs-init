@@ -464,10 +464,10 @@ function with no arguments called with point at the beginning of the heading"
   (let ((title (org-get-heading t t t t)))
     (with-temp-buffer
       (insert title) (beginning-of-buffer)
-      (while (re-search-forward " +" nil t) (replace-match "-"))
-      (while (re-search-forward "[^[:alpha:]-]" nil t) (replace-match ""))
+      (save-excursion (while (re-search-forward " +" nil t) (replace-match "-")))
+      (save-excursion (while (re-search-forward "[^a-zA-Z-]" nil t) (replace-match "")))
       (downcase-region (point-min) (point-max))
-      (goto-char 0) (insert "CUSTOM_ID_")
+      (insert "CUSTOM_ID_")
       (buffer-substring-no-properties (point-min) (point-max)))))
 
 (defun my-org-refile-link nil

@@ -1,8 +1,8 @@
 (require 'my-macs)
 
 (defvar my-org-vars-file
-  (concat user-emacs-directory "my-org-vars/my-org-vars-alist")
-  "The path to the file which stores the bindings")
+  (concat user-emacs-directory "lisp/my-org-vars/my-org-vars-alist")
+"The path to the file which stores the bindings")
 
 (defvar my-org-vars-alist nil
   "The name to node ID mapping")
