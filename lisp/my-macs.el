@@ -817,6 +817,24 @@ the current one."
   (forest-prune forest-select-forest)
   (forest-select-redraw))
 
+(defun forest-select-list-item (name items &optional default)
+  "NAME is the name of the list. ITEMS must be a list of string or symbols (the
+return value is always a string, even when a symbol is selected, in which case
+its name is returned). DEFAULT is optional and must be in ITEMS. It will be
+highlighted as the default, but that doesn't mean it is the default return value"
+  (let* ((forest (forest-from-sexp (cons name items)))
+         (selected-p nil))
+    (when default
+      (unless (member default items)
+        (error "DEFAULT is not present in ITEMS"))
+      (forest-goto-child forest)
+      (while (not (string= (plist-get (forest-current forest) :name) default))
+        (forest-goto-sibling forest :next))
+      (forest-goto-parent forest))
+    (setq selected-p (forest-select forest))
+    (when (and selected-p (not (forest-root-p (forest-current forest))))
+      (plist-get (forest-current forest) :name))))
+
 ;;════════════════════
 
 (defvar forest-select-mode-map (make-sparse-keymap))
@@ -884,6 +902,7 @@ the current one."
 (defun forest-from-sexp (sexp)
   (let* ((tree (forest--sexp-to-tree sexp))
          (forest (list :type forest-marker :current nil :children (list tree))))
+    (plist-put tree :parent forest)
     (forest-set-current forest tree)
     forest))
 
