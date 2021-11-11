@@ -745,16 +745,29 @@ and whose positions are always explictily set.")
          (org-flag-region start end t invisible))))))
 
 ;;════════════════════════════════════════════════════════════
+;; my-org-id
 
-(defun my-org-id-get-tree (eid)
-  "Returns as a string the entry having id EID or nil if no such entry"
+(defun my-org-id-get (eid things)
+  "Read data about the tree whose global ID is EID.
+THINGS is a list of symbols which specifies what to get. The things are returned
+in the order in which they are specified. Possibilities are
+(position tree title buffer file marker)."
   (let ((location (org-id-find eid)))
     (when location
       (with-current-buffer (get-file-buffer (car location))
         (org-with-wide-buffer
          (goto-char (cdr location))
          (org-back-to-heading t)
-         (my-org-tree-text :no-properties))))))
+         (mapcar
+          (lambda (thing)
+            (cond ((eq thing 'position) (point))
+                  ((eq thing 'tree) (my-org-tree-text :no-properties))
+                  ((eq thing 'title) (org-no-properties (org-get-heading t t t t)))
+                  ((eq thing 'buffer) (current-buffer))
+                  ((eq thing 'file) (car location))
+                  ((eq thing 'marker) (point-marker))
+                  (t (error "Invalid THING: %S" thing))))
+          things))))))
 
 ;;════════════════════════════════════════════════════════════
 ;; * clones
@@ -768,7 +781,7 @@ and whose positions are always explictily set.")
 
 (defun my-org-clone-fetch (eid)
   "Insert as a sibling to the current tree the tree whose ID is EID"
-  (let ((tree (my-org-id-get-tree eid)))
+  (let ((tree (car (my-org-id-get eid '(tree)))))
     (unless tree
       (error (format "No tree having ID \"%s\"" eid)))
     (org-insert-heading-respect-content t)
