@@ -750,8 +750,8 @@ and whose positions are always explictily set.")
 (defun my-org-id-get (eid things)
   "Read data about the tree whose global ID is EID.
 THINGS is a list of symbols which specifies what to get. The things are returned
-in the order in which they are specified. Possibilities are
-(position tree title buffer file marker)."
+in the order in which they are specified. Look at the COND to see the choices
+available."
   (let ((location (org-id-find eid)))
     (when location
       (with-current-buffer (get-file-buffer (car location))
@@ -766,6 +766,7 @@ in the order in which they are specified. Possibilities are
                   ((eq thing 'buffer) (current-buffer))
                   ((eq thing 'file) (car location))
                   ((eq thing 'marker) (point-marker))
+                  ((eq thing 'heading) (org-get-heading))
                   (t (error "Invalid THING: %S" thing))))
           things))))))
 
@@ -882,12 +883,88 @@ beginning of the heading when it has no title."
     (if (called-interactively-p t) (message "%s" count) count)))
 
 (defsubst org-goto-first-heading nil
+  "Move to the first heading in the buffer"
   (interactive)
   (beginning-of-buffer)
   (unless (org-on-heading-p) (outline-next-heading)))
 
 (defsubst org-insert-child nil
   (org-insert-heading-after-current) (org-demote))
+
+;;════════════════════
+;; misc-org-select
+
+(defvar org-select--buffer-name "*org-select*")
+;; TODO: Use `defface'
+(defvar org-select-current-face '(:foreground "white" :background "black")
+  "The face of the heading corresponding to the current node")
+
+(define-derived-mode org-select-mode org-mode "Select-Node"
+  (setq cursor-type nil)
+  (read-only-mode)
+  (make-local-variable 'post-command-hook)
+  (add-hook
+   'post-command-hook
+   (lambda nil
+     (if (org-before-first-heading-p)
+         (org-next-visible-heading)
+       (org-back-to-heading))
+     (org-select-highlight-current))))
+
+(defvar-local org-select-did-quit nil)
+(defvar-local org-select-list-items nil)
+(defvar-local org-select-list-prelude nil)
+(defun org-select-list (items &optional prelude)
+  (when items
+    (let ((selection-buffer (get-buffer-create org-select--buffer-name))
+          result)
+      (switch-to-buffer-other-window selection-buffer)
+      (org-select-mode)
+      (setq org-select-did-quit nil
+            org-select-list-items items
+            org-select-list-prelude prelude)
+      (org-select-list-redraw)
+      (recursive-edit)
+      (setq result (and (not org-select-did-quit) (get-text-property (point) :data)))
+      (kill-buffer-and-window)
+      result)))
+
+(defun org-select-list-redraw nil
+  (let ((inhibit-read-only t))
+    (erase-buffer)
+    (when org-select-list-prelude
+      (insert org-select-list-prelude "\n"))
+    (dolist (heading-and-data org-select-list-items)
+      (save-excursion (insert "* " (car heading-and-data) "\n"))
+      (put-text-property (point) (1+ (point)) :data (cdr heading-and-data))
+      (forward-line))
+    (org-goto-first-heading)))
+
+(defun org-select-highlight-current nil
+  "Assumes it is called in the org-select buffer. Highlights the heading at point"
+  (my-unhighlight-all)
+  (when (invisible-p (point)) (org-show-set-visibility 'canonical))
+  (let ((my-highlight-face org-select-current-face))
+    (my-highlight-region (line-beginning-position) (line-end-position))))
+
+(defun org-select-exit nil
+  (interactive)
+  (exit-recursive-edit))
+
+(defun org-select-quit nil
+  (interactive)
+  (setq org-select-did-quit t)
+  (exit-recursive-edit))
+
+(defvar org-select-mode-map (make-sparse-keymap))
+(progn
+  (define-key org-select-mode-map "p" 'org-previous-visible-heading)
+  (define-key org-select-mode-map "n" 'org-next-visible-heading)
+  (define-key org-select-mode-map "f" 'org-forward-heading-same-level)
+  (define-key org-select-mode-map "b" 'org-backward-heading-same-level)
+  (define-key org-select-mode-map "u" 'outline-up-heading)
+  (define-key org-select-mode-map "q" 'org-select-quit)
+  (define-key org-select-mode-map (kbd "RET") 'org-select-exit))
 
 ;;════════════════════
 ;; misc-trees
