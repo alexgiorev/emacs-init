@@ -156,8 +156,6 @@
 
 (setq dired-isearch-filenames t)
 
-;;════════════════════════════════════════
-;; Miscellaneous commands
 (defun my-all-defuns (&optional buffer)
   "Returns all in the current buffer symbols which are defined in a defun"
   (setq buffer (if buffer (get-buffer buffer) (current-buffer)))
@@ -177,6 +175,11 @@
   (with-output-to-temp-buffer "defuns"
     (dolist (sym (my-all-defuns buffer))
       (princ (format "%s\n" sym)))))
+
+(defun my-insert-ruler (length)
+  (interactive "p")
+  (insert (make-string length ?═)))
+(define-key prog-mode-map (kbd "C-x C-r") 'my-insert-ruler)
 
 ;;════════════════════════════════════════
 

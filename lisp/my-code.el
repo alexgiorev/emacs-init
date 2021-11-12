@@ -18,12 +18,7 @@
   (define-key prog-mode-map
     (kbd "C-c M-w") 'my-save-code-remove-indent))
 
-(defun my-insert-ruler (length)
-  (interactive "p")
-  (insert (make-string length ?═)))
-(define-key prog-mode-map (kbd "C-x C-r") 'my-insert-ruler)
-
-;;════════════════════════════════════════
 (require 'cpath)
+
 ;;════════════════════════════════════════
 (provide 'my-code)
