@@ -866,8 +866,8 @@ highlighted as the default, but that doesn't mean it is the default return value
   (define-key forest-select-mode-map "\C-n" 'forest-select-next-tree)
   (define-key forest-select-mode-map (kbd "RET") 'forest-select-exit))
 
-;;════════════════════════════════════════
-;; miscellaneous
+;;════════════════════
+;; forest-misc
 
 (defun forest-draw-from-org nil
   "Create a plist tree from the org tree at point"
@@ -941,7 +941,7 @@ Each list begins either with a symbol or with a string."
         (t (error "Only symbols and strings allowed, but found %S" sexp))))
 
 ;; ════════════════════
-;; visualizing directory trees
+;; forest-misc-dir-trees
 
 (defun forest-draw-dir (path)
   (let ((forest-draw-children-func 'forest-draw-dirnode-children)
@@ -1052,6 +1052,14 @@ whose second element is a list of triples (START END PROPS)"
   "Useful when point is at the end of the buffer"
   (unless (= (char-before) ?\n)
     (insert-char ?\n)))
+
+(defun my-zip-alist (list1 list2)
+  "Create an alist whose keys are LIST1 and whose values are LIST2, respectively"
+  (let ((result nil))
+    (while (and list1 list2)
+      (push (cons (car list1) (car list2)) result)
+      (setq list1 (cdr list1) list2 (cdr list2)))
+    (reverse result)))
 
 ;;════════════════════════════════════════
 (provide 'my-macs)
