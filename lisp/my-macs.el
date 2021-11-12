@@ -148,7 +148,20 @@ whether the element is inserted before or after CLIST in the circular list."
       (setcdr prev (cdr clist))
       (set var (cdr prev)))
     head))
+
+(defun my-circlist-to-list (circlist)
+  (when (consp circlist)
+    (let* ((result-head (cons (car circlist) nil))
+           (result-last result-head)
+           (circlist-head circlist)
+           (circlist-current (cdr circlist)))
+      (while (not (eq circlist-current circlist-head))
+        (setq result-last (setcdr result-last (cons (car circlist-current) nil))
+              circlist-current (cdr circlist-current)))
+      result-head)))
       
+      
+
 ;; ════════════════════════════════════════
 ;; plists
 
