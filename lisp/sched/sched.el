@@ -51,6 +51,11 @@ Assumes that the queues are loaded"
   (sched--load-maybe)
   (unless sched--queues (user-error "No queues")))
 
+(defun sched--get-titles (eids)
+  (seq-filter 'identity
+              (mapcar (lambda (eid) (car (my-org-id-get eid '(title))))
+                      eids)))
+
 ;;════════════════════════════════════════
 ;; * commands
 
@@ -137,6 +142,21 @@ today.")
 (defun sched-ring--check nil
   (if (not sched-ring)
       (user-error "Ring is empty")))
+
+(defun sched-ring-select nil
+  (interactive)
+  (sched-ring--check)
+  (let* ((eids (my-circlist-to-list sched-ring))
+         (headings (seq-filter 'identity
+                               (mapcar (lambda (eid)
+                                         (car (my-org-id-get eid '(heading))))
+                                       eids)))
+         (items (my-zip-alist headings eids))
+         (eid (org-select-list items)))
+    (when eid
+      (while (not (string= (car sched-ring) eid))
+        (setq sched-ring (cdr sched-ring)))
+      (sched-ring-jump))))
 
 (defun sched-ring-jump nil
   (interactive)
