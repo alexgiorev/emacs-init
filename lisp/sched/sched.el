@@ -13,62 +13,87 @@ There is one queue per file in `sched--queues-dir'")
   "Load queues if they aren't loaded yet"
   (when (eq sched--queues :unloaded)
     (setq sched--queues
-          (mapcar
-           (lambda (path)
-             (cons (file-name-sans-extension (file-name-nondirectory path))
-                   (org-pplist-make path)))
-           (directory-files sched--queues-dir :full "\\.queue$")))
+          (mapcar 'sched-queue-make
+                  (directory-files sched--queues-dir :full "\\.queue$")))
     (setq sched--current-queue (car sched--queues))))
 
 (defun sched--reload nil
-  (setq sched--queues :unloaded)
-  (sched--load-maybe))
+  (setq sched--queues :unloaded) (sched--load-maybe))
 
 ;;════════════════════════════════════════
-;; utils
+;; queues
 
-(defun sched--create-sched (eid queue)
-  "Create a new scheduling record for EID and return it"
-  (org-pplist-add queue eid (list :due nil :interval nil)))
+(defun sched-queue-make (path)
+  (cons (file-name-sans-extension (file-name-nondirectory path))
+        (org-pplist-make path)))
+(defsubst sched-queue-name (queue)
+  (car queue))
+(defsubst sched-queue--pplist (queue)
+  (cdr queue))
 
-(defun sched--due-today (&optional queue)
+(defun sched-queue-create-sched (eid queue)
+  "Create a new scheduling record for EID, insert it into QUEUE and return it"
+  (org-pplist-add (sched-queue--pplist queue) eid (list :due nil :interval nil)))
+
+(defun sched-queue-due-today (queue)
   "Return a list of the records which are due today"
-  (setq queue (or queue (cdr sched--current-queue)))
   (let* ((today (my-time-today)))
     (seq-filter
      (lambda (sched) (<= (plist-get sched :due) today))
-     (plist-get queue :list))))
+     (plist-get (sched-queue--pplist queue) :list))))
 
-(defun sched--read-queue nil
+(defun sched-queue-read nil
   "Asks the user for a queue name and returns the object or nil if no queue by that name.
 Assumes that the queues are loaded"
-  (let* ((name (completing-read "Queue: " (my-alist-keys sched--queues)))
-         (queue (cdr (assoc name sched--queues))))
-    (unless queue (user-error "No queue with name %S" name))
-    queue))
+  (let* ((names (mapcar 'sched-queue-name))
+         (user-input (completing-read "Queue: " names)))
+    (unless (member user-input names)
+      (user-error "No queue with name %S" name))
+    (sched-get-queue name)))
+
+(defun sched-queue-get-sched (queue eid)
+  (org-pplist-get (sched-queue--pplist queue) eid))
+
+(defun sched-get-queue (name)
+  (seq-find (lambda (queue) (string= (sched-queue-name queue) name))
+            sched--queues))
+
+(defun sched-queue-schedule (queue eid &optional interval)
+  "Schedule EID on QUEUE for INTERVAL days into the future.
+If INTERVAL is omitted, ask the user."
+  (let* ((sched (sched-queue-get-sched queue eid))
+         (prompt nil))
+    (unless interval
+      (setq prompt (if sched
+                       (format "(%s) Interval (last was %s): "
+                               (sched-queue-name queue) (plist-get sched :interval))
+                     (format "(%s) Interval: " (sched-queue-name queue)))
+            interval (read-number prompt)))
+    (unless sched (setq sched (sched-queue-create-sched eid queue)))
+    (let* ((interval (max 0 interval))
+           (day (+ (my-time-today) interval)))
+      (plist-put sched :due day)
+      (plist-put sched :interval interval))
+    (org-pplist-updated-plist (sched-queue--pplist queue) sched :flush)
+    (run-hook-with-args 'sched-did-schedule-hook eid)))
 
 (defun sched--check nil
   (sched--load-maybe)
   (unless sched--queues (user-error "No queues")))
 
-(defun sched--get-titles (eids)
-  (seq-filter 'identity
-              (mapcar (lambda (eid) (car (my-org-id-get eid '(title))))
-                      eids)))
-
 ;;════════════════════════════════════════
 ;; * commands
 
-(defun sched-make-queue nil
+(defun sched-create-queue nil
   (interactive)
   (sched--check)
   (let ((name (read-string "Queue name: "))
         queue)
-    (when (assoc name sched--queues)
+    (when (sched-get-queue name)
       (user-error "A queue with name %S already exists" name))
     (setq path (concat sched--queues-dir name ".queue"))
     (make-empty-file path)
-    (setq queue (org-pplist-make path))
+    (setq queue (sched-queue-make name))
     (push (cons name queue) sched--queues)
     (message "Queue %S created successfully" name)
     queue))
@@ -76,41 +101,25 @@ Assumes that the queues are loaded"
 (defvar sched-did-schedule-hook nil
   "A hook which is ran after an entry is scheduled.
 The functions accept as an argument the ID of the entry that was scheduled")
+
 (defun sched-schedule (arg)
   "Schedules the node node at point on the current queue. Asks the user for the interval.
 When called with a prefix argument, ask the user for the queue as well"
   (interactive "P")
   (sched--check)
-  (let* ((eid (org-id-get))
-         (queue (if arg (sched--read-queue) (cdr sched--current-queue)))
-         (sched (and eid (org-pplist-get queue eid)))
-         (prompt (if sched
-                     (format "Interval (last was %s): "
-                             (plist-get sched :interval))
-                   "Interval: "))
-         (new-interval (read-number prompt)))
-    (unless sched
-      (setq eid (or eid (org-id-get-create)))
-      (setq sched (sched--create-sched eid queue)))
-    (sched--schedule sched new-interval)
-    (org-pplist-updated-plist queue sched :flush)
-    (run-hook-with-args 'sched-did-schedule-hook eid)))
-
-(defun sched--schedule (sched interval)
-  (let* ((interval (max 0 interval))
-         (day (+ (my-time-today) interval)))
-    (plist-put sched :due day)
-    (plist-put sched :interval interval)))
+  (let* ((eid (org-id-get-create))
+         (queue (if arg (sched-queue-read) sched--current-queue)))
+    (sched-queue-schedule queue eid)))
 
 (defun sched-remove (arg)
   "Remove the node at point from the current queue.
 When called with a prefix argument, ask the user for the queue."
   (interactive "P")
-  (let ((queue (if arg (sched--read-queue) (cdr sched--current-queue)))
+  (let ((queue (if arg (sched-queue-read) sched--current-queue))
         (eid (org-entry-get nil "ID")))
     (if (not eid)
         (message "Node not in queue")
-      (if (org-pplist-remove queue eid)
+      (if (org-pplist-remove (cdr queue) eid)
           (message "Removed node")
         (message "Node not in queue")))))
 
@@ -135,9 +144,9 @@ today.")
 (defun sched-ring-reset (arg)
   (interactive "P")
   (sched--check)
-  (let* ((queue (if arg (sched--read-queue) (cdr sched--current-queue)))
+  (let* ((queue (if arg (sched-queue-read) (cdr sched--current-queue)))
          (ids (mapcar (lambda (sched) (plist-get sched :id))
-                      (sched--due-today queue))))
+                      (sched-queue-due-today queue))))
     (setq sched-ring (circlist-make ids))
     (when (called-interactively-p 'interactive)
       (message "%s entries due" (circlist-length sched-ring)))))
