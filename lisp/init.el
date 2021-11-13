@@ -179,7 +179,7 @@
 (defun my-insert-ruler (length)
   (interactive "p")
   (insert (make-string length ?═)))
-(define-key prog-mode-map (kbd "C-x C-r") 'my-insert-ruler)
+(define-key global-map (kbd "C-x C-r") 'my-insert-ruler)
 
 ;;════════════════════════════════════════
 

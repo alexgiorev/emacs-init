@@ -1,5 +1,6 @@
 (require 'elisp-mode)
-;; ########################################
+;;════════════════════════════════════════
+;; defuns
 (defconst my-elisp-defun-re
   "([[:space:]\n]*defun[[:space:]\n]+\\(\\(?:\\sw\\|\\s_\\)+\\)")
 
@@ -34,20 +35,7 @@ about the function."
   (define-key emacs-lisp-mode-map (kbd "C-c C-t")
     'my-elisp-save-defun-name))
 
-;; ########################################
-(define-key emacs-lisp-mode-map (kbd "C-c t")
-  (lambda nil
-    (interactive)
-    (insert "(error \"TODO\")")))
-
-;; ########################################
-;; cpath
-(with-eval-after-load 'cpath
-  (add-hook 'emacs-lisp-mode-hook
-            (lambda nil
-              (setq cpath-func-name-func
-                    'my-elisp-defun-name))))
-;;########################################
+;;════════════════════════════════════════
 ;; evaluation
 
 (defun my-elisp-eval-defvar nil
@@ -70,8 +58,9 @@ it as the symbol's value"
   (define-key my-elisp-eval-map "\C-v" 'my-elisp-eval-defvar))
 (define-key emacs-lisp-mode-map (kbd "C-x C-e") my-elisp-eval-map)
 
-;;########################################
+;;════════════════════════════════════════
 ;;prefix
+
 (defvar my-prefix nil)
 
 (defun my-prefix-set (start end)
@@ -90,10 +79,27 @@ it as the symbol's value"
 
 (define-key emacs-lisp-mode-map (kbd "C-M-.") 'my-prefix-symbol)
 
-;;########################################
+;;════════════════════════════════════════
 ;; misc
+
 (dolist (symbol '(plist-put plist-get))
   (put symbol 'lisp-indent-function 2))
 
-;; ########################################
+(progn
+  (define-key emacs-lisp-mode-map (kbd "C-c C-n") 'my-next-ruler)
+  (define-key emacs-lisp-mode-map (kbd "C-c C-p") 'my-prev-ruler))
+
+;; cpath
+(with-eval-after-load 'cpath
+  (add-hook 'emacs-lisp-mode-hook
+            (lambda nil
+              (setq cpath-func-name-func
+                    'my-elisp-defun-name))))
+
+(define-key emacs-lisp-mode-map (kbd "C-c t")
+  (lambda nil
+    (interactive)
+    (insert "(error \"TODO\")")))
+
+;;════════════════════════════════════════
 (provide 'my-elisp)
