@@ -114,53 +114,106 @@ nil, use the current buffer."
     (/ my-epoch 86400)))
 
 ;; ════════════════════════════════════════
-;; circular lists
+;; circular lists (useful for implementing rings)
 
-(defun my-circlist-make (list)
+(defvar circlist-marker (make-symbol "circlist"))
+
+(defsubst circlist-make (list)
   "Turns LIST into a circular lists"
-  (when list (setcdr (last list) list)))
+  (record circlist-marker list list))
+(defsubst circlist--elements (circlist)
+  (aref circlist 1))
+(defsubst circlist--set-elements (circlist elements)
+  (aset circlist 1 elements))
+(defsubst circlist--current-cons (circlist)
+  (aref circlist 2))
+(defsubst circlist--set-current-cons (circlist cell)
+  (aset circlist 2 cell))
 
-(defun my-circlist-prev (list)
-  (let ((current list))
-    (while (not (eq (cdr current) list))
-      (setq current (cdr current)))
-    current))
+(defun circlist--prev-cons (circlist)
+  (let ((elements (circlist--elements circlist))
+        (current-cons (circlist--current-cons circlist)))
+    (when elements
+      (if (eq elements current-cons) (last elements)
+        (catch :break
+          (my-loop-cons (cell elements)
+            (when (eq (cdr cell) current-cons)
+              (throw :break cell))))))))
 
-(defun my-circlist-add (clist element &optional before)
-  "Assumes that CLIST is a cons which is a node in a circular list. Inserts
-ELEMENT after CLIST and returns the new cons. Optional argument BEFORE controls
-whether the element is inserted before or after CLIST in the circular list."
-  (let* ((prev (if before (my-circlist-prev clist) clist))
-         (next (cdr prev))
-         (new (cons element next)))
-    (setcdr prev new)
-    new))
+(defun circlist--next-cons (circlist)
+  (let ((elements (circlist--elements circlist))
+        (current-cons (circlist--current-cons circlist)))
+    (when elements
+      (if (cdr current-cons) (cdr current-cons) elements))))
 
-(defun my-circlist-pop (var)
-  "Remove the head of the circluar list stored at VAR and position VAR on the next element."
-  (let (clist prev value)
-    (unless (setq clist (symbol-value var))
-      (error "Cannot pop from an empty circular list"))
-    (setq prev (my-circlist-prev clist)
-          head (car clist))
-    (if (eq prev clist)
-        (set var nil)
-      (setcdr prev (cdr clist))
-      (set var (cdr prev)))
-    head))
+(defsubst circlist-length (circlist)
+  (length (circlist--elements circlist)))
+(defsubst circlist-empty-p (circlist)
+  (null (circlist--elements circlist)))
+(defsubst circlist-current (circlist)
+  (when (circlist-empty-p circlist)
+    (error "circular list is empty"))
+  (car (circlist--current-cons circlist)))
 
-(defun my-circlist-to-list (circlist)
-  (when (consp circlist)
-    (let* ((result-head (cons (car circlist) nil))
-           (result-last result-head)
-           (circlist-head circlist)
-           (circlist-current (cdr circlist)))
-      (while (not (eq circlist-current circlist-head))
-        (setq result-last (setcdr result-last (cons (car circlist-current) nil))
-              circlist-current (cdr circlist-current)))
-      result-head)))
-      
-      
+(defun circlist-add (circlist element &optional direction)
+  "Inserts ELEMENT before (when DIRECTION is eq to :before or :prev) or after
+(when DIRECTION is eq to :after or :next) the current CIRCLIST element"
+  (let ((current-cons (circlist--current-cons circlist))
+        (elements (circlist--elements circlist)))
+    (cond ((null elements)
+           (circlist--set-elements circlist (setq elements (list element)))
+           (circlist--set-current-cons circlist elements))
+          ((memq direction (list :before :prev))
+           (if (eq current-cons elements)
+               (circlist--set-elements
+                circlist (setq elements (cons element elements)))
+             (let ((prev-cons (circlist--prev-cons circlist)))
+               (setcdr prev-cons (cons element current-cons)))))
+          ((memq direction (list :after :next))
+           (setcdr current-cons (cons element (cdr current-cons))))
+          (t (error "Invalid DIRECTION argument: %S" direction)))))
+
+(defun circlist-pop (circlist &optional direction)
+  "Remove and return CIRCLIST's current element.
+Set the current element based on DIRECTION, which defaults to :next"
+  (let ((current (circlist--current-cons circlist))
+        (elements (circlist--elements circlist))
+        (next (circlist--next-cons circlist))
+        (prev (circlist--prev-cons circlist)))    
+    (cond ((not elements)
+           (error "Cannot pop from an empty circular list"))
+          ((null (cdr elements))
+           (circlist--set-elements circlist nil)
+           (circlist--set-current-cons circlist nil))
+          ((eq current elements)
+           (setq elements (cdr elements))
+           (circlist--set-elements circlist elements)
+           (circlist--set-current-cons circlist elements))
+          (t (setcdr prev (cdr current))
+             (circlist--set-current-cons
+              circlist (if (memq direction (list :next :after)) next prev))))
+    (car current)))
+
+(defsubst circlist-to-list (circlist)
+  (copy-sequence (circlist--elements circlist)))
+
+(defun circlist-rotate (circlist direction)
+  "DIRECTION must be one of (:next :prev)"
+  (unless (circlist-empty-p circlist)
+    (let ((func (if (eq direction :next) 'circlist--next-cons 'circlist--prev-cons)))
+      (circlist--set-current-cons circlist (funcall func circlist)))))
+
+(defun circlist-remove (circlist pred)
+  "Returns a circlular list derived from CIRCLIST by removing all elements which
+satisfy PRED. When the current element is also removed, the new current is
+unspecified."
+  (let ((current-cons (circlist--current-cons circlist))
+        (new-elements (my-list-drop-m pred (circlist--elements circlist))))
+    (circlist--set-elements new-elements)
+    (while (and current-cons (eq (car current-cons) :my-list-drop-m-did-remove))
+      (setq current-cons (cdr current-cons)))
+    (unless current-cons (setq current-cons new-elements))
+    (circlist--set-current-cons current-cons)))
 
 ;; ════════════════════════════════════════
 ;; plists
@@ -294,17 +347,35 @@ Returns t when something was actually removed and nil otherwise."
           (progn (setcdr prev-cons (cddr prev-cons))
                  (cons list t))
           (cons list nil))))))
-  
+
+(defun my-cell-in-list (cell list)
+  "Return t or nil based on whether CELL is one of LIST's cons pairs"
+  (catch :break
+    (my-loop-cons (list-cell list)
+      (when (eq cell list-cell)
+        (throw :break t)))))
+
+(defun my-list-drop-m (pred list)
+  "Returns a list derived from LIST by dropping all elements which pass PRED.
+This operation is destructive, no new cells are created. The cells which are
+removed have their CAR changed to `:my-list-drop-m-did-remove'."
+  (let ((list (cons nil list))
+        (current list) next)
+    (while (setq next (cdr current))
+      (if (funcall pred (car next))
+          (setcdr current (cdr next))
+        (setq current next)))
+    (cdr list)))
 
 ;; ════════════════════════════════════════
 ;; loops
 
-(defmacro my-loop-cons (var-list &rest body)
-  "Iterate over the pairs of a list. For each pair, bind VAR to it and execute
-BODY."
+(defmacro my-loop-cons (var-and-list &rest body)
+  "Iterate over the pairs of a list. For each pair, bind VAR to it and execute BODY. Always returns nil.
+WARNING: If the list is circular, this will loop forever"
   (declare (indent 1))
-  (let ((var (car var-list))
-        (list-expr (cadr var-list)))
+  (let ((var (car var-and-list))
+        (list-expr (cadr var-and-list)))
     `(let ((,var ,list-expr))
        (while ,var
          ,@body

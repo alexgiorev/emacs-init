@@ -625,36 +625,33 @@ subtree of the entry."
 ;;════════════════════════════════════════════════════════════
 ;; my-org-ring
 
-(defvar my-org-ring nil
+(defvar my-org-ring (circlist-make nil)
   "A ring of org-mode entry positions which I want to use for myself.
 Many commands use the org-mark-ring, but I want a ring that I am in total control of
 and whose positions are always explictily set.")
 
+(defun my-org-ring--check nil
+  (when (circlist-empty-p my-org-ring)
+    (user-error "Ring is empty")))
+
 (defun my-org-ring-empty nil
   (interactive)
-  (while my-org-ring
+  (while (not (circlist-empty-p my-org-ring))
     (my-org-ring-remove)))
 
-(defun my-org-ring--check nil
-  (if (not my-org-ring)
-      (user-error "Ring is empty")))
-
 (defun my-org-ring-push (&optional before)
-  (interactive)
+  (interactive "P")
   (save-excursion
     (org-back-to-heading t)
     (let ((marker (point-marker)))
       (put-text-property (point) (1+ (point)) :my-org-ring-marker marker)
-      (if my-org-ring
-          (setq my-org-ring (my-circlist-add my-org-ring marker before))
-        (setq my-org-ring (list marker))
-        (my-circlist-make my-org-ring)))))
+      (circlist-add my-org-ring marker (if before :before :after)))))
 
 (defun my-org-ring-jump nil
   (interactive)
-  (let (jump? marker)
-    (while (and my-org-ring (not jump?))
-      (setq marker (car my-org-ring))
+  (let (jump-p marker)
+    (while (and (not (circlist-empty-p my-org-ring)) (not jump-p))
+      (setq marker (circlist-current my-org-ring))
       (ignore-errors
         (with-current-buffer (marker-buffer marker)
           (save-excursion
@@ -662,26 +659,24 @@ and whose positions are always explictily set.")
             (when (invisible-p (point))
               (org-show-set-visibility 'canonical))
             (when (eq marker (get-text-property (point) :my-org-ring-marker))
-              (setq jump? t)))))
-      (unless jump?
-        (my-circlist-pop 'my-org-ring)))
-    (if my-org-ring
+              (setq jump-p t)))))
+      (unless jump-p (circlist-pop my-org-ring)))
+    (if (not (circlist-empty-p my-org-ring))
         (progn
           (my-jump-to-marker marker)
-          (when (org-invisible-p)
-            (org-show-set-visibility 'canonical)))
+          (when (org-invisible-p) (org-show-set-visibility 'canonical)))
       (my-org-ring--check))))
 
 (defun my-org-ring-next nil
   (interactive)
   (my-org-ring--check)
-  (setq my-org-ring (cdr my-org-ring))
+  (circlist-rotate my-org-ring :next)
   (my-org-ring-jump))
 
 (defun my-org-ring-prev nil
   (interactive)
   (my-org-ring--check)
-  (setq my-org-ring (my-circlist-prev my-org-ring))
+  (circlist-rotate my-org-ring :next)
   (my-org-ring-jump))
 
 (defun my-org-ring-remove (&optional jump)
@@ -691,7 +686,7 @@ and whose positions are always explictily set.")
   (when jump (my-org-ring-jump)))
 
 (defun my-org-ring--remove nil
-  (let ((marker (my-circlist-pop 'my-org-ring)))
+  (let ((marker (circlist-pop my-org-ring)))
     (with-current-buffer (marker-buffer marker)
       (save-excursion
         (goto-char marker)
@@ -708,7 +703,7 @@ and whose positions are always explictily set.")
     (org-map-tree
      (lambda nil
        (if (org-entry-is-todo-p) (my-org-ring-push)))))
-  (setq my-org-ring (cdr my-org-ring)))
+  (circlist-rotate my-org-ring :next))
 
 (defvar my-org-ring-map (make-sparse-keymap))
 (progn 
@@ -743,32 +738,6 @@ and whose positions are always explictily set.")
      (dolist (attrs overlay-attrs)
        (pcase-let ((`((,start . ,end) . ,invisible) attrs))
          (org-flag-region start end t invisible))))))
-
-;;════════════════════════════════════════════════════════════
-;; my-org-id
-
-(defun my-org-id-get (eid things)
-  "Read data about the tree whose global ID is EID.
-THINGS is a list of symbols which specifies what to get. The things are returned
-in the order in which they are specified. Look at the COND to see the choices
-available."
-  (let ((location (org-id-find eid)))
-    (when location
-      (with-current-buffer (get-file-buffer (car location))
-        (org-with-wide-buffer
-         (goto-char (cdr location))
-         (org-back-to-heading t)
-         (mapcar
-          (lambda (thing)
-            (cond ((eq thing 'position) (point))
-                  ((eq thing 'tree) (my-org-tree-text :no-properties))
-                  ((eq thing 'title) (org-no-properties (org-get-heading t t t t)))
-                  ((eq thing 'buffer) (current-buffer))
-                  ((eq thing 'file) (car location))
-                  ((eq thing 'marker) (point-marker))
-                  ((eq thing 'heading) (org-get-heading))
-                  (t (error "Invalid THING: %S" thing))))
-          things))))))
 
 ;;════════════════════════════════════════════════════════════
 ;; * clones
@@ -890,6 +859,29 @@ beginning of the heading when it has no title."
 
 (defsubst org-insert-child nil
   (org-insert-heading-after-current) (org-demote))
+
+(defun my-org-id-get (eid things)
+  "Read data about the tree whose global ID is EID.
+THINGS is a list of symbols which specifies what to get. The things are returned
+in the order in which they are specified. Look at the COND to see the choices
+available."
+  (let ((location (org-id-find eid)))
+    (when location
+      (with-current-buffer (get-file-buffer (car location))
+        (org-with-wide-buffer
+         (goto-char (cdr location))
+         (org-back-to-heading t)
+         (mapcar
+          (lambda (thing)
+            (cond ((eq thing 'position) (point))
+                  ((eq thing 'tree) (my-org-tree-text :no-properties))
+                  ((eq thing 'title) (org-no-properties (org-get-heading t t t t)))
+                  ((eq thing 'buffer) (current-buffer))
+                  ((eq thing 'file) (car location))
+                  ((eq thing 'marker) (point-marker))
+                  ((eq thing 'heading) (org-get-heading))
+                  (t (error "Invalid THING: %S" thing))))
+          things))))))
 
 ;;════════════════════
 ;; misc-org-select
@@ -1196,13 +1188,18 @@ non-nil, undo regardless of date."
         (goto-char parent-pos) (org-end-of-subtree t t) (ensure-newline))
       (save-excursion (insert text)) (org-show-entry) (org-flag-subtree t))))
 
+(defun my-org-node-show nil
+  (interactive)
+  (org-show-set-visibility 'canonical))
+
 (defvar my-org-node-map (make-sparse-keymap)
   "Binds keys to commands which work on nodes")
 (progn
   (define-key my-org-node-map "t" 'my-org-tempdone-days)
   (define-key my-org-node-map "d" 'my-org-node-date)
   (define-key my-org-node-map "s" 'my-org-node-add-source)
-  (define-key my-org-node-map "b" 'my-org-node-bury))
+  (define-key my-org-node-map "b" 'my-org-node-bury)
+  (define-key my-org-node-map "h" 'my-org-node-show))
 (define-key org-mode-map "\C-ce" my-org-node-map)
 (define-key org-mode-map (kbd "C-.") 'my-org-node-bury)
 

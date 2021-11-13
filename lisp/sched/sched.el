@@ -27,9 +27,9 @@ There is one queue per file in `sched--queues-dir'")
 ;;════════════════════════════════════════
 ;; utils
 
-(defun sched--create-sched (eid)
+(defun sched--create-sched (eid queue)
   "Create a new scheduling record for EID and return it"
-  (org-pplist-add (cdr sched--current-queue) eid (list :due nil :interval nil)))
+  (org-pplist-add queue eid (list :due nil :interval nil)))
 
 (defun sched--due-today (&optional queue)
   "Return a list of the records which are due today"
@@ -73,6 +73,9 @@ Assumes that the queues are loaded"
     (message "Queue %S created successfully" name)
     queue))
 
+(defvar sched-did-schedule-hook nil
+  "A hook which is ran after an entry is scheduled.
+The functions accept as an argument the ID of the entry that was scheduled")
 (defun sched-schedule (arg)
   "Schedules the node node at point on the current queue. Asks the user for the interval.
 When called with a prefix argument, ask the user for the queue as well"
@@ -90,7 +93,8 @@ When called with a prefix argument, ask the user for the queue as well"
       (setq eid (or eid (org-id-get-create)))
       (setq sched (sched--create-sched eid queue)))
     (sched--schedule sched new-interval)
-    (org-pplist-updated-plist queue sched :flush)))
+    (org-pplist-updated-plist queue sched :flush)
+    (run-hook-with-args 'sched-did-schedule-hook eid)))
 
 (defun sched--schedule (sched interval)
   (let* ((interval (max 0 interval))
@@ -113,40 +117,35 @@ When called with a prefix argument, ask the user for the queue."
 (defun sched-select-queue nil
   (interactive)
   (sched--check)
-  (let ((name (forest-select-list-item
-               "queues" (my-alist-keys sched--queues) (car sched--current-queue))))
-    (when name
-      (setq sched--current-queue (assoc name sched--queues)))))
+  (let ((queue (org-select-list sched--queues)))
+    (when queue (setq sched--current-queue queue))))
 
 ;; ════════════════════
 ;; ** ring commands
 
-(defvar sched-ring nil
+(defvar sched-ring (circlist-make nil)
   "A ring of entry ids.
 Typically holds the ids of due entries so that the user can read what is due for
 today.")
+
+(defun sched-ring--check nil
+  (when (circlist-empty-p sched-ring)
+    (user-error "Ring is empty")))
 
 (defun sched-ring-reset (arg)
   (interactive "P")
   (sched--check)
   (let* ((queue (if arg (sched--read-queue) (cdr sched--current-queue)))
          (ids (mapcar (lambda (sched) (plist-get sched :id))
-                      (sched--due-today queue)))
-         (length (length ids)))
-    (if ids
-        (setq sched-ring (my-circlist-make ids))
-      (setq sched-ring nil))
+                      (sched--due-today queue))))
+    (setq sched-ring (circlist-make ids))
     (when (called-interactively-p 'interactive)
-      (message "%s entries due" length))))
-
-(defun sched-ring--check nil
-  (if (not sched-ring)
-      (user-error "Ring is empty")))
+      (message "%s entries due" (circlist-length sched-ring)))))
 
 (defun sched-ring-select nil
   (interactive)
   (sched-ring--check)
-  (let* ((eids (my-circlist-to-list sched-ring))
+  (let* ((eids (circlist-to-list sched-ring))
          (headings (seq-filter 'identity
                                (mapcar (lambda (eid)
                                          (car (my-org-id-get eid '(heading))))
@@ -154,41 +153,44 @@ today.")
          (items (my-zip-alist headings eids))
          (eid (org-select-list items)))
     (when eid
-      (while (not (string= (car sched-ring) eid))
-        (setq sched-ring (cdr sched-ring)))
+      (while (not (string= (circlist-current sched-ring) eid))
+        (circlist-rotate sched-ring :next))
       (sched-ring-jump))))
 
 (defun sched-ring-jump nil
   (interactive)
   (sched-ring--check)
   (let (did-open)
-    (while (and sched-ring (not did-open))
+    (while (and (not (circlist-empty-p sched-ring)) (not did-open))
       (ignore-errors
-        (org-id-open (car sched-ring) nil)
+        (org-id-open (circlist-current sched-ring) nil)
         (setq did-open t))
       (unless did-open
-        (my-circlist-pop 'sched-ring)))
+        (circlist-pop sched-ring)))
     (unless did-open
       (sched-ring--check))))
 
 (defun sched-ring-next nil
   (interactive)
   (sched-ring--check)
-  (setq sched-ring (cdr sched-ring))
+  (circlist-rotate sched-ring :next)
   (sched-ring-jump))
 
 (defun sched-ring-prev nil
   (interactive)
   (sched-ring--check)
-  (setq sched-ring (my-circlist-prev sched-ring))
+  (circlist-rotate sched-ring :prev)
   (sched-ring-jump))
 
 (defun sched-ring-pop nil
   (interactive)
   (sched-ring--check)
-  (my-circlist-pop 'sched-ring)
-  (when (called-interactively-p 'interactive)
-    (message "Popped link")))
+  (let* ((eid (circlist-pop sched-ring))
+         (title (my-org-id-get eid '(title))))
+    (message "Popped %S" title)))
+
+(defun sched-ring-after-node-scheduled (eid)
+  (circlist-remove sched-ring (lambda (elt) (string= elt eid))))
 
 ;;════════════════════════════════════════
 ;; keymap
@@ -202,7 +204,8 @@ today.")
   (define-key sched-map "o" 'sched-ring-pop)
   (define-key sched-map "s" 'sched-schedule)
   (define-key sched-map (kbd "DEL") 'sched-remove)
-  (define-key sched-map "q" 'sched-select-queue))
+  (define-key sched-map "q" 'sched-select-queue)
+  (define-key sched-map "e" 'sched-ring-select))
 (define-key global-map "\C-xs" sched-map)
 
 ;;════════════════════════════════════════
