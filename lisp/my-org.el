@@ -917,7 +917,7 @@ available."
             org-select-list-prelude prelude)
       (org-select-list-redraw)
       (recursive-edit)
-      (setq result (and (not org-select-did-quit) (get-text-property (point) :data)))
+      (setq result (and (not org-select-did-quit) (get-text-property (point) :item)))
       (kill-buffer-and-window)
       result)))
 
@@ -928,7 +928,7 @@ available."
       (insert org-select-list-prelude "\n"))
     (dolist (heading-and-data org-select-list-items)
       (save-excursion (insert "* " (car heading-and-data) "\n"))
-      (put-text-property (point) (1+ (point)) :data (cdr heading-and-data))
+      (put-text-property (point) (1+ (point)) :item heading-and-data)
       (forward-line))
     (org-goto-first-heading)))
 
