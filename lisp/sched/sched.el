@@ -45,11 +45,11 @@ There is one queue per file in `sched--queues-dir'")
 (defun sched-queue-read nil
   "Asks the user for a queue name and returns the object or nil if no queue by that name.
 Assumes that the queues are loaded"
-  (let* ((names (mapcar 'sched-queue-name))
+  (let* ((names (mapcar 'sched-queue-name sched--queues))
          (user-input (completing-read "Queue: " names)))
     (unless (member user-input names)
       (user-error "No queue with name %S" name))
-    (sched-get-queue name)))
+    (sched-get-queue user-input)))
 
 (defun sched-queue-get-sched (queue eid)
   (org-pplist-get (sched-queue--pplist queue) eid))
@@ -126,8 +126,11 @@ When called with a prefix argument, ask the user for the queue."
 (defun sched-select-queue nil
   (interactive)
   (sched--check)
-  (let ((queue (org-select-list sched--queues)))
-    (when queue (setq sched--current-queue queue))))
+  (let* ((items (mapcar (lambda (queue) (cons (sched-queue-name queue) queue))
+                        sched--queues))
+         (default-item (rassq sched--current-queue items))
+         (item (org-select-list items "Select queue" default-item)))
+    (when item (setq sched--current-queue (cdr item)))))
 
 ;; ════════════════════
 ;; ** ring commands

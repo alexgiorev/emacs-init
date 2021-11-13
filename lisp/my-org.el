@@ -5,26 +5,6 @@
 (require 'sched (concat (file-name-directory load-file-name) "sched/sched.el"))
 (require 'my-org-vars (concat (file-name-directory load-file-name) "my-org-vars/my-org-vars.el"))
 
-(define-key global-map "\C-ca" 'org-agenda)
-(setq org-log-done nil)
-
-;;════════════════════════════════════════════════════════════
-(setq-default org-startup-folded t)
-(add-hook 'org-mode-hook (lambda nil (electric-indent-local-mode -1)))
-
-;;════════════════════════════════════════════════════════════
-
-(defun my-org-isearch-headlines nil
-  (interactive)
-  (let ((isearch-filter-predicate
-         (lambda (start end)
-           (save-match-data
-             (isearch-filter-visible start end)
-             (save-excursion (goto-char start) (org-on-heading-p))))))
-    (isearch-mode t nil nil t)))
-
-(define-key org-mode-map (kbd "M-s e") 'my-org-isearch-headlines)
-
 ;;════════════════════════════════════════════════════════════
 ;; widen to parent
 
@@ -883,6 +863,23 @@ available."
                   (t (error "Invalid THING: %S" thing))))
           things))))))
 
+(define-key global-map "\C-ca" 'org-agenda)
+(setq org-log-done nil)
+
+(setq-default org-startup-folded t)
+(add-hook 'org-mode-hook (lambda nil (electric-indent-local-mode -1)))
+
+(defun my-org-isearch-headlines nil
+  (interactive)
+  (let ((isearch-filter-predicate
+         (lambda (start end)
+           (save-match-data
+             (isearch-filter-visible start end)
+             (save-excursion (goto-char start) (org-on-heading-p))))))
+    (isearch-mode t nil nil t)))
+
+(define-key org-mode-map (kbd "M-s e") 'my-org-isearch-headlines)
+
 ;;════════════════════
 ;; misc-org-select
 
@@ -906,7 +903,14 @@ available."
 (defvar-local org-select-did-quit nil)
 (defvar-local org-select-list-items nil)
 (defvar-local org-select-list-prelude nil)
-(defun org-select-list (items &optional prelude)
+
+(defun org-select-list (items &optional prelude default)
+  "Ask the user to select an element of ITEMS.  ITEMS must be an alist. The keys
+are the headings to display and the values are arbitrary data. The function
+returns the item selected by the user, or nil when the user quits without
+selecting anything. PRELUDE is informative text to display before the
+items. DEFAULT must be an element of ITEMS, and supplying it has the effect of
+highlighting that item when the window is first shown"
   (when items
     (let ((selection-buffer (get-buffer-create org-select--buffer-name))
           result)
@@ -916,6 +920,8 @@ available."
             org-select-list-items items
             org-select-list-prelude prelude)
       (org-select-list-redraw)
+      (when default
+        (text-property-search-forward :item default 'eq))
       (recursive-edit)
       (setq result (and (not org-select-did-quit) (get-text-property (point) :item)))
       (kill-buffer-and-window)
@@ -1467,7 +1473,7 @@ PLIST belongs to PPLIST."
 
 (defun org-pplist-remove (pplist eid &optional flush)
   "Delete EID's plist from PPLIST and return t. If EID is has no plist in PPLIST, return nil"
-  (let ((list-and-flag (my-list-delete-and-tell
+  (let ((list-and-flag (LIST-delete-and-tell
                         (plist-get pplist :list)
                         (lambda (elt) (string= (plist-get elt :id) eid)))))
     (when (cdr list-and-flag)
