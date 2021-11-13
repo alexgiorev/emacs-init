@@ -21,12 +21,14 @@
 (defvar my-ruler-regexp "^\\s<+ *═+$")
 (defun my-next-ruler nil
   (interactive)
+  (push-mark)
   (beginning-of-line 2)
   (re-search-forward my-ruler-regexp nil :move)
   (beginning-of-line))
 
 (defun my-prev-ruler nil
   (interactive)
+  (push-mark)
   (beginning-of-line 0)
   (re-search-backward my-ruler-regexp nil :move))
 
