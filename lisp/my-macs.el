@@ -208,9 +208,9 @@ Set the current element based on DIRECTION, which defaults to :next"
 satisfy PRED. When the current element is also removed, the new current is
 unspecified."
   (let ((current-cons (circlist--current-cons circlist))
-        (new-elements (my-list-drop-m pred (circlist--elements circlist))))
+        (new-elements (LIST-drop-m pred (circlist--elements circlist))))
     (circlist--set-elements circlist new-elements)
-    (while (and current-cons (eq (car current-cons) :my-list-drop-m-did-remove))
+    (while (and current-cons (eq (car current-cons) :LIST-drop-m-did-remove))
       (setq current-cons (cdr current-cons)))
     (unless current-cons (setq current-cons new-elements))
     (circlist--set-current-cons circlist current-cons)))
@@ -255,7 +255,7 @@ removed."
 
 ;; ════════════════════════════════════════
 ;; * lists
-(defun my-list-index (elt list &optional test)
+(defun LIST-index (elt list &optional test)
   "Return the index in LIST where ELT first appears.
 The comparison is done with TEST, which defaults to `eq'."
   (let ((result 0)
@@ -267,7 +267,7 @@ The comparison is done with TEST, which defaults to `eq'."
             current (cdr current)))
     (and foundp result)))
 
-(defun my-list-prev-cons (list pred)
+(defun LIST-prev-cons (list pred)
   "Return the CONS preceding the one whose CAR passes PRED. Returns nil when
 such a CONS is not present in LIST.
 
@@ -281,7 +281,7 @@ PRED but if no other element passes it then nil will be returned."
             (setq result current) (throw :break nil)))))
     result))
 
-(defun my-list-neighbor (list elt direction &optional different)
+(defun LIST-neighbor (list elt direction &optional different)
   "Return the neighbor of ELT in LIST or nil when ELT is not in LIST. This is
 either the previous neighbor when DIRECTION is :prev or the next one when
 DIRECTION is :next. This function cycles the list, so that the next neighbor of
@@ -293,7 +293,7 @@ when LIST is a singleton, give a non-nil DIFFERENT argument"
     (cond ((eq direction :prev)
            (if (eq (car list) elt)
                (car (last list))
-             (car (my-list-prev-cons
+             (car (LIST-prev-cons
                    list (lambda (other-elt) (eq elt other-elt))))))
           
           ((eq direction :next)
@@ -302,7 +302,7 @@ when LIST is a singleton, give a non-nil DIFFERENT argument"
                (if (cdr tail) (cadr tail) (car list)))))
           (t (error "Invalid direction: %s" direction)))))
 
-(defun my-list-add-after (list elt new)
+(defun LIST-add-after (list elt new)
   "Returns a list formed by adding NEW after ELT. Modifies LIST"
   (catch :break
     (my-loop-cons (cell list)
@@ -311,38 +311,38 @@ when LIST is a singleton, give a non-nil DIFFERENT argument"
         (throw :break nil))))
   list)
 
-(defun my-list-add-before (list elt new)
+(defun LIST-add-before (list elt new)
   "Returns a list formed by adding NEW before ELT. Modifies LIST (unless ELT is
 the head of LIST)"
-  (let ((cell (my-list-prev-cons list (lambda (x) (eq x elt)))))
+  (let ((cell (LIST-prev-cons list (lambda (x) (eq x elt)))))
     (if (not cell)
         (cons new list)
       (setcdr cell (cons new (cdr cell)))
       list)))
 
-(defun my-list-add (list elt new direction)
+(defun LIST-add (list elt new direction)
   "Return a list formed by adding NEW before (when DIRECTION is :prev) or after
 (when DIRECTION is :next) ELT."
-  (cond ((eq direction :next) (my-list-add-after list elt new))
-        ((eq direction :prev) (my-list-add-before list elt new))
+  (cond ((eq direction :next) (LIST-add-after list elt new))
+        ((eq direction :prev) (LIST-add-before list elt new))
         (t (error "Invalid direction: %s" direction))))
 
-(defun my-list-remove (list-sym pred)
+(defun LIST-remove (list-sym pred)
   "Remove from the list stored at LIST-SYM the first element which satisifes PRED.
 Returns t when something was actually removed and nil otherwise."
   (let ((list (symbol-value list-sym)) (prev-cons nil))
     (when list
       (if (funcall pred (car list))
           (progn (set list-sym (cdr list)) t)
-        (setq prev-cons (my-list-prev-cons list pred))
+        (setq prev-cons (LIST-prev-cons list pred))
         (when prev-cons (setcdr prev-cons (cddr prev-cons)) t)))))
 
-(defun my-list-delete-and-tell (list pred)
+(defun LIST-delete-and-tell (list pred)
   (let (prev-cons)
     (when list
       (if (funcall pred (car list))
           (cons (cdr list) t)
-        (setq prev-cons (my-list-prev-cons list pred))
+        (setq prev-cons (LIST-prev-cons list pred))
         (if prev-cons
           (progn (setcdr prev-cons (cddr prev-cons))
                  (cons list t))
@@ -355,16 +355,16 @@ Returns t when something was actually removed and nil otherwise."
       (when (eq cell list-cell)
         (throw :break t)))))
 
-(defun my-list-drop-m (pred list)
+(defun LIST-drop-m (pred list)
   "Returns a list derived from LIST by dropping all elements which pass PRED.
 This operation is destructive, no new cells are created. The cells which are
-removed have their CAR changed to `:my-list-drop-m-did-remove'."
+removed have their CAR changed to `:LIST-drop-m-did-remove'."
   (let* ((list (cons nil list))
          (current list) next)
     (while (setq next (cdr current))
       (if (funcall pred (car next))
           (progn (setcdr current (cdr next))
-                 (setcar next :my-list-drop-m-did-remove))
+                 (setcar next :LIST-drop-m-did-remove))
         (setq current next)))
     (cdr list)))
 
@@ -529,7 +529,7 @@ branch is then a path from the root where each internal node is so marked."
 (:prev :next). When NODE is an only child, return nil."
   (let* ((siblings (plist-get (plist-get node :parent) :children)))
     (when (cdr siblings)
-      (my-list-neighbor siblings node direction))))
+      (LIST-neighbor siblings node direction))))
 
 (defun forest-in-forest-p (forest node)
   "Return t when NODE is a FOREST node"
@@ -576,8 +576,8 @@ created."
     (if (not current)
         (apply 'forest-new-root forest properties)
       (setq parent (plist-get current :parent)
-            list-add-func (cond ((eq direction :prev) 'my-list-add-before)
-                                ((eq direction :next) 'my-list-add-after)
+            list-add-func (cond ((eq direction :prev) 'LIST-add-before)
+                                ((eq direction :next) 'LIST-add-after)
                                 (t (error "Invalid direction: %s" direction)))
             node (copy-sequence properties))
       (plist-put node :parent parent)
@@ -874,7 +874,7 @@ the current one."
          branch-child new-branch-child)
     (unless (or (null children) (null (cdr children)))
       (setq branch-child (forest-branch-child current)
-            new-branch-child (my-list-neighbor children branch-child direction))
+            new-branch-child (LIST-neighbor children branch-child direction))
       (forest-set-branch-child new-branch-child)
       (forest-select-mark-branch))))
 
@@ -890,7 +890,7 @@ the current one."
 
 (defun forest-select--change-root (direction)
   (let* ((current-root (forest-current-root forest-select-forest))
-         (new-root (my-list-neighbor
+         (new-root (LIST-neighbor
                      (plist-get forest-select-forest :children)
                      current-root direction)))
     (unless (eq current-root new-root)
