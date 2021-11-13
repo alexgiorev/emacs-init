@@ -147,7 +147,7 @@ add a backlink as a BACKLINK property."
         (replace-match ""))
       (unfill-region (point-min) (point-max))
       (setq text (buffer-string)))
-    (insert text)))
+    (push-mark) (insert text)))
 
 (defun my-yank-from-info nil
   (yank)

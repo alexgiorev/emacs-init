@@ -209,11 +209,11 @@ satisfy PRED. When the current element is also removed, the new current is
 unspecified."
   (let ((current-cons (circlist--current-cons circlist))
         (new-elements (my-list-drop-m pred (circlist--elements circlist))))
-    (circlist--set-elements new-elements)
+    (circlist--set-elements circlist new-elements)
     (while (and current-cons (eq (car current-cons) :my-list-drop-m-did-remove))
       (setq current-cons (cdr current-cons)))
     (unless current-cons (setq current-cons new-elements))
-    (circlist--set-current-cons current-cons)))
+    (circlist--set-current-cons circlist current-cons)))
 
 ;; ════════════════════════════════════════
 ;; plists
@@ -359,11 +359,12 @@ Returns t when something was actually removed and nil otherwise."
   "Returns a list derived from LIST by dropping all elements which pass PRED.
 This operation is destructive, no new cells are created. The cells which are
 removed have their CAR changed to `:my-list-drop-m-did-remove'."
-  (let ((list (cons nil list))
-        (current list) next)
+  (let* ((list (cons nil list))
+         (current list) next)
     (while (setq next (cdr current))
       (if (funcall pred (car next))
-          (setcdr current (cdr next))
+          (progn (setcdr current (cdr next))
+                 (setcar next :my-list-drop-m-did-remove))
         (setq current next)))
     (cdr list)))
 

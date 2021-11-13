@@ -191,7 +191,7 @@ today.")
 
 (defun sched-ring-after-node-scheduled (eid)
   (circlist-remove sched-ring (lambda (elt) (string= elt eid))))
-
+(add-hook 'sched-did-schedule-hook 'sched-ring-after-node-scheduled)
 ;;════════════════════════════════════════
 ;; keymap
 
