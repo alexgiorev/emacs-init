@@ -58,6 +58,10 @@ Assumes that the queues are loaded"
   (seq-find (lambda (queue) (string= (sched-queue-name queue) name))
             sched--queues))
 
+(defvar sched-did-schedule-hook nil
+  "A hook which is ran after an entry is scheduled.
+The functions accept as an argument the ID of the entry that was scheduled")
+
 (defun sched-queue-schedule (queue eid &optional interval)
   "Schedule EID on QUEUE for INTERVAL days into the future.
 If INTERVAL is omitted, ask the user."
@@ -97,10 +101,6 @@ If INTERVAL is omitted, ask the user."
     (push (cons name queue) sched--queues)
     (message "Queue %S created successfully" name)
     queue))
-
-(defvar sched-did-schedule-hook nil
-  "A hook which is ran after an entry is scheduled.
-The functions accept as an argument the ID of the entry that was scheduled")
 
 (defun sched-schedule (arg)
   "Schedules the node node at point on the current queue. Asks the user for the interval.
@@ -147,7 +147,7 @@ today.")
 (defun sched-ring-reset (arg)
   (interactive "P")
   (sched--check)
-  (let* ((queue (if arg (sched-queue-read) (cdr sched--current-queue)))
+  (let* ((queue (if arg (sched-queue-read) sched--current-queue))
          (ids (mapcar (lambda (sched) (plist-get sched :id))
                       (sched-queue-due-today queue))))
     (setq sched-ring (circlist-make ids))
