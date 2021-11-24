@@ -13,7 +13,7 @@ There is one queue per file in `sched--queues-dir'")
   "Load queues if they aren't loaded yet"
   (when (eq sched--queues :unloaded)
     (setq sched--queues
-          (mapcar 'sched-queue-make
+          (mapcar 'sched-queue-new
                   (directory-files sched--queues-dir :full "\\.queue$")))
     (setq sched--current-queue (car sched--queues))))
 
@@ -23,7 +23,7 @@ There is one queue per file in `sched--queues-dir'")
 ;;════════════════════════════════════════
 ;; queues
 
-(defun sched-queue-make (path)
+(defun sched-queue-new (path)
   (cons (file-name-sans-extension (file-name-nondirectory path))
         (org-pplist-make path)))
 (defsubst sched-queue-name (queue)
@@ -92,12 +92,12 @@ If INTERVAL is omitted, ask the user."
   (interactive)
   (sched--check)
   (let ((name (read-string "Queue name: "))
-        queue)
+        path queue)
     (when (sched-get-queue name)
       (user-error "A queue with name %S already exists" name))
     (setq path (concat sched--queues-dir name ".queue"))
     (make-empty-file path)
-    (setq queue (sched-queue-make name))
+    (setq queue (sched-queue-new path))
     (push (cons name queue) sched--queues)
     (message "Queue %S created successfully" name)
     queue))
@@ -163,9 +163,9 @@ today.")
                                          (car (my-org-id-get eid '(heading))))
                                        eids)))
          (items (my-zip-alist headings eids))
-         (eid (org-select-list items)))
-    (when eid
-      (while (not (string= (circlist-current sched-ring) eid))
+         (item (org-select-list items)))
+    (when item
+      (while (not (string= (circlist-current sched-ring) (cdr item)))
         (circlist-rotate sched-ring :next))
       (sched-ring-jump))))
 

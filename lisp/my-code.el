@@ -18,7 +18,7 @@
   (define-key prog-mode-map
     (kbd "C-c M-w") 'my-save-code-remove-indent))
 
-(defvar my-ruler-regexp "^\\s<+ *═+$")
+(defvar my-ruler-regexp "═+$")
 (defun my-next-ruler nil
   (interactive)
   (push-mark)
@@ -30,7 +30,8 @@
   (interactive)
   (push-mark)
   (beginning-of-line 0)
-  (re-search-backward my-ruler-regexp nil :move))
+  (re-search-backward my-ruler-regexp nil :move)
+  (beginning-of-line))
 
 (require 'cpath)
 

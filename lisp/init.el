@@ -25,17 +25,12 @@
   (intern (concat (symbol-name mode) "-map")))
 
 (add-to-list 'load-path (concat user-emacs-directory "lisp"))
-;; org-mode configuration
 (require 'my-org)
-;; programming configuration
 (require 'my-code)
-;; python-configuration
-(require 'my-python)
-;; miscellaneous functions
 (require 'my-macs)
-;; emacs coding
+(require 'my-python)
 (require 'my-elisp)
-;; functions I don't want to share
+(require 'my-js)
 (require 'private)
 
 (custom-set-variables
@@ -138,7 +133,10 @@
 
 (when (get-buffer "*scratch*")
   (kill-buffer "*scratch*")
-  (find-file-noselect "~/scratch/scratch.el"))
+  (find-file-noselect "~/scratch/scratch.el")
+  (find-file-noselect "~/scratch/scratch.py")
+  (find-file-noselect "~/scratch/scratch.js")
+  (find-file-noselect "~/scratch/scratch.org"))
 
 ;; increase default text size
 (require 'face-remap)

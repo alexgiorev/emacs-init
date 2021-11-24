@@ -1104,14 +1104,14 @@ FUNC."
           (kill-buffer buffer))))))
 
 
-;;════════════════════════════════════════════════════════════
+;;════════════════════════════════════════
 ;; TEMP and TEMPDONE
 
 (defun my-org-tempdone-after-state-change nil
   (if (string= org-state "TEMPDONE")
       (unless (string= org-last-state "TEMPDONE")
         (org-entry-put (point) "TEMPDONE_UNDO" org-last-state)
-        (org-hide-entry))
+        (org-flag-subtree t))
     (when (string= org-last-state "TEMPDONE")
       (org-entry-delete nil "TEMPDONE_UNDO")
       (org-entry-delete nil "TEMPDONE_UNDO_DAY"))))
@@ -1160,6 +1160,10 @@ non-nil, undo regardless of date."
         (org-entry-delete nil "TEMPDONE_UNDO_DAY")
         (org-todo old)))))
 
+(defun my-org-tempdone-sched-READ (&optional interval)
+  (interactive "nInterval: ")
+  (org-todo "READ") (my-org-tempdone interval))
+
 (add-hook 'org-after-todo-state-change-hook
           'my-org-tempdone-after-state-change)
 (add-hook 'org-mode-hook
@@ -1202,6 +1206,7 @@ non-nil, undo regardless of date."
   "Binds keys to commands which work on nodes")
 (progn
   (define-key my-org-node-map "t" 'my-org-tempdone-days)
+  (define-key my-org-node-map "r" 'my-org-tempdone-sched-READ)
   (define-key my-org-node-map "d" 'my-org-node-date)
   (define-key my-org-node-map "s" 'my-org-node-add-source)
   (define-key my-org-node-map "b" 'my-org-node-bury)
