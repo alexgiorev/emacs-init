@@ -67,9 +67,9 @@ This could be a class definition or a function definition."
       (match-string-no-properties 1))))
 
 (defun my-python-save-method-path nil
-  "Insert into the kill ring a string of the form
-  \"CLASS_NAME.METHOD_NAME\". When the function at point is not a method in a
-  class, just store the function name."
+  "Insert into the kill ring a string of the form \"CLASS_NAME.METHOD_NAME\".
+When the function at point is not a method in a class, just store the function
+name."
   (interactive)
   (save-excursion
     (let (func-name class-name matched-p)
@@ -122,6 +122,7 @@ return nil."
       (while (and (not (bobp))
                   (progn (beginning-of-line 0)
                          (or (looking-at my-blank-line-re)
+                             (my-python-in-string)
                              (>= (current-indentation) indentation)
                              (progn (setq pos (point)) nil))))))
     (when pos (goto-char pos))))
@@ -134,6 +135,16 @@ return nil."
       (while (re-search-forward my-python-def-re nil t)
         (push (match-string-no-properties 1) result))
       result)))
+
+(defun my-python-in-string (&optional pos)
+  "Return t when POS is inside a string literal"
+  (setq pos (or pos (point)))
+  (save-excursion
+    (goto-char pos)
+    (let ((faces (face-at-point nil t)))      
+      (not (null (or (memq 'font-lock-string-face faces)
+                     (memq 'font-lock-doc-face faces)))))))
+
 ;; ════════════════════════════════════════
 ;; elpy
 (setq elpy-modules nil)
