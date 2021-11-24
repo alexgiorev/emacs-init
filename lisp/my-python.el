@@ -1,7 +1,6 @@
 ;; Python-related configuration
-;; ########################################
 (require 'python)
-;; ########################################
+;; ════════════════════════════════════════
 ;; so that python3 is used rather than python2
 (setq python-shell-interpreter "python3")
 
@@ -17,7 +16,7 @@
 (define-key python-mode-map (kbd "M-}") 'python-nav-forward-block)
 (define-key python-mode-map (kbd "M-h") 'python-mark-defun)
 
-;; ########################################
+;; ════════════════════════════════════════
 (defun my-rename-python-init nil
   (interactive)
   (let* ((dirname (car (last (split-string (buffer-file-name) "/") 2)))
@@ -29,7 +28,7 @@
             (if (string-match "^__init__\\.py" (buffer-name))
                 (my-rename-python-init))))
 
-;; ########################################
+;; ════════════════════════════════════════
 ;; functions and classes
 
 (defconst my-python-identifier-re "[0-9a-zA-Z_]+")
@@ -56,13 +55,16 @@
   (kill-new (my-python-definition-name)))
 
 (defun my-python-definition-name nil
-  "Return the name of the definition at point. This could be a class definition
-or a function definition."
+  "Return the name of the definition at point.
+This could be a class definition or a function definition."
   (save-excursion
-    (beginning-of-defun)
-    (or (looking-at my-python-def-re)
-        (looking-at my-python-class-re))
-    (match-string-no-properties 1)))
+    (if (or (looking-at my-python-def-re)
+            (looking-at my-python-class-re))
+        (match-string-no-properties 1)
+      (beginning-of-defun)
+      (or (looking-at my-python-def-re)
+          (looking-at my-python-class-re))
+      (match-string-no-properties 1))))
 
 (defun my-python-save-method-path nil
   "Insert into the kill ring a string of the form
@@ -91,7 +93,7 @@ or a function definition."
   (define-key my-python-defs-map "m" 'my-python-save-method-path))
 (define-key python-mode-map "\C-cd" my-python-defs-map)
 
-;; ########################################
+;; ════════════════════════════════════════
 ;; search
 
 (defun my-python-isearch-def nil
@@ -107,7 +109,7 @@ or a function definition."
 
 (define-key python-mode-map (kbd "M-s d") 'my-python-isearch-def)
 
-;; ########################################
+;; ════════════════════════════════════════
 ;; misc
 
 (defun my-python-goto-parent-line nil
@@ -132,11 +134,11 @@ return nil."
       (while (re-search-forward my-python-def-re nil t)
         (push (match-string-no-properties 1) result))
       result)))
-;; ########################################
+;; ════════════════════════════════════════
 ;; elpy
 (setq elpy-modules nil)
 (setq elpy-rpc-python-command "python3")
 (elpy-enable)
 
-;; ########################################
+;; ════════════════════════════════════════
 (provide 'my-python)
