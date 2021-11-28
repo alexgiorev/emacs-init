@@ -542,6 +542,52 @@ node the current one"
   (buffer-forest-remove-buffer-nodes (current-buffer)))
 (add-hook 'kill-buffer-hook 'buffer-forest-before-kill-buffer)
 
+;;════════════════════════════════════════
+;; buffer-forest save and restore
+
+(defun buffer-forest-save-current nil
+  "Put in the kill ring a serialization of the current buffer-forest tree
+This is the tree whose root is the foremost ancestor of the current node."
+  (interactive)
+  (let ((sexp (buffer-forest--to-sexp (forest-current-root buffer-forest))))
+    (with-temp-buffer
+      (pp sexp (current-buffer))
+      (kill-new (buffer-substring-no-properties (point-min) (point-max))))))
+
+(defun buffer-forest--to-sexp (node)
+  (let ((children-sexps (mapcar 'buffer-forest--sexp-node
+                                (plist-get node :children))))
+    (append (list (buffer-file-name (plist-get node :buffer)))
+            children-sexps)))
+
+(defun buffer-forest-restore nil
+  "Assumes that point is after the sexp"
+  (buffer-forest--from-sexp (elisp--preceding-sexp)))
+
+(defun buffer-forest--from-sexp (sexp)
+  (let ((initial (forest-current buffer-forest))
+        (root (forest-new-root buffer-forest)))
+    (condition-case err
+        (progn
+          (buffer-forest--from-sexp-walk sexp)
+          (forest-set-current buffer-forest root))
+      (error (forest-set-current buffer-forest root)
+             (forest-prune buffer-forest)
+             (forest-set-current initial)
+             (error (cdr err))))))
+
+(defun buffer-forest--from-sexp-walk (node)
+  "NODE is a SEXP node. Assumes that the `buffer-forest's current node is the
+one which corresponds to NODE"
+  (let ((current (forest-current buffer-forest)))
+    (plist-put current :buffer (find-file-noselect (car node)))
+    (dolist (child (cdr node))
+      (forest-new-child buffer-forest)
+      (buffer-forest--from-sexp-walk child)
+      (forest-set-current buffer-forest current))))
+;;════════════════════════════════════════
+;; buffer map
+
 (defvar my-buffer-map (make-sparse-keymap))
 (progn
   (define-key my-buffer-map "\C-f" 'buffer-forest-next)
