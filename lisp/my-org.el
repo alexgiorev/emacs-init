@@ -212,7 +212,7 @@ add a backlink as a BACKLINK property."
   (outline-hide-subtree))
 
 (defvar my-wrap-entry-title
-  "ENTRY_TEXT"
+  "══════════════════════════════"
   "The title of the heading which is to wrap the entry of the current heading")
 
 (with-eval-after-load 'org
@@ -322,7 +322,7 @@ entries from the file."
 ;; so that level 2 entries are also considered when refiling
 (setq org-refile-targets
       '((nil . (:maxlevel . 2))
-        (nil . (:tag . "refileTarget"))
+        (nil . (:tag . "refile_target"))
         ("~/notes/org" . (:level . 1))
         ("~/notes/leng/leng" . (:level . 1))
         ("~/notes/leng/heaps" . (:level . 1))

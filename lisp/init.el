@@ -585,6 +585,7 @@ one which corresponds to NODE"
       (forest-new-child buffer-forest)
       (buffer-forest--from-sexp-walk child)
       (forest-set-current buffer-forest current))))
+
 ;;════════════════════════════════════════
 ;; buffer map
 
