@@ -22,17 +22,17 @@
 
 ;; * utils
 
-(defsubst my-org-vars-read-var nil
-  (completing-read "Identifier: " (mapcar 'car my-org-vars-alist)))
-
 (defsubst my-org-vars-get (name)
   (cdr (assoc name my-org-vars-alist)))
 
 ;; * commands
 
-(defun my-org-vars-set (name)
+(defun my-org-vars-set (&optional name)
   "Bind NAME to the node at point"
-  (interactive (list (my-org-vars-read-var)))
+  (interactive)
+  (setq name (or name (completing-read "Identifier: " (mapcar 'car my-org-vars-alist)
+                       nil nil
+                       (org-no-properties (org-get-heading t t t t)))))
   (when (or (not (my-org-vars-get name))
              (string= (read-answer (format "\"%s\" is already used. Override? " name)
                                    '(("yes") ("no")))
@@ -50,7 +50,7 @@
   "Jumps to the node bound to NAME. Signals `void-variable' error when NAME is
 not bound to any node."
   (interactive)
-  (let* ((name (my-org-vars-read-var))
+  (let* ((name (completing-read "Identifier: " (mapcar 'car my-org-vars-alist)))
          (id (my-org-vars-get name))
          location buffer)
     (unless id
