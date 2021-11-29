@@ -430,7 +430,8 @@ function with no arguments called with point at the beginning of the heading"
         (unless (setq custom-id (org-entry-get nil "CUSTOM_ID"))
           (org-entry-put
            nil "CUSTOM_ID" (setq custom-id (my-org-custom-id-from-title))))
-        (setq link (concat "#" custom-id) desc (org-get-heading t t t t))
+        (setq link (concat "file:" (buffer-file-name) "::#" custom-id)
+              desc (org-get-heading t t t t))
         (if components (list link desc) (format "[[%s][%s]]" link desc)))
     (org-store-link 1)))
 
@@ -880,6 +881,12 @@ available."
 
 (define-key org-mode-map (kbd "M-s e") 'my-org-isearch-headlines)
 
+;; without this, I get a "Running less..." error when
+;; trying to open file links within Emacs
+(defun my-org-open-at-point nil
+  (interactive)
+  (org-open-at-point '(4)))
+(define-key org-mode-map (kbd "C-c C-o") 'my-org-open-at-point)
 ;;════════════════════
 ;; misc-org-select
 
@@ -1116,22 +1123,30 @@ FUNC."
       (org-entry-delete nil "TEMPDONE_UNDO")
       (org-entry-delete nil "TEMPDONE_UNDO_DAY"))))
 
-(defun my-org-tempdone (&optional days)
+(defun my-org-tempdone (&optional interval)
   (let ((state (org-get-todo-state))
         (org-after-todo-state-change-hook
          (remq 'my-org-tempdone-after-state-change
                org-after-todo-state-change-hook))
-        (day (and days (+ (my-time-today) days))))
+        (day (and interval (+ (my-time-today) interval))))
     (unless (string= state "TEMPDONE")
       (org-todo "TEMPDONE")
       (org-entry-put nil "TEMPDONE_UNDO" state)
+      (org-entry-put nil "TEMPDONE_INTERVAL" (number-to-string interval))
       (when day
         (org-entry-put nil "TEMPDONE_UNDO_DAY" (number-to-string day)))      
       (org-hide-entry))))
 
-(defun my-org-tempdone-days (days)
-  (interactive "nDays: ")
-  (my-org-tempdone days))
+(defun my-org-tempdone-interval nil
+  (interactive)
+  (let* (interval prompt interval)
+    (setq interval (org-entry-get nil "TEMPDONE_INTERVAL"))
+    (if interval
+        (setq interval (string-to-number interval)
+              prompt (format "Interval (last was %s): " interval))
+      (setq prompt "Interval: "))
+    (setq interval (read-number prompt))
+    (my-org-tempdone interval)))
 
 (defun my-org-tempdone-undo-buffer nil
   "Go through the accessible portion of the current buffer and undo the TEMDONE entries"
@@ -1205,7 +1220,7 @@ non-nil, undo regardless of date."
 (defvar my-org-node-map (make-sparse-keymap)
   "Binds keys to commands which work on nodes")
 (progn
-  (define-key my-org-node-map "t" 'my-org-tempdone-days)
+  (define-key my-org-node-map "t" 'my-org-tempdone-interval)
   (define-key my-org-node-map "r" 'my-org-tempdone-sched-READ)
   (define-key my-org-node-map "d" 'my-org-node-date)
   (define-key my-org-node-map "s" 'my-org-node-add-source)
