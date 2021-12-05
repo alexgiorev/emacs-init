@@ -1137,26 +1137,30 @@ FUNC."
         (org-entry-put nil "TEMPDONE_UNDO_DAY" (number-to-string day)))      
       (org-hide-entry))))
 
-(defun my-org-tempdone-interval nil
-  (interactive)
+(defun my-org-tempdone-interval (&optional arg)
+  (interactive "P")
   (let* (interval prompt interval)
-    (setq interval (org-entry-get nil "TEMPDONE_INTERVAL"))
-    (if interval
-        (setq interval (string-to-number interval)
-              prompt (format "Interval (last was %s): " interval))
-      (setq prompt "Interval: "))
-    (setq interval (read-number prompt))
-    (my-org-tempdone interval)))
+    (if arg
+        (progn (setq interval (read-number "Interval: "))
+               (org-map-tree
+                (lambda nil
+                  (when (org-entry-is-todo-p) (my-org-tempdone interval)))))
+      (setq interval (org-entry-get nil "TEMPDONE_INTERVAL"))
+      (if interval
+          (setq interval (string-to-number interval)
+                prompt (format "Interval (last was %s): " interval))
+        (setq prompt "Interval: "))
+      (setq interval (read-number prompt))
+      (my-org-tempdone interval))))
 
 (defun my-org-tempdone-undo-buffer nil
   "Go through the accessible portion of the current buffer and undo the TEMDONE entries"
   (interactive)
   (my-org-tempdone-undo-region (point-min) (point-max)))
 
-(defun my-org-tempdone-undo-region (start end)
+(defun my-org-tempdone-undo-region (start end &optional force)
   (interactive "r")
-  (org-map-region
-   'my-org-tempdone-undo start end)
+  (org-map-region (apply-partially 'my-org-tempdone-undo force) start end)
   (deactivate-mark))
 
 (defun my-org-tempdone-undo (&optional force)
