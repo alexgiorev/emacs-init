@@ -98,7 +98,7 @@ If INTERVAL is omitted, ask the user."
     (setq path (concat sched--queues-dir name ".queue"))
     (make-empty-file path)
     (setq queue (sched-queue-new path))
-    (push (cons name queue) sched--queues)
+    (push queue sched--queues)
     (message "Queue %S created successfully" name)
     queue))
 
