@@ -430,7 +430,7 @@ function with no arguments called with point at the beginning of the heading"
         (unless (setq custom-id (org-entry-get nil "CUSTOM_ID"))
           (org-entry-put
            nil "CUSTOM_ID" (setq custom-id (my-org-custom-id-from-title))))
-        (setq link (concat "file:" (buffer-file-name) "::#" custom-id)
+        (setq link (concat "file:" (buffer-file-name (buffer-base-buffer)) "::#" custom-id)
               desc (org-get-heading t t t t))
         (if components (list link desc) (format "[[%s][%s]]" link desc)))
     (org-store-link 1)))
@@ -505,9 +505,9 @@ function with no arguments called with point at the beginning of the heading"
   (let (start end)
     (if (use-region-p)
         (progn (setq start (region-beginning) end (region-end))
-          (goto-char start) (insert "~")
-          (goto-char (1+ end)) (insert "~"))
-      (insert "~~") (backward-char))))
+          (goto-char start) (insert "=")
+          (goto-char (1+ end)) (insert "="))
+      (insert "==") (backward-char))))
 
 (with-eval-after-load 'org
   (define-key org-mode-map (kbd "C-M-c") 'my-org-codify-region))
@@ -846,23 +846,20 @@ beginning of the heading when it has no title."
 THINGS is a list of symbols which specifies what to get. The things are returned
 in the order in which they are specified. Look at the COND to see the choices
 available."
-  (let ((location (org-id-find eid)))
-    (when location
-      (with-current-buffer (get-file-buffer (car location))
-        (org-with-wide-buffer
-         (goto-char (cdr location))
-         (org-back-to-heading t)
-         (mapcar
-          (lambda (thing)
-            (cond ((eq thing 'position) (point))
-                  ((eq thing 'tree) (my-org-tree-text :no-properties))
-                  ((eq thing 'title) (org-no-properties (org-get-heading t t t t)))
-                  ((eq thing 'buffer) (current-buffer))
-                  ((eq thing 'file) (car location))
-                  ((eq thing 'marker) (point-marker))
-                  ((eq thing 'heading) (org-get-heading))
-                  (t (error "Invalid THING: %S" thing))))
-          things))))))
+  (let ((marker (org-id-find eid :marker)))
+    (when marker
+      (org-with-point-at marker
+        (mapcar
+         (lambda (thing)
+           (cond ((eq thing 'position) (point))
+                 ((eq thing 'tree) (my-org-tree-text :no-properties))
+                 ((eq thing 'title) (org-no-properties (org-get-heading t t t t)))
+                 ((eq thing 'buffer) (current-buffer))
+                 ((eq thing 'file) (buffer-file-name (buffer-base-buffer)))
+                 ((eq thing 'marker) marker)
+                 ((eq thing 'heading) (org-get-heading))
+                 (t (error "Invalid THING: %S" thing))))
+         things)))))
 
 (define-key global-map "\C-ca" 'org-agenda)
 (setq org-log-done nil)
