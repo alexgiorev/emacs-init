@@ -133,6 +133,17 @@ adds the node as a root. The new node becomes the current one and is returned"
   (let* ((parent (or (forest-current forest) forest)))
     (forest-set-current forest (apply 'forest--new-child parent properties))))
 
+(defun forest-new-parent (forest &rest properties)
+  (let* ((node (copy-sequence properties))
+         (current (forest-current forest))
+         (current-parent (plist-get current :parent)))
+    (plist-put current :parent node)
+    (plist-put node :children (list current))
+    (plist-put current-parent :children
+      (--map-when (eq it current) node (plist-get current-parent :children)))
+    (plist-put node :parent current-parent)
+    (forest-set-current forest node)))
+
 (defun forest-new-sibling (forest direction &rest properties)
   "Add a new sibling to the current node and make it current. When DIRECTION is
 :next, the sibling is ordered after the current node, and when DIRECTION is

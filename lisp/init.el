@@ -252,12 +252,8 @@
   "Saves the title of the current node into the kill ring."
   (interactive)
   (kill-new Info-current-node))
-
-(add-hook 'Info-mode-hook
-          (lambda ()
-            (define-key Info-mode-map
-              (kbd "C-c t")
-              'my-Info-save-heading)))
+(with-eval-after-load 'info
+  (define-key Info-mode-map (kbd "C-c C-t") 'my-Info-save-heading))
 
 ;;════════════════════════════════════════
 
@@ -466,13 +462,17 @@ kill ring the name of the defun at point."
 (defsubst buffer-forest--switch nil
   (switch-to-buffer (plist-get (forest-current buffer-forest) :buffer)))
 
-(defun buffer-forest-new-node (&optional root-p)
+(defun buffer-forest-new-node (&optional arg)
   "Create a node associated with the current buffer as a child of the current
 node and make it the current node. When no node is selected, or when called with
 a prefix argument, make the current buffer a root node."
   (interactive "P")
-  (if root-p (forest-new-root buffer-forest :buffer (current-buffer))
-    (forest-new-child buffer-forest :buffer (current-buffer)))
+  (cond ((equal arg '(4))
+         (forest-new-root buffer-forest :buffer (current-buffer)))
+        ((equal arg '(16))
+         (forest-new-parent buffer-forest :buffer (current-buffer)))
+        (t
+         (forest-new-child buffer-forest :buffer (current-buffer))))
   (message "New node: %s" (buffer-name (current-buffer))))
 
 (defun buffer-forest-up nil
@@ -562,6 +562,7 @@ This is the tree whose root is the foremost ancestor of the current node."
 
 (defun buffer-forest-restore nil
   "Assumes that point is after the sexp"
+  (interactive)
   (buffer-forest--from-sexp (elisp--preceding-sexp)))
 
 (defun buffer-forest--from-sexp (sexp)
