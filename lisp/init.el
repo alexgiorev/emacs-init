@@ -555,7 +555,7 @@ This is the tree whose root is the foremost ancestor of the current node."
       (kill-new (buffer-substring-no-properties (point-min) (point-max))))))
 
 (defun buffer-forest--to-sexp (node)
-  (let ((children-sexps (mapcar 'buffer-forest--sexp-node
+  (let ((children-sexps (mapcar 'buffer-forest--to-sexp
                                 (plist-get node :children))))
     (append (list (buffer-file-name (plist-get node :buffer)))
             children-sexps)))
