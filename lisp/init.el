@@ -545,7 +545,27 @@ node the current one"
 ;;════════════════════════════════════════
 ;; buffer-forest save and restore
 
-(defun buffer-forest-save-current nil
+(defvar buffer-forest-persist-file "~/leng/last-buffer-forest.el")
+(defun buffer-forest-persist-forest nil
+  (interactive)
+  (with-temp-file buffer-forest-persist-file
+    (let ((sexps (mapcar 'buffer-forest--to-sexp
+                         (plist-get buffer-forest :children))))       
+      (pp sexps (current-buffer)))))
+(add-hook 'kill-emacs-hook 'buffer-forest-persist-forest)
+
+(defun buffer-forest-load-last-forest nil
+  (interactive)
+  (setq buffer-forest (forest))
+  (let (trees)
+    (with-temp-buffer
+      (insert-file-contents buffer-forest-persist-file)
+      (beginning-of-buffer)
+      (setq trees (read (current-buffer))))
+    (dolist (tree trees)
+      (buffer-forest--from-sexp tree))))
+
+(defun buffer-forest-save-tree nil
   "Put in the kill ring a serialization of the current buffer-forest tree
 This is the tree whose root is the foremost ancestor of the current node."
   (interactive)
@@ -555,10 +575,11 @@ This is the tree whose root is the foremost ancestor of the current node."
       (kill-new (buffer-substring-no-properties (point-min) (point-max))))))
 
 (defun buffer-forest--to-sexp (node)
-  (let ((children-sexps (mapcar 'buffer-forest--to-sexp
-                                (plist-get node :children))))
-    (append (list (buffer-file-name (plist-get node :buffer)))
-            children-sexps)))
+  (let ((file (or (buffer-file-name (plist-get node :buffer))
+                  (buffer-file-name
+                   (buffer-base-buffer (plist-get node :buffer))))))
+    (when file
+      (cons file (-keep 'buffer-forest--to-sexp (plist-get node :children))))))
 
 (defun buffer-forest-restore nil
   "Assumes that point is after the sexp"
