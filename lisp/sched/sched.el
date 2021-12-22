@@ -1,24 +1,25 @@
 (require 'my-macs)
+(require 'dash)
 
 ;;════════════════════════════════════════
 ;; persistent-storage
 
-(defvar sched--queues-dir (concat user-emacs-directory "lisp/sched/queues/"))
-(defvar sched--queues :unloaded
+(defvar sched-queues-dir (concat user-emacs-directory "lisp/sched/queues/"))
+(defvar sched-queues :unloaded
   "An alist of (name,queue) pairs or the symbol `:unloaded'.
-There is one queue per file in `sched--queues-dir'")
-(defvar sched--current-queue nil)
+There is one queue per file in `sched-queues-dir'")
+(defvar sched-current-queue nil)
 
-(defun sched--load-maybe nil
+(defun sched-load-maybe nil
   "Load queues if they aren't loaded yet"
-  (when (eq sched--queues :unloaded)
-    (setq sched--queues
+  (when (eq sched-queues :unloaded)
+    (setq sched-queues
           (mapcar 'sched-queue-new
-                  (directory-files sched--queues-dir :full "\\.queue$")))
-    (setq sched--current-queue (car sched--queues))))
+                  (directory-files sched-queues-dir :full "\\.queue$")))
+    (setq sched-current-queue (car sched-queues))))
 
-(defun sched--reload nil
-  (setq sched--queues :unloaded) (sched--load-maybe))
+(defun sched-reload nil
+  (setq sched-queues :unloaded) (sched-load-maybe))
 
 ;;════════════════════════════════════════
 ;; queues
@@ -28,35 +29,37 @@ There is one queue per file in `sched--queues-dir'")
         (org-pplist-make path)))
 (defsubst sched-queue-name (queue)
   (car queue))
-(defsubst sched-queue--pplist (queue)
+(defsubst sched-queue-pplist (queue)
   (cdr queue))
 
 (defun sched-queue-create-sched (eid queue)
   "Create a new scheduling record for EID, insert it into QUEUE and return it"
-  (org-pplist-add (sched-queue--pplist queue) eid (list :due nil :interval nil)))
+  (org-pplist-add (sched-queue-pplist queue) eid (list :due nil :interval nil)))
 
 (defun sched-queue-due-today (queue)
   "Return a list of the records which are due today"
   (let* ((today (my-time-today)))
     (seq-filter
      (lambda (sched) (<= (plist-get sched :due) today))
-     (plist-get (sched-queue--pplist queue) :list))))
+     (plist-get (sched-queue-pplist queue) :list))))
 
 (defun sched-queue-read nil
   "Asks the user for a queue name and returns the object or nil if no queue by that name.
 Assumes that the queues are loaded"
-  (let* ((names (mapcar 'sched-queue-name sched--queues))
+  (let* ((names (mapcar 'sched-queue-name sched-queues))
          (user-input (completing-read "Queue: " names)))
     (unless (member user-input names)
       (user-error "No queue with name %S" name))
     (sched-get-queue user-input)))
 
 (defun sched-queue-get-sched (queue eid)
-  (org-pplist-get (sched-queue--pplist queue) eid))
+  (org-pplist-get (sched-queue-pplist queue) eid))
+(defsubst sched-queue-remove-sched (queue eid &optional flush)
+  (org-pplist-remove (sched-queue-pplist queue) eid flush))
 
 (defun sched-get-queue (name)
   (seq-find (lambda (queue) (string= (sched-queue-name queue) name))
-            sched--queues))
+            sched-queues))
 
 (defvar sched-did-schedule-hook nil
   "A hook which is ran after an entry is scheduled.
@@ -78,27 +81,27 @@ If INTERVAL is omitted, ask the user."
            (day (+ (my-time-today) interval)))
       (plist-put sched :due day)
       (plist-put sched :interval interval))
-    (org-pplist-updated-plist (sched-queue--pplist queue) sched :flush)
+    (org-pplist-updated-plist (sched-queue-pplist queue) sched :flush)
     (run-hook-with-args 'sched-did-schedule-hook eid)))
 
-(defun sched--check nil
-  (sched--load-maybe)
-  (unless sched--queues (user-error "No queues")))
+(defun sched-check nil
+  (sched-load-maybe)
+  (unless sched-queues (user-error "No queues")))
 
 ;;════════════════════════════════════════
 ;; * commands
 
 (defun sched-create-queue nil
   (interactive)
-  (sched--check)
+  (sched-check)
   (let ((name (read-string "Queue name: "))
         path queue)
     (when (sched-get-queue name)
       (user-error "A queue with name %S already exists" name))
-    (setq path (concat sched--queues-dir name ".queue"))
+    (setq path (concat sched-queues-dir name ".queue"))
     (make-empty-file path)
     (setq queue (sched-queue-new path))
-    (push queue sched--queues)
+    (push queue sched-queues)
     (message "Queue %S created successfully" name)
     queue))
 
@@ -106,31 +109,33 @@ If INTERVAL is omitted, ask the user."
   "Schedules the node node at point on the current queue. Asks the user for the interval.
 When called with a prefix argument, ask the user for the queue as well"
   (interactive "P")
-  (sched--check)
-  (let* ((eid (org-id-get-create))
-         (queue (if arg (sched-queue-read) sched--current-queue)))
-    (sched-queue-schedule queue eid)))
+  (sched-check)
+  (condition-case nil
+      (let* ((eid (org-id-get-create))
+             (queue (if arg (sched-queue-read) sched-current-queue)))
+        (sched-queue-schedule queue eid))
+    ((error quit) (my-org-id-remove))))
 
 (defun sched-remove (arg)
   "Remove the node at point from the current queue.
 When called with a prefix argument, ask the user for the queue."
   (interactive "P")
-  (let ((queue (if arg (sched-queue-read) sched--current-queue))
+  (let ((queue (if arg (sched-queue-read) sched-current-queue))
         (eid (org-entry-get nil "ID")))
     (if (not eid)
         (message "Node not in queue")
-      (if (org-pplist-remove (cdr queue) eid)
+      (if (sched-queue-remove-sched queue eid :flush)
           (message "Removed node")
         (message "Node not in queue")))))
 
 (defun sched-select-queue nil
   (interactive)
-  (sched--check)
+  (sched-check)
   (let* ((items (mapcar (lambda (queue) (cons (sched-queue-name queue) queue))
-                        sched--queues))
-         (default-item (rassq sched--current-queue items))
-         (item (org-select-list items "Select queue" default-item)))
-    (when item (setq sched--current-queue (cdr item)))))
+                        sched-queues))
+         (default-item (rassq sched-current-queue items))
+         (item (org-select-list items "Select a queue" default-item)))
+    (when item (setq sched-current-queue (cdr item)))))
 
 ;; ════════════════════
 ;; ** ring commands
@@ -140,14 +145,14 @@ When called with a prefix argument, ask the user for the queue."
 Typically holds the ids of due entries so that the user can read what is due for
 today.")
 
-(defun sched-ring--check nil
+(defun sched-ring-check nil
   (when (circlist-empty-p sched-ring)
     (user-error "Ring is empty")))
 
 (defun sched-ring-reset (arg)
   (interactive "P")
-  (sched--check)
-  (let* ((queue (if arg (sched-queue-read) sched--current-queue))
+  (sched-check)
+  (let* ((queue (if arg (sched-queue-read) sched-current-queue))
          (ids (mapcar (lambda (sched) (plist-get sched :id))
                       (sched-queue-due-today queue))))
     (setq sched-ring (circlist-make ids))
@@ -156,13 +161,12 @@ today.")
 
 (defun sched-ring-select nil
   (interactive)
-  (sched-ring--check)
+  (sched-ring-check)
   (let* ((eids (circlist-to-list sched-ring))
-         (headings (seq-filter 'identity
-                               (mapcar (lambda (eid)
-                                         (car (my-org-id-get eid '(heading))))
-                                       eids)))
-         (items (my-zip-alist headings eids))
+         (headings 
+          (-keep (lambda (eid) (car (my-org-id-get eid '(heading))))
+                 eids))
+         (items (-zip headings eids))
          (item (org-select-list items)))
     (when item
       (while (not (string= (circlist-current sched-ring) (cdr item)))
@@ -171,7 +175,7 @@ today.")
 
 (defun sched-ring-jump nil
   (interactive)
-  (sched-ring--check)
+  (sched-ring-check)
   (let (did-open)
     (while (and (not (circlist-empty-p sched-ring)) (not did-open))
       (ignore-errors
@@ -180,23 +184,23 @@ today.")
       (unless did-open
         (circlist-pop sched-ring)))
     (unless did-open
-      (sched-ring--check))))
+      (sched-ring-check))))
 
 (defun sched-ring-next nil
   (interactive)
-  (sched-ring--check)
+  (sched-ring-check)
   (circlist-rotate sched-ring :next)
   (sched-ring-jump))
 
 (defun sched-ring-prev nil
   (interactive)
-  (sched-ring--check)
+  (sched-ring-check)
   (circlist-rotate sched-ring :prev)
   (sched-ring-jump))
 
 (defun sched-ring-pop nil
   (interactive)
-  (sched-ring--check)
+  (sched-ring-check)
   (let* ((eid (circlist-pop sched-ring))
          (title (my-org-id-get eid '(title))))
     (message "Popped %S" title)))
