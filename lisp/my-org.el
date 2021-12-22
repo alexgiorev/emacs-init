@@ -861,6 +861,12 @@ available."
                  (t (error "Invalid THING: %S" thing))))
          things)))))
 
+(defun my-org-id-remove nil
+  (let ((id (org-entry-get nil "ID")))
+    (when id
+      (org-entry-delete nil "ID")
+      (remhash id org-id-locations))))
+
 (define-key global-map "\C-ca" 'org-agenda)
 (setq org-log-done nil)
 
