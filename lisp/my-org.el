@@ -195,7 +195,8 @@ add a backlink as a BACKLINK property."
   (define-key my-org-yank-map "p" 'my-yank-from-pdf)
   (define-key my-org-yank-map "e" 'my-org-yank-unfill-elisp-comment)
   (define-key my-org-yank-map "r" 'my-org-yank-random-child)
-  (define-key my-org-yank-map "z" 'my-org-yank-anki-cloze))
+  (define-key my-org-yank-map "z" 'my-org-yank-anki-cloze)
+  (define-key my-org-yank-map "i" 'my-org-yank-image))
 (define-key org-mode-map "\C-cy" my-org-yank-map)
 (global-set-key "\C-\M-y" 'my-yank-unfill)
 
@@ -890,6 +891,36 @@ available."
   (interactive)
   (org-open-at-point '(4)))
 (define-key org-mode-map (kbd "C-c C-o") 'my-org-open-at-point)
+
+;;════════════════════════════════════════
+;; misc_yanking_images
+
+(defvar my-org-images-dir "~/leng/images/")
+
+(defun my-org-yank-image--filename nil
+  (let ((basename
+         (concat "paste-" (number-to-string (time-convert nil 'integer))
+                 ".png")))
+    (concat my-org-images-dir basename)))
+
+(defun my-org-yank-image--shell-command (filename)
+  (format "xclip -selection clipboard -t image/png -o > %s"
+          filename))
+
+(defun my-org-yank-image nil
+  (interactive)
+  (when (not (bolp)) (insert "\n"))
+  (insert "\n") (backward-char)
+  (let* ((file (my-org-yank-image--filename))
+         (command (my-org-yank-image--shell-command file))
+         (link (format "[[%s]]" file))
+         start end)
+    (shell-command command)
+    (setq start (point)) (insert link) (setq end (point))
+    (org-display-inline-images nil nil start end)))
+
+(setq org-startup-with-inline-images t)
+
 ;;════════════════════
 ;; misc-org-select
 
