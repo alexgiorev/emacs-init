@@ -630,3 +630,7 @@ one which corresponds to NODE"
   (global-set-key [right] 'buffer-forest-next)
   (global-set-key [left] 'buffer-forest-prev)
   (global-set-key "\C-x\C-b" my-buffer-map))
+
+;;════════════════════════════════════════
+;; calc
+(setq calc-display-trail nil)
