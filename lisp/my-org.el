@@ -318,7 +318,7 @@ entries from the file."
         (type "QUESTION(q)" "|" "ANSWERED" "ANSWER(a)")
         (type "PROBLEM(p)" "|" "SOLVED" "SOLUTION(o)" "PROBLEM_DECL")
         (type "IDEA(i)" "|" "IDEA_DECL")
-        (type "EXPLORE(x)" "EXPERIMENT" "ACTION" "HOOK" "LATER" "READ(r)" "|")))
+        (type "EXPLORE(x)" "CONTINUE" "EXPERIMENT" "ACTION" "HOOK" "LATER" "READ(r)" "|")))
 
 ;; so that level 2 entries are also considered when refiling
 (setq org-refile-targets
