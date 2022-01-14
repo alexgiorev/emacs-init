@@ -188,6 +188,19 @@ add a backlink as a BACKLINK property."
       (setq text (buffer-string)))
     (insert text)))
 
+(defun my-org-yank-_ nil
+  (interactive)
+  (let (string)
+    (with-temp-buffer
+      (yank)
+      (downcase-region (point-min) (point-max))
+      (beginning-of-buffer)
+      (while (re-search-forward "\\s-+" nil t)
+        (replace-match "_"))
+      (setq string (buffer-string)))
+    (push-mark)
+    (insert string)))
+
 (defvar my-org-yank-map (make-sparse-keymap))
 (progn
   (define-key my-org-yank-map "l" 'my-org-yank-list)
@@ -790,27 +803,27 @@ Point must be on a CLONE entry for this to work."
             clone-text (my-org-tree-text :no-properties)
             clone-visibility (my-org-tree-get-visibility))
       (with-current-buffer (get-file-buffer (car orig-location))
-        (org-with-wide-buffer
-         (goto-char (cdr orig-location)) (org-back-to-heading t)
-         (setq orig-level (funcall outline-level))
-         (narrow-to-region
-          (point) (my-org-tree-end-pos t t))
-         (delete-region (point-min) (point-max))
-         (save-excursion (insert clone-text))
-         (my-org-tree-set-visibility clone-visibility)
-         (my-org-tree-set-level orig-level)
-         ;; process the root
-         (org-entry-delete nil "ORIG_ID") (org-entry-put nil "ID" orig-id)
-         (org-entry-delete nil "CLONE")
-         (my-org-tree-filter
-          (lambda nil
-            (let (orig-id)
-              ;; Clones will be deleted because the `unless' will return nil
-              (unless (org-entry-get nil "CLONE")
-                (when (setq orig-id (org-entry-get nil "ORIG_ID"))
-                  (org-entry-delete nil "ORIG_ID")
-                  (org-entry-put nil "ID" orig-id))
-                :dont-delete)))))))))
+        (org-with-point-at (cdr orig-location)
+          (org-back-to-heading t)
+          (setq orig-level (funcall outline-level))
+          (narrow-to-region
+           (point) (my-org-tree-end-pos t t))
+          (delete-region (point-min) (point-max))
+          (save-excursion (insert clone-text))
+          (my-org-tree-set-visibility clone-visibility)
+          (my-org-tree-set-level orig-level)
+          ;; process the root
+          (org-entry-delete nil "ORIG_ID") (org-entry-put nil "ID" orig-id)
+          (org-entry-delete nil "CLONE")
+          (my-org-tree-filter
+           (lambda nil
+             (let (orig-id)
+               ;; Clones will be deleted because the `unless' will return nil
+               (unless (org-entry-get nil "CLONE")
+                 (when (setq orig-id (org-entry-get nil "ORIG_ID"))
+                   (org-entry-delete nil "ORIG_ID")
+                   (org-entry-put nil "ID" orig-id))
+                 :dont-delete)))))))))
 
 ;;════════════════════════════════════════════════════════════
 ;; * misc
@@ -891,6 +904,38 @@ available."
   (interactive)
   (org-open-at-point '(4)))
 (define-key org-mode-map (kbd "C-c C-o") 'my-org-open-at-point)
+
+(defun my-org-id-get-ids (files)
+  "Return a list of all IDs inside links in FILES"
+  (let ((ids (make-hash-table :test 'equal)))
+    (my-org-run-in-files
+     (lambda nil
+       (org-with-wide-buffer
+        (beginning-of-buffer)
+        (while (re-search-forward my-org-id-link-re nil t)
+          (puthash (or (match-string-no-properties 1)
+                       (match-string-no-properties 2))
+                   t ids)))
+       files)
+     (hash-table-keys ids))))
+
+(defun my-org-run-in-files (func files &optional save)
+  "Run FUNC in each file in FILES. Visit the files with org-mode as the
+major-mode. If optional argument SAVE is non-nil, save the files after running
+FUNC."
+  (let (buffer was-visited)
+    (dolist (file files)
+      (unless (file-directory-p file)
+        (setq was-visited nil)
+        (unless (setq was-visited (setq buffer (get-file-buffer file)))
+          (setq buffer (find-file-noselect file)))
+        (when (not (eq major-mode 'org-mode))
+          (org-mode))
+        (with-current-buffer buffer
+          (save-excursion
+           (funcall func) (save-buffer)))
+        (unless was-visited
+          (kill-buffer buffer))))))
 
 ;;════════════════════════════════════════
 ;; misc_yanking_images
@@ -1112,39 +1157,6 @@ found under the `invisible' property, or nil when the region is visible there."
                            (min end (overlay-end overlay))
                            nil spec))))))
 
-(defun my-org-id-get-ids (files)
-  "Return a list of all IDs inside links in FILES"
-  (let ((ids (make-hash-table :test 'equal)))
-    (my-org-run-in-files
-     (lambda nil
-       (org-with-wide-buffer
-        (beginning-of-buffer)
-        (while (re-search-forward my-org-id-link-re nil t)
-          (puthash (or (match-string-no-properties 1)
-                       (match-string-no-properties 2))
-                   t ids)))
-       files)
-     (hash-table-keys ids))))
-
-(defun my-org-run-in-files (func files &optional save)
-  "Run FUNC in each file in FILES. Visit the files with org-mode as the
-major-mode. If optional argument SAVE is non-nil, save the files after running
-FUNC."
-  (let (buffer was-visited)
-    (dolist (file files)
-      (unless (file-directory-p file)
-        (setq was-visited nil)
-        (unless (setq was-visited (setq buffer (get-file-buffer file)))
-          (setq buffer (find-file-noselect file)))
-        (when (not (eq major-mode 'org-mode))
-          (org-mode))
-        (with-current-buffer buffer
-          (save-excursion
-           (funcall func) (save-buffer)))
-        (unless was-visited
-          (kill-buffer buffer))))))
-
-
 ;;════════════════════════════════════════
 ;; TEMP and TEMPDONE
 
@@ -1328,10 +1340,9 @@ return the value of its connection property"
 
 (defvar org-dyn--next-connection 0)
 (defun org-dyn--connection-get-create nil
-  (let (result)
-    (or (org-dyn--get-connection)
-        (prog1 org-dyn--next-connection
-          (setq org-dyn--next-connection (1+ org-dyn--next-connection))))))
+  (or (org-dyn--get-connection)
+      (prog1 org-dyn--next-connection
+        (setq org-dyn--next-connection (1+ org-dyn--next-connection)))))
 
 (defun org-dyn--find (connection)
   (beginning-of-buffer)
@@ -1441,6 +1452,16 @@ the region in the current dynamic buffer"
   (define-key org-dyn-map "\C-e" 'org-dyn-from-expr)
   (define-key org-dyn-map "\C-r" 'org-dyn-remove-AB))
 (define-key org-mode-map (kbd "C-c C-d") org-dyn-map)
+
+(defun org-dyn-cleanup nil
+  "A hook for `kill-buffer-hook'. Removes the connections from the original buffer"
+  (when (buffer-live-p org-dyn-buffer-A)
+    (with-current-buffer org-dyn-buffer-A
+      (org-with-wide-buffer
+       (remove-text-properties
+        (point-min) (point-max)
+        (list :org-dyn-connection nil))))))
+(add-hook 'kill-buffer-hook 'org-dyn-cleanup)
 
 ;;════════════════════════════════════════
 ;; org-pplist
