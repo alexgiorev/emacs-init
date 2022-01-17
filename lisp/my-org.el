@@ -1582,23 +1582,38 @@ PLIST belongs to PPLIST."
     (circlist-rotate org-state-states :next))
   (message "org-state: saved"))
 
+(defun org-state-store (path)
+  "Stores in the kill ring a serialization of the current state sequence"
+  (interactive "FFile: ")
+  (with-temp-file path
+    (pp (mapcar 'org-no-properties (circlist-to-list org-state-states))
+        (current-buffer))))
+
+(defun org-state-load (path)
+  (interactive "fFile: ")
+  (with-temp-buffer
+    (insert-file-contents path)
+    (beginning-of-buffer)
+    (let ((list (read (current-buffer))))
+      (setq org-state-states (circlist-make list)))))
+
 (defun org-state-pop nil
   (interactive)
   (circlist-pop org-state-states :prev))
 
-(defun org-state-load-next nil
+(defun org-state-next nil
   (interactive)
   (circlist-rotate org-state-states :next)
   (delete-region (point-min) (point-max))
   (insert (circlist-current org-state-states)))
 
-(defun org-state-load-prev nil
+(defun org-state-prev nil
   (interactive)
   (circlist-rotate org-state-states :prev)
   (delete-region (point-min) (point-max))
   (insert (circlist-current org-state-states)))
 
-(defun org-state-load-current nil
+(defun org-state-current nil
   (interactive)
   (delete-region (point-min) (point-max))
   (insert (circlist-current org-state-states)))
@@ -1607,15 +1622,15 @@ PLIST belongs to PPLIST."
   (interactive)
   (do-while
     (let ((cmd (read-char)))
-      (cond ((eq cmd ?n) (org-state-load-next) :continue)
-            ((eq cmd ?p) (org-state-load-prev) :continue)
+      (cond ((eq cmd ?n) (org-state-next) :continue)
+            ((eq cmd ?p) (org-state-prev) :continue)
             (t nil)))))
 
 (defvar org-state-map (make-sparse-keymap))
 (progn
-  (define-key org-state-map "p" 'org-state-load-prev)
-  (define-key org-state-map "n" 'org-state-load-next)
-  (define-key org-state-map "c" 'org-state-load-current)
+  (define-key org-state-map "p" 'org-state-prev)
+  (define-key org-state-map "n" 'org-state-next)
+  (define-key org-state-map "c" 'org-state-current)
   (define-key org-state-map "v" 'org-state-navigate)
   (define-key org-state-map "s" 'org-state-save)
   (define-key org-state-map "o" 'org-state-pop)
