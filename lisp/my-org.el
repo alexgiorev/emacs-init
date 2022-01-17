@@ -1596,6 +1596,7 @@ PLIST belongs to PPLIST."
 
 (defun org-state-load-current nil
   (interactive)
+  (delete-region (point-min) (point-max))
   (insert (circlist-current org-state-states)))
 
 (defun org-state-navigate nil
