@@ -1582,6 +1582,10 @@ PLIST belongs to PPLIST."
     (circlist-rotate org-state-states :next))
   (message "org-state: saved"))
 
+(defun org-state-pop nil
+  (interactive)
+  (circlist-pop org-state-states :prev))
+
 (defun org-state-load-next nil
   (interactive)
   (circlist-rotate org-state-states :next)
@@ -1614,6 +1618,7 @@ PLIST belongs to PPLIST."
   (define-key org-state-map "c" 'org-state-load-current)
   (define-key org-state-map "v" 'org-state-navigate)
   (define-key org-state-map "s" 'org-state-save)
+  (define-key org-state-map "o" 'org-state-pop)
   (define-key org-state-map " " 'org-state-clear))
 (define-key org-mode-map "\C-cp" org-state-map)
 ;;════════════════════════════════════════════════════════════
