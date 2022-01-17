@@ -1566,4 +1566,54 @@ PLIST belongs to PPLIST."
         t))))
 
 ;;════════════════════════════════════════════════════════════
+;; org-state
+
+(defvar org-state-states (circlist-make nil))
+
+(defun org-state-clear nil
+  (interactive)
+  (setq org-state-states (circlist-make nil))
+  (message "org-state: cleared"))
+
+(defun org-state-save nil
+  (interactive)
+  (let ((string (buffer-string)))
+    (circlist-add org-state-states string :next)
+    (circlist-rotate org-state-states :next))
+  (message "org-state: saved"))
+
+(defun org-state-load-next nil
+  (interactive)
+  (circlist-rotate org-state-states :next)
+  (delete-region (point-min) (point-max))
+  (insert (circlist-current org-state-states)))
+
+(defun org-state-load-prev nil
+  (interactive)
+  (circlist-rotate org-state-states :prev)
+  (delete-region (point-min) (point-max))
+  (insert (circlist-current org-state-states)))
+
+(defun org-state-load-current nil
+  (interactive)
+  (insert (circlist-current org-state-states)))
+
+(defun org-state-navigate nil
+  (interactive)
+  (do-while
+    (let ((cmd (read-char)))
+      (cond ((eq cmd ?n) (org-state-load-next) :continue)
+            ((eq cmd ?p) (org-state-load-prev) :continue)
+            (t nil)))))
+
+(defvar org-state-map (make-sparse-keymap))
+(progn
+  (define-key org-state-map "p" 'org-state-load-prev)
+  (define-key org-state-map "n" 'org-state-load-next)
+  (define-key org-state-map "c" 'org-state-load-current)
+  (define-key org-state-map "v" 'org-state-navigate)
+  (define-key org-state-map "s" 'org-state-save)
+  (define-key org-state-map " " 'org-state-clear))
+(define-key org-mode-map "\C-cp" org-state-map)
+;;════════════════════════════════════════════════════════════
 (provide 'my-org)
