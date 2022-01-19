@@ -542,6 +542,12 @@ node the current one"
   (buffer-forest-remove-buffer-nodes (current-buffer)))
 (add-hook 'kill-buffer-hook 'buffer-forest-before-kill-buffer)
 
+(defun buffer-forest-change-buffer nil
+  "Sets the current buffer as the buffer of the current forest node"
+  (interactive)
+  (buffer-forest--check)
+  (plist-put (forest-current buffer-forest) :buffer (current-buffer)))
+
 ;;════════════════════════════════════════
 ;; buffer-forest save and restore
 
