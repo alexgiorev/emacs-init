@@ -158,6 +158,7 @@ nil, use the current buffer."
 (defun circlist-add (circlist element &optional direction)
   "Inserts ELEMENT before (when DIRECTION is eq to :before or :prev) or after
 (when DIRECTION is eq to :after or :next) the current CIRCLIST element"
+  (setq direction (or direction :next))
   (let ((current-cons (circlist--current-cons circlist))
         (elements (circlist--elements circlist)))
     (cond ((null elements)
@@ -535,6 +536,38 @@ whose second element is a list of triples (START END PROPS)"
       (push (cons (car list1) (car list2)) result)
       (setq list1 (cdr list1) list2 (cdr list2)))
     (reverse result)))
+;;════════════════════════════════════════
+;; pvars
+
+(defvar pvars-path (concat user-emacs-directory "lisp/pvars.el"))
+
+(defvar pvars-symbols nil
+  "The list of symbols which should be persisted")
+
+(defun pvars-load nil
+  (let (pvars-alist var value)
+    (with-temp-buffer
+      (insert-file-contents pvars-path)
+      (beginning-of-buffer)
+      (setq pvars-alist (read (current-buffer))))
+    (setq pvars-symbols nil)
+    (dolist (var+value pvars-alist)
+      (push pvars-symbols var)
+      (setq var (car var+value)
+            value (cdr var+value))
+      (set var value))))
+
+(defun pvars-store nil
+  (let ((pvars-alist (mapcar (lambda (symbol)
+                               (cons symbol (and (boundp symbol)
+                                                 (symbol-value symbol))))
+                             pvars-symbols)))
+    (with-temp-file pvars-path
+      (pp pvars-alist (current-buffer)))))
+
+(defun pvars-add (symbol &optional store-p)
+  (add-to-list 'pvars-symbols symbol nil 'eq)
+  (when store-p (pvars-store)))
 
 ;;════════════════════════════════════════
 (provide 'my-macs)
