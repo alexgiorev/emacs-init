@@ -937,6 +937,33 @@ FUNC."
         (unless was-visited
           (kill-buffer buffer))))))
 
+(defun my-org-date-merge (paths buffer)
+  (let ((date-map (make-hash-table :test 'equal))
+        (date-heading-re (concat "^\\* *\\(" (org-re-timestamp 'inactive) "\\)"))
+        date children filename filemap)
+    ;; construct date-map
+    (dolist (path paths)
+      (setq filename (file-name-nondirectory path))
+      (with-current-buffer (find-file-noselect path)
+        (org-with-point-at 1
+          (while (re-search-forward date-heading-re nil t)
+            (setq date (match-string 1)
+                  children (buffer-substring (line-beginning-position 2)
+                                             (my-org-tree-end-pos t t)))
+            (puthash date
+                     (cons (cons filename children)
+                           (gethash date date-map))
+                     date-map)))))
+    (with-current-buffer (get-buffer-create buffer)
+      (dolist (date (sort (hash-table-keys date-map) 'string<))
+        (insert (format "* %s\n" date))
+        (dolist (file+children (gethash date date-map))
+          (let ((file (car file+children))
+                (children (cdr file+children)))
+            (insert (format "** %s\n" file))
+            (save-excursion (insert children))
+            (org-map-region 'org-demote (point) (progn (end-of-buffer) (point)))))))))
+
 ;;════════════════════════════════════════
 ;; misc_yanking_images
 
@@ -1599,24 +1626,23 @@ PLIST belongs to PPLIST."
 
 (defun org-state-pop nil
   (interactive)
-  (circlist-pop org-state-states :prev))
+  (circlist-pop org-state-states :prev)
+  (message "org-state: popped"))
 
 (defun org-state-next nil
   (interactive)
   (circlist-rotate org-state-states :next)
-  (delete-region (point-min) (point-max))
-  (insert (circlist-current org-state-states)))
+  (org-state-current))
 
 (defun org-state-prev nil
   (interactive)
   (circlist-rotate org-state-states :prev)
-  (delete-region (point-min) (point-max))
-  (insert (circlist-current org-state-states)))
+  (org-state-current))
 
 (defun org-state-current nil
   (interactive)
   (delete-region (point-min) (point-max))
-  (insert (circlist-current org-state-states)))
+  (save-excursion (insert (circlist-current org-state-states))))
 
 (defun org-state-navigate nil
   (interactive)
@@ -1636,5 +1662,6 @@ PLIST belongs to PPLIST."
   (define-key org-state-map "o" 'org-state-pop)
   (define-key org-state-map " " 'org-state-clear))
 (define-key org-mode-map "\C-cp" org-state-map)
+
 ;;════════════════════════════════════════════════════════════
 (provide 'my-org)
