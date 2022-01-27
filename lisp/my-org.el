@@ -443,7 +443,7 @@ function with no arguments called with point at the beginning of the heading"
       (let (custom-id link desc)
         (unless (setq custom-id (org-entry-get nil "CUSTOM_ID"))
           (org-entry-put
-           nil "CUSTOM_ID" (setq custom-id (my-org-custom-id-from-title))))
+           nil "CUSTOM_ID" (setq custom-id (my-org-next-custom-id))))
         (setq link (concat "file:" (buffer-file-name (buffer-base-buffer)) "::#" custom-id)
               desc (org-get-heading t t t t))
         (if components (list link desc) (format "[[%s][%s]]" link desc)))
@@ -464,6 +464,13 @@ function with no arguments called with point at the beginning of the heading"
       (downcase-region (point-min) (point-max))
       (insert "CUSTOM_ID_")
       (buffer-substring-no-properties (point-min) (point-max)))))
+
+(pvars-add 'my-org-custom-id)
+(unless (boundp 'my-org-custom-id)
+  (setq my-org-custom-id 0))
+(defun my-org-next-custom-id nil
+  (prog1 (number-to-string my-org-custom-id)
+    (cl-incf my-org-custom-id)))
 
 (defun my-org-refile-link nil
   "Creates a link to the current entry and refiles it."
@@ -1294,6 +1301,10 @@ non-nil, undo regardless of date."
   (interactive)
   (org-show-set-visibility 'canonical))
 
+(defun my-org-node-put-GENERAL nil
+  (interactive)
+  (org-entry-put nil "GENERAL" "t"))
+
 (defvar my-org-node-map (make-sparse-keymap)
   "Binds keys to commands which work on nodes")
 (progn
@@ -1302,7 +1313,8 @@ non-nil, undo regardless of date."
   (define-key my-org-node-map "d" 'my-org-node-date)
   (define-key my-org-node-map "s" 'my-org-node-add-source)
   (define-key my-org-node-map "b" 'my-org-node-bury)
-  (define-key my-org-node-map "h" 'my-org-node-show))
+  (define-key my-org-node-map "h" 'my-org-node-show)
+  (define-key my-org-node-map "g" 'my-org-node-put-GENERAL))
 (define-key org-mode-map "\C-ce" my-org-node-map)
 (define-key org-mode-map (kbd "C-.") 'my-org-node-bury)
 
