@@ -209,7 +209,8 @@ add a backlink as a BACKLINK property."
   (define-key my-org-yank-map "e" 'my-org-yank-unfill-elisp-comment)
   (define-key my-org-yank-map "r" 'my-org-yank-random-child)
   (define-key my-org-yank-map "z" 'my-org-yank-anki-cloze)
-  (define-key my-org-yank-map "i" 'my-org-yank-image))
+  (define-key my-org-yank-map "i" 'my-org-yank-image)
+  (define-key my-org-yank-map "_" 'my-org-yank-_))
 (define-key org-mode-map "\C-cy" my-org-yank-map)
 (global-set-key "\C-\M-y" 'my-yank-unfill)
 
@@ -489,15 +490,20 @@ function with no arguments called with point at the beginning of the heading"
     (org-back-to-heading t)
     (kill-new (my-org-get-link))))
 
-(defvar my-org-link-prefix-map
-  (let ((map (make-sparse-keymap)))
-    (define-key map (kbd "C-i") 'org-insert-link)
-    (define-key map (kbd "C-s") 'my-org-store-link)
-    (define-key map (kbd "C-n") 'org-next-link)
-    (define-key map (kbd "C-p") 'org-previous-link)
-    (define-key map (kbd "C-r") 'my-org-refile-link)
-    (define-key map (kbd "C-k") 'my-org-kill-link)
-    map))
+(defun my-org-link-file (file)
+  (interactive "f")
+  (let ((name (file-name-nondirectory file)))
+    (insert (format "[[file:%s][%s]]" file name))))
+
+(defvar my-org-link-prefix-map (make-sparse-keymap))
+(progn
+  (define-key my-org-link-prefix-map (kbd "C-i") 'org-insert-link)
+  (define-key my-org-link-prefix-map (kbd "C-s") 'my-org-store-link)
+  (define-key my-org-link-prefix-map (kbd "C-n") 'org-next-link)
+  (define-key my-org-link-prefix-map (kbd "C-p") 'org-previous-link)
+  (define-key my-org-link-prefix-map (kbd "C-r") 'my-org-refile-link)
+  (define-key my-org-link-prefix-map (kbd "C-k") 'my-org-kill-link)
+  (define-key my-org-link-prefix-map (kbd "C-f") 'my-org-link-file))
 
 ;;; link bindings
 (define-key global-map (kbd "C-c l") 'org-store-link)
@@ -1304,6 +1310,9 @@ non-nil, undo regardless of date."
 (defun my-org-node-put-GENERAL nil
   (interactive)
   (org-entry-put nil "GENERAL" "t"))
+(defun my-org-node-put-CONTRIBUTION nil
+  (interactive)
+  (org-entry-put nil "CONTRIBUTION" "t"))
 
 (defvar my-org-node-map (make-sparse-keymap)
   "Binds keys to commands which work on nodes")
@@ -1314,7 +1323,8 @@ non-nil, undo regardless of date."
   (define-key my-org-node-map "s" 'my-org-node-add-source)
   (define-key my-org-node-map "b" 'my-org-node-bury)
   (define-key my-org-node-map "h" 'my-org-node-show)
-  (define-key my-org-node-map "g" 'my-org-node-put-GENERAL))
+  (define-key my-org-node-map "g" 'my-org-node-put-GENERAL)
+  (define-key my-org-node-map "c" 'my-org-node-put-CONTRIBUTION))
 (define-key org-mode-map "\C-ce" my-org-node-map)
 (define-key org-mode-map (kbd "C-.") 'my-org-node-bury)
 
