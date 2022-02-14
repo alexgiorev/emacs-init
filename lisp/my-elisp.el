@@ -101,5 +101,20 @@ it as the symbol's value"
     (interactive)
     (insert "(error \"TODO\")")))
 
+(defun my-elisp-get-function-text (name)
+  "Returns the text of the function named NAME in the current buffer, or nil
+when such a function doesn't exist"
+  (save-excursion
+    (beginning-of-buffer)
+    (when (re-search-forward
+           (format my-elisp-func-or-macro-re-format name)
+           nil t)
+      (let ((start (progn (beginning-of-defun) (point)))
+            (end (progn (end-of-defun) (point))))
+        (buffer-substring-no-properties start end)))))
+
+(defvar my-elisp-func-or-macro-re-format
+  "^\\s-*(\\s-*\\(defun\\|defmacro\\|defsubst\\)\\s-+\\<%s\\>")
+
 ;;════════════════════════════════════════
 (provide 'my-elisp)
