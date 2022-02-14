@@ -440,8 +440,63 @@ kill ring the name of the defun at point."
   (define-key my-magit-map "a"
     (lambda nil (interactive) (my-magit-commit-file :amend)))
   (define-key my-magit-map "p" 'magit-push-current-to-upstream)
-  (define-key my-magit-map "s" 'magit-status))
+  (define-key my-magit-map "s" 'magit-status)
+  (define-key my-magit-map "d" 'magit-dispatch))
 (global-set-key "\C-xg" my-magit-map)
+
+(defsubst my-magit-section-type nil
+  "Return the type of the section at point"
+  (caar (magit-section-ident (magit-current-section))))
+
+(defsubst my-magit-section-value nil
+  "Return the value of the section at point"
+  (cdar (magit-section-ident (magit-current-section))))
+
+(defsubst my-magit-current-commit nil
+  (let ((type+value (car (magit-section-ident (magit-current-section)))))
+    (when (eq 'commit (car type+value))
+      (cdr type+value))))
+
+(defun my-magit-log-commits nil
+  (org-with-point-at 1
+    (while (not (eq 'commit (my-magit-section-type)))
+      (forward-line))
+    (let* ((result-head (cons nil nil))
+           (result-tail result-head))
+      (while (eq 'commit (my-magit-section-type))
+        (setq result-tail
+              (setcdr result-tail
+                      (cons (my-magit-section-value) nil)))
+        (forward-line))
+      (cdr result-head))))
+
+(defun my-magit-log-function-list (file func)
+  "Return a list of the texts of FUNC in each version of FILE that appears in
+one of the commits listed in the current buffer, assumed to be a magit log
+buffer"
+  (mapcar (lambda (commit)
+            (my-magit-get-elisp-function commit file func))
+          (my-magit-log-commits)))
+
+(defvar my-magit-log-save-var (cons nil nil)
+  "A pair (FILE . FUNC). This defines the function `my-magit-log-save' will save
+  in the kill ring based on the current commit")
+
+(defun my-magit-log-save-func nil
+  "Save in the kill ring the text of FUNC as appearing in FILE as appearing in
+the current commit, where FILE and FUNC are defined in `my-magit-log-save-var'"
+  (interactive)
+  (kill-new (my-magit-get-elisp-function
+             (my-magit-current-commit)
+             (car my-magit-log-save-var)
+             (cdr my-magit-log-save-var))))
+
+(defun my-magit-get-elisp-function (commit file funcname)
+  "Return the text of the function named FUNCNAME as it is in FILE as it was at COMMIT"
+  (magit-with-blob commit file
+    (emacs-lisp-mode)
+    (my-elisp-get-function-text funcname)))
+
 
 ;;════════════════════════════════════════
 ;; buffer-forest
