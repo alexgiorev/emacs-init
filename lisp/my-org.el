@@ -1315,6 +1315,47 @@ non-nil, undo regardless of date."
   (interactive)
   (org-entry-put nil "CONTRIBUTION" "t"))
 
+;; navigation
+;; ════════════════════
+(defvar org-nav-expr nil)
+
+(defun org-nav-next (&optional arg)
+  (interactive "P")
+  (org--nav-move arg :next))
+
+(defun org-nav-prev (&optional arg)
+  (interactive "P")
+  (org--nav-move arg :prev))
+
+(defun org--nav-move (recompute-p direction)
+  (when recompute-p
+    (setq org-nav-expr (read--expression "Predicate: ")))
+  (unless org-nav-expr
+    (user-error "org-nav-expr is nil"))
+  (unless overriding-terminal-local-map
+    (set-transient-map org-nav-transient-map t))
+  (let ((move-func (if (eq direction :next) 'outline-next-heading
+                     'outline-previous-heading))
+        (pred `(lambda nil ,org-nav-expr))
+        (pos nil))
+    (save-excursion
+      (catch :break
+        (while (funcall move-func)
+          (when (funcall pred)
+            (setq pos (point)) (throw :break nil)))))
+    (if pos
+      (progn (goto-char pos)
+             (when (org-invisible-p)
+               (org-show-set-visibility 'canonical)))
+      (user-error "No matching nodes"))))
+
+(defvar org-nav-transient-map (make-sparse-keymap))
+(progn
+  (define-key org-nav-transient-map "n" 'org-nav-next)
+  (define-key org-nav-transient-map "p" 'org-nav-prev))
+
+;; keymap
+;; ════════════════════
 (defvar my-org-node-map (make-sparse-keymap)
   "Binds keys to commands which work on nodes")
 (progn
@@ -1325,7 +1366,9 @@ non-nil, undo regardless of date."
   (define-key my-org-node-map "b" 'my-org-node-bury)
   (define-key my-org-node-map "h" 'my-org-node-show)
   (define-key my-org-node-map "g" 'my-org-node-put-GENERAL)
-  (define-key my-org-node-map "c" 'my-org-node-put-CONTRIBUTION))
+  (define-key my-org-node-map "c" 'my-org-node-put-CONTRIBUTION)
+  (define-key my-org-node-map "n" 'org-nav-next)
+  (define-key my-org-node-map "p" 'org-nav-prev))
 (define-key org-mode-map "\C-ce" my-org-node-map)
 (define-key org-mode-map (kbd "C-.") 'my-org-node-bury)
 
