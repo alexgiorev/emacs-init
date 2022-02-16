@@ -913,9 +913,10 @@ available."
 
 ;; without this, I get a "Running less..." error when
 ;; trying to open file links within Emacs
-(defun my-org-open-at-point nil
-  (interactive)
-  (org-open-at-point '(4)))
+(defun my-org-open-at-point (&optional arg)
+  (interactive "P")
+  (if (not arg) (org-open-at-point '(4))
+    (org-open-at-point nil)))
 (define-key org-mode-map (kbd "C-c C-o") 'my-org-open-at-point)
 
 (defun my-org-id-get-ids (files)
