@@ -1667,13 +1667,13 @@ PLIST belongs to PPLIST."
   (delete-region (point-min) (point-max))
   (save-excursion (insert (circlist-current org-state-states))))
 
+(defvar org-state-transient-map (make-sparse-keymap))
+(progn
+  (define-key org-state-transient-map "n" 'org-state-next)
+  (define-key org-state-transient-map "p" 'org-state-prev))
 (defun org-state-navigate nil
   (interactive)
-  (do-while
-    (let ((cmd (read-char)))
-      (cond ((eq cmd ?n) (org-state-next) :continue)
-            ((eq cmd ?p) (org-state-prev) :continue)
-            (t nil)))))
+  (set-transient-map org-state-transient-map t))
 
 (defvar org-state-map (make-sparse-keymap))
 (progn
