@@ -7,8 +7,8 @@
 (defvar my-org-vars-alist nil
   "The name to node ID mapping")
 
-;; * persistence
-
+;; persistence
+;; ════════════════════════════════════════
 (defun my-org-vars-load nil
   (let (buffer)
     (ignore-error 'file-error
@@ -20,12 +20,17 @@
   (with-temp-file my-org-vars-file
     (prin1 my-org-vars-alist (current-buffer))))
 
-;; * utils
+;; utils
+;; ════════════════════════════════════════
 
 (defsubst my-org-vars-get (name)
   (cdr (assoc name my-org-vars-alist)))
 
-;; * commands
+(defun my-org-vars-read-var nil
+  (completing-read "Identifier: " (my-alist-keys my-org-vars-alist)))
+
+;; commands
+;; ════════════════════════════════════════
 
 (defun my-org-vars-set (&optional name)
   "Bind NAME to the node at point"
@@ -46,11 +51,12 @@
 (defvar my-org-vars-goto-alist nil
   "Maps names to the buffers which should be used when going to the names using
   `my-org-vars-goto'")
+
 (defun my-org-vars-goto nil
   "Jumps to the node bound to NAME. Signals `void-variable' error when NAME is
 not bound to any node."
   (interactive)
-  (let* ((name (completing-read "Identifier: " (mapcar 'car my-org-vars-alist)))
+  (let* ((name (completing-read "Identifier: " my-org-vars-alist))
          (id (my-org-vars-get name))
          location buffer)
     (unless id
@@ -60,8 +66,7 @@ not bound to any node."
     ;; get the buffer
     (setq buffer (cdr (assoc name my-org-vars-goto-alist)))
     (unless (buffer-live-p buffer)
-      (assoc-delete-all
-       name my-org-vars-goto-alist 'string=)
+      (assoc-delete-all name my-org-vars-goto-alist 'string=)
       (setq buffer nil))
     (unless buffer
       (if (setq buffer (get-file-buffer (car location)))
@@ -91,7 +96,21 @@ not bound to any node."
   (let ((id (my-org-vars-get name)))
     (insert (org-link-make-string (concat "id:" id) name))))
 
-;; * keymap
+(defun my-org-vars-rename (from to)
+  (interactive
+   (let ((from (completing-read "Identifier to rename: " my-org-vars-alist)))
+     (unless (assoc from my-org-vars-alist)
+       (user-error "Invalid identifier: %s" from))
+     (list from (read-string (format "Rename \"%s\" to: " from)))))
+  (let ((name+id (assoc from my-org-vars-alist)))
+    (unless name+id
+      (user-error "Invalid identifier: %s" from))
+    (setcar name+id to)
+    (my-org-vars-flush)))
+  
+;; keymap
+
+;; ════════════════════════════════════════
 
 (defvar my-org-vars-map (make-sparse-keymap))
 (progn
@@ -99,9 +118,10 @@ not bound to any node."
   (define-key my-org-vars-map "s" 'my-org-vars-set)
   (define-key my-org-vars-map "u" 'my-org-vars-unset)
   (define-key my-org-vars-map "l" 'my-org-vars-insert-link))
-(define-key org-mode-map "\C-cv" my-org-vars-map)
+(define-key global-map "\C-xv" my-org-vars-map)
 
 ;; * initialization
+;; ════════════════════════════════════════
 
 (my-org-vars-load)
 (provide 'my-org-vars)
