@@ -540,15 +540,13 @@ whose second element is a list of triples (START END PROPS)"
 ;; pvars
 
 (defvar pvars-path (concat user-emacs-directory "lisp/pvars.el"))
-
 (defvar pvars-symbols nil
   "The list of symbols which should be persisted")
 
 (defun pvars-load nil
   (let (pvars-alist var value)
     (with-temp-buffer
-      (insert-file-contents pvars-path)
-      (beginning-of-buffer)
+      (insert-file-contents pvars-path) (beginning-of-buffer)
       (setq pvars-alist (read (current-buffer))))
     (setq pvars-symbols nil)
     (dolist (var+value pvars-alist)
@@ -568,6 +566,9 @@ whose second element is a list of triples (START END PROPS)"
 (defun pvars-add (symbol &optional store-p)
   (add-to-list 'pvars-symbols symbol nil 'eq)
   (when store-p (pvars-store)))
+
+(pvars-load)
+(add-hook 'kill-emacs-hook 'pvars-store)
 
 ;;════════════════════════════════════════
 (provide 'my-macs)
