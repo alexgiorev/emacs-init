@@ -203,7 +203,8 @@ add a backlink as a BACKLINK property."
 
 (defun my-org-save-no-links (start end)
   (interactive "r")
-  (kill-new (my-org-strip-links (buffer-substring start end))))
+  (kill-new (my-org-strip-links (buffer-substring start end)))
+  (deactivate-mark))
 
 (defvar my-org-yank-map (make-sparse-keymap))
 (progn
