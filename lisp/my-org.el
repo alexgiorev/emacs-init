@@ -102,7 +102,7 @@ add a backlink as a BACKLINK property."
   (define-key org-mode-map (kbd "C-c n") 'my-new-entry-today))
 
 ;;════════════════════════════════════════════════════════════
-;; * yanking
+;; * yanking & saving/killing
 
 (defun my-org-yank-list nil
   (interactive)
@@ -201,6 +201,10 @@ add a backlink as a BACKLINK property."
     (push-mark)
     (insert string)))
 
+(defun my-org-save-no-links (start end)
+  (interactive "r")
+  (kill-new (my-org-strip-links (buffer-substring start end))))
+
 (defvar my-org-yank-map (make-sparse-keymap))
 (progn
   (define-key my-org-yank-map "l" 'my-org-yank-list)
@@ -210,7 +214,8 @@ add a backlink as a BACKLINK property."
   (define-key my-org-yank-map "r" 'my-org-yank-random-child)
   (define-key my-org-yank-map "z" 'my-org-yank-anki-cloze)
   (define-key my-org-yank-map "i" 'my-org-yank-image)
-  (define-key my-org-yank-map "_" 'my-org-yank-_))
+  (define-key my-org-yank-map "_" 'my-org-yank-_)
+  (define-key my-org-yank-map "[" 'my-org-save-no-links))
 (define-key org-mode-map "\C-cy" my-org-yank-map)
 (global-set-key "\C-\M-y" 'my-yank-unfill)
 
@@ -328,11 +333,15 @@ entries from the file."
         (type "|" "LIST" "HEAP")
         (type "|" "CLONE")
         (type "|" "DECISION(n)" "PAST_DECISION")
-        (type "|" "DECL(e)" "FACT" "CONCEPT(c)" "SOURCE" "EXAMPLES" "TEMP")
+        (type "CONJECTURE_T(j)" "|" "CONJECTURE_D")
+        (type "|" "DECL(e)" "CONNECTION" "FACT" "CONCEPT(c)" "SOURCE" "EXAMPLES" "TEMP")
         (type "QUESTION(q)" "|" "ANSWERED" "ANSWER(a)")
         (type "PROBLEM(p)" "|" "SOLVED" "SOLUTION(o)" "PROBLEM_DECL")
+        (type "GOAL(g)" "|" "GOAL_D")
+        (type "EXPLAIN(l)" "|" "EXPLAINED")
         (type "IDEA(i)" "|" "IDEA_DECL")
-        (type "EXPLORE(x)" "CONTINUE" "EXPERIMENT" "ACTION" "HOOK" "LATER" "READ(r)" "|")))
+        (type "READ(r)" "READ_L" "|" "READ_D")
+        (type "EXPLORE(x)" "CONTINUE" "EXPERIMENT" "ACTION" "HOOK" "LATER" "|")))
 
 ;; so that level 2 entries are also considered when refiling
 (setq org-refile-targets
@@ -488,7 +497,7 @@ function with no arguments called with point at the beginning of the heading"
   (interactive)
   (save-excursion
     (org-back-to-heading t)
-    (kill-new (my-org-get-link))))
+    (kill-new (my-org-strip-links (my-org-get-link)))))
 
 (defun my-org-link-file (file)
   (interactive "f")
@@ -978,6 +987,13 @@ FUNC."
             (save-excursion (insert children))
             (org-map-region 'org-demote (point) (progn (end-of-buffer) (point)))))))))
 
+(defun my-org-strip-links (string)
+  (with-temp-buffer
+    (insert string) (beginning-of-buffer)
+    (while (re-search-forward org-link-any-re nil t)
+      (replace-match (match-string 3)))
+    (buffer-string)))
+
 ;;════════════════════════════════════════
 ;; misc_yanking_images
 
@@ -1308,12 +1324,11 @@ non-nil, undo regardless of date."
   (interactive)
   (org-show-set-visibility 'canonical))
 
-(defun my-org-node-put-GENERAL nil
-  (interactive)
-  (org-entry-put nil "GENERAL" "t"))
-(defun my-org-node-put-CONTRIBUTION nil
-  (interactive)
-  (org-entry-put nil "CONTRIBUTION" "t"))
+(defvar my-org-node-put-props
+  '("GENERAL" "CONTRIBUTION" "DISCUSS"))
+(defun my-org-node-put (property)
+  (interactive (list (completing-read "PROPERTY: " my-org-node-put-props)))
+  (org-entry-put nil property "t"))
 
 ;; navigation
 ;; ════════════════════
@@ -1364,9 +1379,8 @@ non-nil, undo regardless of date."
   (define-key my-org-node-map "d" 'my-org-node-date)
   (define-key my-org-node-map "s" 'my-org-node-add-source)
   (define-key my-org-node-map "b" 'my-org-node-bury)
+  (define-key my-org-node-map "u" 'my-org-node-put)
   (define-key my-org-node-map "h" 'my-org-node-show)
-  (define-key my-org-node-map "g" 'my-org-node-put-GENERAL)
-  (define-key my-org-node-map "c" 'my-org-node-put-CONTRIBUTION)
   (define-key my-org-node-map "n" 'org-nav-next)
   (define-key my-org-node-map "p" 'org-nav-prev))
 (define-key org-mode-map "\C-ce" my-org-node-map)
@@ -1729,5 +1743,120 @@ PLIST belongs to PPLIST."
   (define-key org-state-map " " 'org-state-clear))
 (define-key org-mode-map "\C-cp" org-state-map)
 
-;;════════════════════════════════════════════════════════════
+;; function fixes
+;; ════════════════════════════════════════
+
+;; so that newlines after an item aren't indented
+(defun org--get-expected-indentation (element contentsp)
+  "Expected indentation column for current line, according to ELEMENT.
+ELEMENT is an element containing point.  CONTENTSP is non-nil
+when indentation is to be computed according to contents of
+ELEMENT."
+  (let ((type (org-element-type element))
+	(start (org-element-property :begin element))
+	(post-affiliated (org-element-property :post-affiliated element)))
+    (org-with-wide-buffer
+     (cond
+      (contentsp
+       (cl-case type
+	 ((diary-sexp footnote-definition) 0)
+	 ((headline inlinetask nil)
+	  (if (not org-adapt-indentation) 0
+	    (let ((level (org-current-level)))
+	      (if level (1+ level) 0))))
+	 (t
+	  (goto-char start)
+	  (current-indentation))))
+      ((and
+	(eq org-adapt-indentation 'headline-data)
+	(memq type '(planning clock node-property property-drawer drawer)))
+       (org--get-expected-indentation
+	(org-element-property :parent element) t))
+      ((memq type '(headline inlinetask nil))
+       (if (org-match-line "[ \t]*$")
+	   (org--get-expected-indentation element t)
+	 0))
+      ((memq type '(diary-sexp footnote-definition)) 0)
+      ;; First paragraph of a footnote definition or an item.
+      ;; Indent like parent.
+      ((< (line-beginning-position) start)
+       (org--get-expected-indentation
+	(org-element-property :parent element) t))
+      ;; At first line: indent according to previous sibling, if any,
+      ;; ignoring footnote definitions and inline tasks, or parent's
+      ;; contents.
+      ((and ( = (line-beginning-position) start)
+	    (eq org-adapt-indentation t))
+       (catch 'exit
+	 (while t
+	   (if (= (point-min) start) (throw 'exit 0)
+	     (goto-char (1- start))
+	     (let* ((previous (org-element-at-point))
+		    (parent previous))
+	       (while (and parent (<= (org-element-property :end parent) start))
+		 (setq previous parent
+		       parent (org-element-property :parent parent)))
+	       (cond
+		((not previous) (throw 'exit 0))
+		((> (org-element-property :end previous) start)
+		 (throw 'exit (org--get-expected-indentation previous t)))
+		((memq (org-element-type previous)
+		       '(footnote-definition inlinetask))
+		 (setq start (org-element-property :begin previous)))
+		(t (goto-char (org-element-property :begin previous))
+		   (throw 'exit
+			  (if (bolp) (current-indentation)
+			    ;; At first paragraph in an item or
+			    ;; a footnote definition.
+			    (org--get-expected-indentation
+			     (org-element-property :parent previous) t))))))))))
+      ;; Otherwise, move to the first non-blank line above.
+      ((not (eq org-adapt-indentation 'headline-data))
+       (beginning-of-line)
+       (let ((pos (point)))
+	 (skip-chars-backward " \r\t\n")
+	 (cond
+	  ;; Two blank lines end a footnote definition or a plain
+	  ;; list.  When we indent an empty line after them, the
+	  ;; containing list or footnote definition is over, so it
+	  ;; qualifies as a previous sibling.  Therefore, we indent
+	  ;; like its first line.
+	  ((and (memq type '(footnote-definition plain-list))
+		(> (count-lines (point) pos) 2))
+	   (goto-char start)
+	   (current-indentation))
+	  ;; Line above is the first one of a paragraph at the
+	  ;; beginning of an item or a footnote definition.  Indent
+	  ;; like parent.
+	  ((< (line-beginning-position) start)
+	   (org--get-expected-indentation
+	    (org-element-property :parent element) t))
+	  ;; Line above is the beginning of an element, i.e., point
+	  ;; was originally on the blank lines between element's start
+	  ;; and contents.
+	  ((= (line-beginning-position) post-affiliated)
+	   (org--get-expected-indentation element t))
+	  ;; POS is after contents in a greater element.  Indent like
+	  ;; the beginning of the element.
+	  ((and (memq type org-element-greater-elements)
+		(let ((cend (org-element-property :contents-end element)))
+		  (and cend (<= cend pos))))
+	   ;; As a special case, if point is at the end of a footnote
+	   ;; definition or an item, indent like the very last element
+	   ;; within.  If that last element is an item, indent like
+	   ;; its contents.
+	   (if (memq type '(footnote-definition item plain-list))
+	       (let ((last (org-element-at-point)))
+		 (goto-char pos)
+		 (org--get-expected-indentation
+		  last (eq (org-element-type last) 'item)))
+	     (goto-char start)
+	     (current-indentation)))
+	  ;; In any other case, indent like the current line.
+	  (t (current-indentation)))))
+      ;; Finally, no indentation is needed, fall back to 0.
+      (t (current-indentation))))))
+
+
+;; ════════════════════════════════════════
 (provide 'my-org)
