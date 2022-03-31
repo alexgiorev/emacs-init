@@ -456,7 +456,7 @@ function with no arguments called with point at the beginning of the heading"
           (org-entry-put
            nil "CUSTOM_ID" (setq custom-id (my-org-next-custom-id))))
         (setq link (concat "file:" (buffer-file-name (buffer-base-buffer)) "::#" custom-id)
-              desc (org-get-heading t t t t))
+              desc (my-org-strip-links (org-get-heading t t t t)))
         (if components (list link desc) (format "[[%s][%s]]" link desc)))
     (org-store-link 1)))
 
@@ -498,7 +498,7 @@ function with no arguments called with point at the beginning of the heading"
   (interactive)
   (save-excursion
     (org-back-to-heading t)
-    (kill-new (my-org-strip-links (my-org-get-link)))))
+    (kill-new (my-org-get-link))))
 
 (defun my-org-link-file (file)
   (interactive "f")
