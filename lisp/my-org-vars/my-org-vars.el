@@ -26,8 +26,10 @@
 (defsubst my-org-vars-get (name)
   (cdr (assoc name my-org-vars-alist)))
 
-(defun my-org-vars-read-var nil
-  (completing-read "Identifier: " (my-alist-keys my-org-vars-alist)))
+(defun my-org-vars-read-var (&optional require-match initial-input)
+  (completing-read "Identifier: "
+                   (my-alist-keys my-org-vars-alist)
+                   nil require-match initial-input))
 
 ;; commands
 ;; ════════════════════════════════════════
@@ -92,9 +94,38 @@ not bound to any node."
       (message "\"%s\" is not bound" name))))
 
 (defun my-org-vars-insert-link (name)
-  (interactive (list (my-org-vars-read-var)))
-  (let ((id (my-org-vars-get name)))
-    (insert (org-link-make-string (concat "id:" id) name))))
+  (interactive (list (my-org-vars-read-var
+                      :require-match
+                      (and (org-region-active-p)
+                           (buffer-substring
+                            (region-beginning)
+                            (region-end))))))
+  (let ((id (my-org-vars-get name))
+        (text (if (org-region-active-p)
+                  (delete-and-extract-region (region-beginning) (region-end))
+                name)))
+    (insert (org-link-make-string (concat "id:" id) text))))
+
+(defun my-org-vars-link-region (start end)
+  "For each occurence of an identifier in the region,
+ replace it with a link to the variable"
+  (interactive "r")
+  (let ((re (concat "\\("
+                    (regexp-opt (my-alist-keys my-org-vars-alist)
+                                'words)
+                    "\\)"))
+        (end-marker (make-marker))
+        (case-fold-search nil)
+        name id link)
+    (save-excursion
+      (goto-char start)
+      (set-marker end-marker end (current-buffer))
+      (while (re-search-forward re end-marker t)
+        (setq name (match-string 1)
+              id (cdr (assoc name my-org-vars-alist))
+              link (format "[[id:%s][%s]]" id name))
+        (replace-match link))
+      (set-marker end-marker nil nil))))
 
 (defun my-org-vars-rename (from to)
   (interactive
