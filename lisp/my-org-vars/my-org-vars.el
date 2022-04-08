@@ -114,18 +114,16 @@ not bound to any node."
                     (regexp-opt (my-alist-keys my-org-vars-alist)
                                 'words)
                     "\\)"))
-        (end-marker (make-marker))
         (case-fold-search nil)
         name id link)
-    (save-excursion
-      (goto-char start)
-      (set-marker end-marker end (current-buffer))
-      (while (re-search-forward re end-marker t)
-        (setq name (match-string 1)
-              id (cdr (assoc name my-org-vars-alist))
-              link (format "[[id:%s][%s]]" id name))
-        (replace-match link))
-      (set-marker end-marker nil nil))))
+    (org-with-wide-buffer
+     (goto-char start)
+     (narrow-to-region start end)
+     (while (re-search-forward re nil t)
+       (setq name (match-string 1)
+             id (cdr (assoc name my-org-vars-alist))
+             link (format "[[id:%s][%s]]" id name))
+       (replace-match link)))))
 
 (defun my-org-vars-rename (from to)
   (interactive
@@ -148,7 +146,8 @@ not bound to any node."
   (define-key my-org-vars-map "g" 'my-org-vars-goto)
   (define-key my-org-vars-map "s" 'my-org-vars-set)
   (define-key my-org-vars-map "u" 'my-org-vars-unset)
-  (define-key my-org-vars-map "l" 'my-org-vars-insert-link))
+  (define-key my-org-vars-map "l" 'my-org-vars-insert-link)
+  (define-key my-org-vars-map "r" 'my-org-vars-link-region))
 (define-key global-map "\C-xv" my-org-vars-map)
 
 ;; * initialization
