@@ -127,7 +127,9 @@ add a backlink as a BACKLINK property."
         (replace-match ""))
       (unfill-region (point-min) (point-max))
       (beginning-of-buffer)
-      (while (re-search-forward "\\(ﬀ\\|Th\\|ﬁ\\) " nil t)
+      (while (re-search-forward
+              "\\(ﬀ\\|\\<Th\\>\\|ﬁ\\|ﬂ\\|ﬃ\\|fi\\|fl\\) "
+              nil t)
         (replace-match (match-string 1)))
       (setq text (buffer-string)))
     (push-mark) (insert text)))
@@ -346,7 +348,8 @@ entries from the file."
         (type "EXPLAIN(l)" "|" "EXPLAINED")
         (type "IDEA(i)" "|" "IDEA_DECL")
         (type "READ(r)" "READ_L" "|" "READ_D")
-        (type "EXPLORE(x)" "CONTINUE" "EXPERIMENT" "ACTION" "HOOK" "LATER" "|")))
+        (type "EXPLORE(x)" "ANKIFY(y)" "CONTINUE"
+              "EXPERIMENT" "ACTION" "HOOK" "LATER" "|" "FUN")))
 
 ;; so that level 2 entries are also considered when refiling
 (setq org-refile-targets
@@ -999,6 +1002,34 @@ FUNC."
       (replace-match (match-string 3)))
     (buffer-string)))
 
+;; Fixed the bug of "READ" showing "READ_L" as well
+(defun org-show-todo-tree (arg)
+  "Make a compact tree which shows all headlines marked with TODO.
+The tree will show the lines where the regexp matches, and all higher
+headlines above the match.
+With a `\\[universal-argument]' prefix, prompt for a regexp to match.
+With a numeric prefix N, construct a sparse tree for the Nth element
+of `org-todo-keywords-1'."
+  (interactive "P")
+  (let ((case-fold-search nil)
+	(kwd-re
+	 (cond ((null arg) (concat org-not-done-regexp "\\s-"))
+	       ((equal arg '(4))
+		(let ((kwd
+		       (completing-read "Keyword (or KWD1|KWD2|...): "
+					(mapcar #'list org-todo-keywords-1))))
+		  (concat "\\("
+			  (mapconcat 'identity (org-split-string kwd "|") "\\|")
+			  "\\)\\>" "\\s-")))
+	       ((<= (prefix-numeric-value arg) (length org-todo-keywords-1))
+		(regexp-quote (nth (1- (prefix-numeric-value arg))
+				   org-todo-keywords-1)))
+	       (t (user-error "Invalid prefix argument: %s" arg)))))
+    (message "%d TODO entries found"
+	     (org-occur (concat "^" org-outline-regexp " *" kwd-re )))))
+
+(setq org-highlight-sparse-tree-matches nil)
+
 ;;════════════════════════════════════════
 ;; misc_yanking_images
 
@@ -1245,6 +1276,14 @@ found under the `invisible' property, or nil when the region is visible there."
         (org-entry-put nil "TEMPDONE_UNDO_DAY" (number-to-string day)))      
       (org-hide-entry))))
 
+(defvar my-org-tempdone-random-interval (cons 8 12))
+(defun my-org-tempdone-random nil
+  (interactive)
+  (my-org-tempdone
+   (my-randint
+    (car my-org-tempdone-random-interval)
+    (cdr my-org-tempdone-random-interval))))
+
 (defun my-org-tempdone-interval (&optional arg)
   (interactive "P")
   (let* (interval prompt interval)
@@ -1381,6 +1420,7 @@ non-nil, undo regardless of date."
 (progn
   (define-key my-org-node-map "t" 'my-org-tempdone-interval)
   (define-key my-org-node-map "r" 'my-org-tempdone-sched-READ)
+  (define-key my-org-node-map "}" 'my-org-tempdone-random)
   (define-key my-org-node-map "d" 'my-org-node-date)
   (define-key my-org-node-map "s" 'my-org-node-add-source)
   (define-key my-org-node-map "b" 'my-org-node-bury)
