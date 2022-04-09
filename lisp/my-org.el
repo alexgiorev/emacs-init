@@ -1274,7 +1274,7 @@ found under the `invisible' property, or nil when the region is visible there."
       (org-entry-put nil "TEMPDONE_INTERVAL" (number-to-string interval))
       (when day
         (org-entry-put nil "TEMPDONE_UNDO_DAY" (number-to-string day)))      
-      (org-hide-entry))))
+      (org-back-to-heading) (org-flag-subtree nil))))
 
 (defvar my-org-tempdone-random-interval (cons 8 12))
 (defun my-org-tempdone-random nil
