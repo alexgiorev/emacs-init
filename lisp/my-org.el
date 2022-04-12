@@ -4,6 +4,7 @@
 (require 'my-macs)
 (require 'sched (concat (file-name-directory load-file-name) "sched/sched.el"))
 (require 'my-org-vars (concat (file-name-directory load-file-name) "my-org-vars/my-org-vars.el"))
+(require 'dash)
 
 ;;════════════════════════════════════════════════════════════
 ;; widen to parent
@@ -1970,7 +1971,15 @@ ELEMENT."
          (kwd (or kwd (org-get-todo-state)))
          (pair (assoc kwd org-todoq-queues)))
     (when custom-id
-      (setcdr pair (delq custom-id (cdr pair))))))
+      (setcdr pair (--remove
+                    (string= it custom-id)
+                    (cdr pair))))))
+
+(defun org-todoq-after-todo-change nil
+  (when (not (string= org-state org-last-state))
+    (org-todoq-remove org-last-state)))
+(add-hook 'org-after-todo-state-change-hook
+          'org-todoq-after-todo-change)
 
 (defvar org-todoq-map (make-sparse-keymap))
 (progn
