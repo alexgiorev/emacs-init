@@ -1921,8 +1921,9 @@ ELEMENT."
 (defun org-todoq-load nil
   (let ((queues-file (org-todoq-queues-file))
         queues current)
-    (setq org-todoq-queues (car (my-read-file queues-file))
-          org-todoq-current (caar org-todoq-queues))))
+    (when (file-exists-p queues-file)
+      (setq org-todoq-queues (car (my-read-file queues-file))
+            org-todoq-current (caar org-todoq-queues)))))
 (add-hook 'org-mode-hook 'org-todoq-load)
 
 (defun org-todoq-save nil
@@ -1951,19 +1952,20 @@ ELEMENT."
     (my-org-node-show)
     (set-buffer-modified-p t)))
 
-(defun org-todoq-enqueue (&optional kwd)
+(defun org-todoq-enqueue (&optional kwd prepend)
   (let* ((kwd (or kwd (org-get-todo-state)))
          (pair (assoc kwd org-todoq-queues))
          (custom-id (my-org-custom-id-get-create)))
     (if (not pair)
         (push (cons kwd (list custom-id)) org-todoq-queues)
-      (setcdr pair (nconc (cdr pair) (list custom-id))))
+      (if prepend
+          (setcdr pair (cons custom-id (cdr pair)))
+        (setcdr pair (nconc (cdr pair) (list custom-id)))))
     (set-buffer-modified-p t)))
 
-(defun org-todoq-enqueue-cmd nil
-  (interactive)
-  (org-todoq-enqueue) (message "Enqueued"))
-
+(defun org-todoq-enqueue-cmd (prepend)
+  (interactive "P")
+  (org-todoq-enqueue nil prepend) (message "Enqueued"))
 
 (defun org-todoq-remove (&optional kwd)
   (interactive)
