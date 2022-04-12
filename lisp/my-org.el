@@ -1907,5 +1907,77 @@ ELEMENT."
       (t (current-indentation))))))
 
 
+;; org-todoq
+;; ════════════════════════════════════════
+(defvar-local org-todoq-queues nil)
+(defvar-local org-todoq-current nil)
+
+(defun org-todoq-queues-file (&optional file)
+  (setq file (or file (buffer-file-name (buffer-base-buffer))))
+  (concat file "_todoq.el"))
+
+(defun org-todoq-load nil
+  (let ((queues-file (org-todoq-queues-file))
+        queues current)
+    (setq org-todoq-queues (car (my-read-file queues-file))
+          org-todoq-current (caar org-todoq-queues))))
+(add-hook 'org-mode-hook 'org-todoq-load)
+
+(defun org-todoq-save nil
+  (when org-todoq-queues
+    (let ((queues org-todoq-queues))
+      (with-temp-file (org-todoq-queues-file)
+        (pp queues (current-buffer))))))
+(add-hook 'after-save-hook 'org-todoq-save)
+
+(defun org-todoq-select-kwd nil
+  (interactive)
+  (setq org-todoq-current
+        (completing-read "Select queue: " org-todo-keywords-1)))
+
+(defun org-todoq-dequeue nil
+  (interactive)
+  (unless org-todoq-current (org-todoq-select-kwd))
+  (let* ((pair (assoc org-todoq-current org-todoq-queues))
+         (head (and pair (pop (cdr pair)))))
+    (unless head
+      (user-error "The \"%s\" queue is empty" org-todoq-current))
+    (unless (cdr pair)
+      (setq org-todoq-queues
+            (assoc-delete-all org-todoq-current org-todoq-queues)))
+    (org-link-search (format "#%s" head))
+    (my-org-node-show)
+    (set-buffer-modified-p t)))
+
+(defun org-todoq-enqueue (&optional kwd)
+  (let* ((kwd (or kwd (org-get-todo-state)))
+         (pair (assoc kwd org-todoq-queues))
+         (custom-id (my-org-custom-id-get-create)))
+    (if (not pair)
+        (push (cons kwd (list custom-id)) org-todoq-queues)
+      (setcdr pair (nconc (cdr pair) (list custom-id))))
+    (set-buffer-modified-p t)))
+
+(defun org-todoq-enqueue-cmd nil
+  (interactive)
+  (org-todoq-enqueue) (message "Enqueued"))
+
+
+(defun org-todoq-remove (&optional kwd)
+  (interactive)
+  (let* ((custom-id (org-entry-get nil "CUSTOM_ID"))
+         (kwd (or kwd (org-get-todo-state)))
+         (pair (assoc kwd org-todoq-queues)))
+    (when custom-id
+      (setcdr pair (delq custom-id (cdr pair))))))
+
+(defvar org-todoq-map (make-sparse-keymap))
+(progn
+  (define-key org-todoq-map "e" 'org-todoq-enqueue-cmd)
+  (define-key org-todoq-map "n" 'org-todoq-dequeue)
+  (define-key org-todoq-map "r" 'org-todoq-remove)
+  (define-key org-todoq-map "s" 'org-todoq-select-kwd))
+(define-key org-mode-map "\C-cq" org-todoq-map)
+
 ;; ════════════════════════════════════════
 (provide 'my-org)
