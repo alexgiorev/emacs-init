@@ -349,7 +349,7 @@ entries from the file."
         (type "IDEA(i)" "|" "IDEA_DECL")
         (type "READ(r)" "READ_L" "|" "READ_D")
         (type "EXPLORE(x)" "ANKIFY(y)" "CONTINUE"
-              "EXPERIMENT" "ACTION" "HOOK" "LATER" "|" "FUN")))
+              "EXPERIMENT" "ACTION" "HOOK" "LATER" "FUN" "|")))
 
 ;; so that level 2 entries are also considered when refiling
 (setq org-refile-targets
@@ -458,14 +458,18 @@ function with no arguments called with point at the beginning of the heading"
 
 (defun my-org-get-link (&optional components)
   (if current-prefix-arg
-      (let (custom-id link desc)
-        (unless (setq custom-id (org-entry-get nil "CUSTOM_ID"))
-          (org-entry-put
-           nil "CUSTOM_ID" (setq custom-id (my-org-next-custom-id))))
+      (let ((custom-id (my-org-custom-id-get-create))
+            link desc)
         (setq link (concat "file:" (buffer-file-name (buffer-base-buffer)) "::#" custom-id)
               desc (my-org-strip-links (org-get-heading t t t t)))
         (if components (list link desc) (format "[[%s][%s]]" link desc)))
     (org-store-link 1)))
+
+(defun my-org-custom-id-get-create nil
+  (let (custom-id)
+    (unless (setq custom-id (org-entry-get nil "CUSTOM_ID"))
+      (org-entry-put nil "CUSTOM_ID" (setq custom-id (my-org-next-custom-id))))
+    custom-id))
 
 (defun my-org-store-link (arg)
   (interactive "P")
@@ -1274,7 +1278,7 @@ found under the `invisible' property, or nil when the region is visible there."
       (org-entry-put nil "TEMPDONE_INTERVAL" (number-to-string interval))
       (when day
         (org-entry-put nil "TEMPDONE_UNDO_DAY" (number-to-string day)))      
-      (org-back-to-heading) (org-flag-subtree nil))))
+      (org-back-to-heading) (org-flag-subtree t))))
 
 (defvar my-org-tempdone-random-interval (cons 8 12))
 (defun my-org-tempdone-random nil
