@@ -1280,15 +1280,7 @@ found under the `invisible' property, or nil when the region is visible there."
         (org-entry-put nil "TEMPDONE_UNDO_DAY" (number-to-string day)))      
       (org-back-to-heading) (org-flag-subtree t))))
 
-(defvar my-org-tempdone-random-interval (cons 8 12))
-(defun my-org-tempdone-random nil
-  (interactive)
-  (my-org-tempdone
-   (my-randint
-    (car my-org-tempdone-random-interval)
-    (cdr my-org-tempdone-random-interval))))
-
-(defun my-org-tempdone-interval (&optional arg)
+(defun my-org-tempdone-cmd (&optional arg)
   (interactive "P")
   (let* (interval prompt interval)
     (if arg
@@ -1303,6 +1295,14 @@ found under the `invisible' property, or nil when the region is visible there."
         (setq prompt "Interval: "))
       (setq interval (read-number prompt))
       (my-org-tempdone interval))))
+
+(defvar my-org-tempdone-random-interval (cons 8 12))
+(defun my-org-tempdone-random nil
+  (interactive)
+  (my-org-tempdone
+   (my-randint
+    (car my-org-tempdone-random-interval)
+    (cdr my-org-tempdone-random-interval))))
 
 (defun my-org-tempdone-undo-buffer nil
   "Go through the accessible portion of the current buffer and undo the TEMDONE entries"
@@ -1328,7 +1328,8 @@ non-nil, undo regardless of date."
           (error "TEMPDONE entry missing TEMPDONE_UNDO property"))
         (org-entry-delete nil "TEMPDONE_UNDO")
         (org-entry-delete nil "TEMPDONE_UNDO_DAY")
-        (org-todo old)))))
+        (org-todo old)
+        (org-todoq-enqueue old)))))
 
 (defun my-org-tempdone-sched-READ (&optional interval)
   (interactive "nInterval: ")
@@ -1422,7 +1423,7 @@ non-nil, undo regardless of date."
 (defvar my-org-node-map (make-sparse-keymap)
   "Binds keys to commands which work on nodes")
 (progn
-  (define-key my-org-node-map "t" 'my-org-tempdone-interval)
+  (define-key my-org-node-map "t" 'my-org-tempdone-cmd)
   (define-key my-org-node-map "r" 'my-org-tempdone-sched-READ)
   (define-key my-org-node-map "}" 'my-org-tempdone-random)
   (define-key my-org-node-map "d" 'my-org-node-date)
