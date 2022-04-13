@@ -147,7 +147,7 @@ not bound to any node."
   (define-key my-org-vars-map "s" 'my-org-vars-set)
   (define-key my-org-vars-map "u" 'my-org-vars-unset)
   (define-key my-org-vars-map "l" 'my-org-vars-insert-link)
-  (define-key my-org-vars-map "r" 'my-org-vars-link-region))
+  (define-key my-org-vars-map "n" 'my-org-vars-link-region))
 (define-key global-map "\C-xv" my-org-vars-map)
 
 ;; * initialization
