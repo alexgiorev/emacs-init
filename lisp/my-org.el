@@ -1972,7 +1972,7 @@ ELEMENT."
   (let* ((custom-id (org-entry-get nil "CUSTOM_ID"))
          (kwd (or kwd (org-get-todo-state)))
          (pair (assoc kwd org-todoq-queues)))
-    (when custom-id
+    (when (and custom-id pair)
       (setcdr pair (--remove
                     (string= it custom-id)
                     (cdr pair))))))
