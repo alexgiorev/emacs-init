@@ -110,6 +110,9 @@ not bound to any node."
   "For each occurence of an identifier in the region,
  replace it with a link to the variable"
   (interactive "r")
+  (unless (org-region-active-p)
+    (setq start (line-beginning-position)
+          end (line-end-position)))
   (let ((re (concat "\\("
                     (regexp-opt (my-alist-keys my-org-vars-alist)
                                 'words)
