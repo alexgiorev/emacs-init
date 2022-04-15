@@ -115,7 +115,7 @@ not bound to any node."
                                 'words)
                     "\\)"))
         (case-fold-search nil)
-        name id link)
+        found name id link)
     (org-with-wide-buffer
      (goto-char start)
      (narrow-to-region start end)
@@ -123,7 +123,9 @@ not bound to any node."
        (setq name (match-string 1)
              id (cdr (assoc name my-org-vars-alist))
              link (format "[[id:%s][%s]]" id name))
-       (replace-match link)))))
+       (when (not (member id found))
+         (replace-match link)
+         (push id found))))))
 
 (defun my-org-vars-rename (from to)
   (interactive
