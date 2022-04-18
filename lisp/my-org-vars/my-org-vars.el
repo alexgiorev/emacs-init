@@ -122,13 +122,15 @@ not bound to any node."
     (org-with-wide-buffer
      (goto-char start)
      (narrow-to-region start end)
-     (while (re-search-forward re nil t)
-       (setq name (match-string 1)
-             id (cdr (assoc name my-org-vars-alist))
-             link (format "[[id:%s][%s]]" id name))
-       (when (not (member id found))
-         (replace-match link)
-         (push id found))))))
+     (let ((case-fold-search t))
+       (while (re-search-forward re nil t)
+         (unless (eq (char-after) ?\])
+           (setq name (downcase (match-string 1))
+                 id (cdr (assoc name my-org-vars-alist))
+                 link (format "[[id:%s][%s]]" id name))
+           (when (not (member id found))
+             (replace-match link)
+             (push id found))))))))
 
 (defun my-org-vars-rename (from to)
   (interactive
