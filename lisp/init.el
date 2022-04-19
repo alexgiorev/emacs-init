@@ -609,10 +609,11 @@ node the current one"
 (defvar buffer-forest-persist-file "~/leng/last-buffer-forest.el")
 (defun buffer-forest-persist-forest nil
   (interactive)
-  (with-temp-file buffer-forest-persist-file
-    (let ((sexps (mapcar 'buffer-forest--to-sexp
-                         (plist-get buffer-forest :children))))       
-      (pp sexps (current-buffer)))))
+  (unless (forest-empty-p buffer-forest)
+    (with-temp-file buffer-forest-persist-file
+      (let ((sexps (mapcar 'buffer-forest--to-sexp
+                           (plist-get buffer-forest :children))))       
+        (pp sexps (current-buffer))))))
 (add-hook 'kill-emacs-hook 'buffer-forest-persist-forest)
 
 (defun buffer-forest-load-last-forest nil
@@ -636,11 +637,19 @@ This is the tree whose root is the foremost ancestor of the current node."
       (kill-new (buffer-substring-no-properties (point-min) (point-max))))))
 
 (defun buffer-forest--to-sexp (node)
-  (let ((file (or (buffer-file-name (plist-get node :buffer))
-                  (buffer-file-name
-                   (buffer-base-buffer (plist-get node :buffer))))))
+  (let* ((buffer (plist-get node :buffer))
+         (file (or (buffer-file-name buffer)
+                   (buffer-file-name (buffer-base-buffer buffer))))
+         (name (buffer-name buffer))
+         (narrowing
+          (with-current-buffer buffer
+            (when (buffer-narrowed-p) (cons (point-min) (point-max)))))
+         (indirect-p (not (null (buffer-base-buffer buffer)))))
     (when file
-      (cons file (-keep 'buffer-forest--to-sexp (plist-get node :children))))))
+      `(:file ,file
+        :name ,name
+        :indirect-p ,indirect-p
+        :children ,(-keep 'buffer-forest--to-sexp (plist-get node :children))))))
 
 (defun buffer-forest-restore nil
   "Assumes that point is after the sexp"
@@ -650,21 +659,20 @@ This is the tree whose root is the foremost ancestor of the current node."
 (defun buffer-forest--from-sexp (sexp)
   (let ((initial (forest-current buffer-forest))
         (root (forest-new-root buffer-forest)))
-    (condition-case err
-        (progn
-          (buffer-forest--from-sexp-walk sexp)
-          (forest-set-current buffer-forest root))
-      (error (forest-set-current buffer-forest root)
-             (forest-prune buffer-forest)
-             (forest-set-current initial)
-             (error (cdr err))))))
+    (buffer-forest--from-sexp-walk sexp)
+    (forest-set-current buffer-forest root)))
 
 (defun buffer-forest--from-sexp-walk (node)
   "NODE is a SEXP node. Assumes that the `buffer-forest's current node is the
 one which corresponds to NODE"
-  (let ((current (forest-current buffer-forest)))
-    (plist-put current :buffer (find-file-noselect (car node)))
-    (dolist (child (cdr node))
+  (let* ((current (forest-current buffer-forest))
+         (base-buffer (find-file-noselect (plist-get node :file)))
+         (buffer (if (plist-get node :indirect-p)
+                     (with-current-buffer base-buffer
+                       (clone-indirect-buffer (plist-get node :name) nil))
+                   base-buffer)))
+    (plist-put current :buffer buffer)
+    (dolist (child (plist-get node :children))
       (forest-new-child buffer-forest)
       (buffer-forest--from-sexp-walk child)
       (forest-set-current buffer-forest current))))
