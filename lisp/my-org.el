@@ -1035,6 +1035,32 @@ of `org-todo-keywords-1'."
 
 (setq org-highlight-sparse-tree-matches nil)
 
+(defun my-audio-to-org nil
+  (let ((map (make-hash-table :test 'equal))
+        day+time)
+    ;; create MAP
+    ;; ══════════════════════════════
+    (dolist (path (directory-files "~/audio_recordings" t "m4a$"))
+      (setq day+time (split-string (file-name-sans-extension
+                                    (file-name-nondirectory path))
+                                   "_"))
+      (puthash (car day+time)
+               (cons (org-xdg-link path (cadr day+time))
+                     (gethash (car day+time) map))
+               map))
+    ;; insert MAP at point
+    ;; ══════════════════════════════
+    (dolist (day (sort (hash-table-keys map) 'string<))
+      (insert "* " "[" day "]\n")
+      (forward-char -4) (insert "-")
+      (forward-char -3) (insert "-")
+      (beginning-of-line 2)
+      (dolist (link (gethash day map))
+        (insert "** " link "\n")))))
+
+(defun org-xdg-link (path desc)
+  (format "[[shell:xdg-open %s][%s]]" path desc))
+
 ;;════════════════════════════════════════
 ;; misc_yanking_images
 
@@ -1936,7 +1962,10 @@ ELEMENT."
 (defun org-todoq-select-kwd nil
   (interactive)
   (setq org-todoq-current
-        (completing-read "Select queue: " org-todo-keywords-1)))
+        (completing-read "Select queue: " org-todo-keywords-1))
+  (message "%s has %s entries"
+           org-todoq-current
+           (length (cdr (assoc org-todoq-current org-todoq-queues)))))
 
 (defun org-todoq-dequeue nil
   (interactive)
