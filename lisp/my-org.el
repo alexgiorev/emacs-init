@@ -1061,6 +1061,14 @@ of `org-todo-keywords-1'."
 (defun org-xdg-link (path desc)
   (format "[[shell:xdg-open %s][%s]]" path desc))
 
+(defun my-org-narrow-node (&optional arg)
+  (interactive "P")
+  (let ((title (org-get-heading t t t t)))
+    (clone-indirect-buffer title t)
+    (org-narrow-to-subtree))
+  (when arg
+    (buffer-forest-new-node)))
+
 ;;════════════════════════════════════════
 ;; misc_yanking_images
 
@@ -1459,7 +1467,7 @@ non-nil, undo regardless of date."
   (define-key my-org-node-map "u" 'my-org-node-put)
   (define-key my-org-node-map "h" 'my-org-node-show)
   (define-key my-org-node-map "n" 'org-nav-next)
-  (define-key my-org-node-map "p" 'org-nav-prev))
+  (define-key my-org-node-map "i" 'my-org-narrow-node))
 (define-key org-mode-map "\C-ce" my-org-node-map)
 (define-key org-mode-map (kbd "C-.") 'my-org-node-bury)
 
