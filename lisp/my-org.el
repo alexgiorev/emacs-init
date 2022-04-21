@@ -343,7 +343,7 @@ entries from the file."
         (type "CONJECTURE(j)" "|" "CONJECTURE_D")
         (type "|" "DECL(e)" "CONNECTION" "FACT" "CONCEPT(c)" "SOURCE" "EXAMPLES" "TEMP")
         (type "QUESTION(q)" "|" "ANSWERED" "ANSWER(a)")
-        (type "PROBLEM(p)" "|" "SOLVED" "PROBLEM_D" "SOLUTION(o)")
+        (type "PROBLEM(p)" "PROBLEM_L" "|" "SOLVED" "PROBLEM_D" "SOLUTION(o)")
         (type "UNDERSTAND(u)" "|" "UNDERSTOOD")
         (type "GOAL(g)" "|" "GOAL_D")
         (type "EXPLAIN(l)" "|" "EXPLAINED")
@@ -1986,6 +1986,7 @@ ELEMENT."
       (setq org-todoq-queues
             (assoc-delete-all org-todoq-current org-todoq-queues)))
     (org-link-search (format "#%s" head))
+    (push-mark)
     (my-org-node-show)
     (set-buffer-modified-p t)))
 
