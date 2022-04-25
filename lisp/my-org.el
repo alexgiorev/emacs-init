@@ -212,6 +212,17 @@ add a backlink as a BACKLINK property."
   (kill-new (my-org-strip-links (buffer-substring start end)))
   (deactivate-mark))
 
+(defun my-org-yank-as-last-child (&optional tree)
+  (interactive)
+  (setq tree (or tree (car kill-ring-yank-pointer)))
+  (unless (org-kill-is-subtree-p tree)
+    (setq tree (concat "* " tree)))
+  (let ((level (1+ (org-current-level))))
+    (org-end-of-subtree t t)
+    (unless (eq (char-before) ?\n) (insert "\n"))
+    (org-paste-subtree level tree)
+    (org-flag-subtree t)))
+
 (defvar my-org-yank-map (make-sparse-keymap))
 (progn
   (define-key my-org-yank-map "l" 'my-org-yank-list)
@@ -222,7 +233,8 @@ add a backlink as a BACKLINK property."
   (define-key my-org-yank-map "z" 'my-org-yank-anki-cloze)
   (define-key my-org-yank-map "i" 'my-org-yank-image)
   (define-key my-org-yank-map "_" 'my-org-yank-_)
-  (define-key my-org-yank-map "[" 'my-org-save-no-links))
+  (define-key my-org-yank-map "[" 'my-org-save-no-links)
+  (define-key my-org-yank-map "n" 'my-org-yank-as-last-child))
 (define-key org-mode-map "\C-cy" my-org-yank-map)
 (global-set-key "\C-\M-y" 'my-yank-unfill)
 
