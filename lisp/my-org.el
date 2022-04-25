@@ -359,6 +359,7 @@ entries from the file."
         (type "UNDERSTAND(u)" "|" "UNDERSTOOD")
         (type "GOAL(g)" "|" "GOAL_D")
         (type "FIND(f)" "|" "FOUND")
+        (type "PROVE(v)" "|" "PROVED")
         (type "EXPLAIN(l)" "|" "EXPLAINED")
         (type "IDEA(i)" "|" "IDEA_DECL")
         (type "READ(r)" "READ_L" "|" "READ_D")
