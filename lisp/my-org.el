@@ -358,6 +358,7 @@ entries from the file."
         (type "PROBLEM(p)" "PROBLEM_L" "|" "SOLVED" "PROBLEM_D" "SOLUTION(o)")
         (type "UNDERSTAND(u)" "|" "UNDERSTOOD")
         (type "GOAL(g)" "|" "GOAL_D")
+        (type "FIND(f)" "|" "FOUND")
         (type "EXPLAIN(l)" "|" "EXPLAINED")
         (type "IDEA(i)" "|" "IDEA_DECL")
         (type "READ(r)" "READ_L" "|" "READ_D")
