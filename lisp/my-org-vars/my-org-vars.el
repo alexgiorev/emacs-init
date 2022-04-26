@@ -106,10 +106,10 @@ not bound to any node."
                 name)))
     (insert (org-link-make-string (concat "id:" id) text))))
 
-(defun my-org-vars-link-region (start end)
+(defun my-org-vars-link-region (start end &optional incremental-p)
   "For each occurence of an identifier in the region,
  replace it with a link to the variable"
-  (interactive "r")
+  (interactive "r\nP")
   (unless (org-region-active-p)
     (setq start (line-beginning-position)
           end (line-end-position)))
@@ -118,19 +118,27 @@ not bound to any node."
                                 'words)
                     "\\)"))
         (case-fold-search nil)
-        found name id link)
+        (read-answer-short t)
+        overlay found name id link)
     (org-with-wide-buffer
      (goto-char start)
      (narrow-to-region start end)
-     (let ((case-fold-search t))
-       (while (re-search-forward re nil t)
-         (unless (eq (char-after) ?\])
-           (setq name (downcase (match-string 1))
+     (setq overlay (make-overlay (point) (point)))
+     (overlay-put overlay 'face isearch-face)
+     (unwind-protect
+         (while (re-search-forward re nil t)
+           (setq name (match-string 1)
                  id (cdr (assoc name my-org-vars-alist))
                  link (format "[[id:%s][%s]]" id name))
+           (move-overlay overlay (match-beginning 0) (match-end 0))
            (when (not (member id found))
-             (replace-match link)
-             (push id found))))))))
+             (unless (eq (char-after) ?\])
+               (when (or (not incremental-p)
+                         (string= (read-answer "Link? " '(("yes" ?y) ("no" ?n)))
+                                  "yes"))
+                 (replace-match link)
+                 (push id found)))))
+       (delete-overlay overlay)))))
 
 (defun my-org-vars-rename (from to)
   (interactive
