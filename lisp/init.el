@@ -641,12 +641,18 @@ This is the tree whose root is the foremost ancestor of the current node."
          (file (or (buffer-file-name buffer)
                    (buffer-file-name (buffer-base-buffer buffer))))
          (name (buffer-name buffer))
-         (narrowing
+         (org-node-id
           (with-current-buffer buffer
-            (when (buffer-narrowed-p) (cons (point-min) (point-max)))))
+            (when (buffer-narrowed-p)
+              (save-excursion
+                (goto-char (point-min))
+                (unless (or (org-before-first-heading-p)
+                            (save-excursion (org-goto-sibling)))
+                  (my-org-custom-id-get-create))))))
          (indirect-p (not (null (buffer-base-buffer buffer)))))
     (when file
       `(:file ,file
+        :org-node-id ,org-node-id
         :name ,name
         :indirect-p ,indirect-p
         :children ,(-keep 'buffer-forest--to-sexp (plist-get node :children))))))
@@ -670,7 +676,12 @@ one which corresponds to NODE"
          (buffer (if (plist-get node :indirect-p)
                      (with-current-buffer base-buffer
                        (clone-indirect-buffer (plist-get node :name) nil))
-                   base-buffer)))
+                   base-buffer))
+         (org-node-id (plist-get node :org-node-id)))
+    (when (and org-node-id
+               (ignore-errors
+                 (org-link-search (format "#%s" org-node-id))))
+      (org-narrow-to-subtree))
     (plist-put current :buffer buffer)
     (dolist (child (plist-get node :children))
       (forest-new-child buffer-forest)
