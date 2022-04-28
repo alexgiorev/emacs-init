@@ -643,7 +643,7 @@ This is the tree whose root is the foremost ancestor of the current node."
          (name (buffer-name buffer))
          (org-node-id
           (with-current-buffer buffer
-            (when (buffer-narrowed-p)
+            (when (and (derived-mode-p 'org-mode) (buffer-narrowed-p))
               (save-excursion
                 (goto-char (point-min))
                 (unless (or (org-before-first-heading-p)
@@ -678,10 +678,10 @@ one which corresponds to NODE"
                        (clone-indirect-buffer (plist-get node :name) nil))
                    base-buffer))
          (org-node-id (plist-get node :org-node-id)))
-    (when (and org-node-id
-               (ignore-errors
-                 (org-link-search (format "#%s" org-node-id))))
-      (org-narrow-to-subtree))
+    (when org-node-id
+      (with-current-buffer buffer
+        (when (ignore-errors (org-link-search (format "#%s" org-node-id)))
+          (org-narrow-to-subtree))))
     (plist-put current :buffer buffer)
     (dolist (child (plist-get node :children))
       (forest-new-child buffer-forest)
