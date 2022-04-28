@@ -1083,6 +1083,8 @@ of `org-todo-keywords-1'."
   (when arg
     (buffer-forest-new-node)))
 
+(define-key org-mode-map (kbd "C-c C-x C-s") nil)
+
 ;;════════════════════════════════════════
 ;; misc_yanking_images
 
@@ -1331,20 +1333,31 @@ found under the `invisible' property, or nil when the region is visible there."
 
 (defun my-org-tempdone-cmd (&optional arg)
   (interactive "P")
-  (let* (interval prompt interval)
+  (let* (last-interval low-high prompt interval)
     (if arg
-        (progn (setq interval (read-number "Interval: "))
+        (progn (setq low-high (read-string "Interval: "))
                (org-map-tree
                 (lambda nil
-                  (when (org-entry-is-todo-p) (my-org-tempdone interval)))))
-      (setq interval (org-entry-get nil "TEMPDONE_INTERVAL"))
-      (if interval
-          (setq interval (string-to-number interval)
-                prompt (format "Interval (last was %s): " interval))
+                  (when (org-entry-is-todo-p)
+                    (my-org-tempdone (my-randint (car low-high)
+                                                 (cadr low-high)))))))
+      (setq last-interval (org-entry-get nil "TEMPDONE_INTERVAL"))
+      (if last-interval
+          (setq last-interval (string-to-number last-interval)
+                prompt (format "Interval (last was %s): " last-interval))
         (setq prompt "Interval: "))
-      (setq interval (read-number prompt))
-      (my-org-tempdone interval))))
+      (setq low-high (my-org-tempdone-read-low-high))
+      (my-org-tempdone
+       (my-randint (car low-high)
+                   (cadr low-high))))))
 
+(defun my-org-tempdone-read-low-high nil
+  (let (interval-str low-high)
+    (setq interval-str (read-string "Interval: ")
+          low-high (mapcar 'string-to-number (split-string interval-str "-")))
+    (when (= 1 (length low-high)) (push (car low-high) low-high))
+    low-high))
+    
 (defvar my-org-tempdone-random-interval (cons 8 12))
 (defun my-org-tempdone-random nil
   (interactive)
