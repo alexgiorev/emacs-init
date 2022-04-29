@@ -1375,6 +1375,10 @@ found under the `invisible' property, or nil when the region is visible there."
   (org-map-region (apply-partially 'my-org-tempdone-undo force) start end)
   (deactivate-mark))
 
+(defvar my-org-tempdone-exclude-from-todoq nil
+  "A list of keywords which to not enqueue on a todoq queue when UNDOing the TEMPDONE")
+(setq my-org-tempdone-exclude-from-todoq
+      '("READ_L" "PROBLEM_L"))
 (defun my-org-tempdone-undo (&optional force)
   "If the current entry is a TEMPDONE, undo it. If a TEMPDONE date is present,
 don't undo unless it refers to today or a day that has passed. If FORCE is
@@ -1390,7 +1394,8 @@ non-nil, undo regardless of date."
         (org-entry-delete nil "TEMPDONE_UNDO")
         (org-entry-delete nil "TEMPDONE_UNDO_DAY")
         (org-todo old)
-        (when day (org-todoq-enqueue old))))))
+        (when (and day (not (member old my-org-tempdone-exclude-from-todoq)))
+          (org-todoq-enqueue old))))))
 
 (defun my-org-tempdone-sched-READ (&optional low-high)
   (interactive)
