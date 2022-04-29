@@ -1333,7 +1333,7 @@ found under the `invisible' property, or nil when the region is visible there."
 
 (defun my-org-tempdone-cmd (&optional arg)
   (interactive "P")
-  (let* (last-interval low-high prompt interval)
+  (let* (last-interval low-high prompt)
     (if arg
         (progn (setq low-high (read-string "Interval: "))
                (org-map-tree
@@ -1342,18 +1342,17 @@ found under the `invisible' property, or nil when the region is visible there."
                     (my-org-tempdone (my-randint (car low-high)
                                                  (cadr low-high)))))))
       (setq last-interval (org-entry-get nil "TEMPDONE_INTERVAL"))
-      (if last-interval
-          (setq last-interval (string-to-number last-interval)
-                prompt (format "Interval (last was %s): " last-interval))
-        (setq prompt "Interval: "))
-      (setq low-high (my-org-tempdone-read-low-high))
+      (setq low-high (my-org-tempdone-read-low-high last-interval))
       (my-org-tempdone
        (my-randint (car low-high)
                    (cadr low-high))))))
 
-(defun my-org-tempdone-read-low-high nil
-  (let (interval-str low-high)
-    (setq interval-str (read-string "Interval: ")
+(defun my-org-tempdone-read-low-high (&optional last-interval)
+  (let ((prompt (if last-interval (format "Interval (last was %s): "
+                                          last-interval)
+                  "Interval: "))
+        interval-str low-high)
+    (setq interval-str (read-string prompt)
           low-high (mapcar 'string-to-number (split-string interval-str "-")))
     (when (= 1 (length low-high)) (push (car low-high) low-high))
     low-high))
@@ -1393,9 +1392,16 @@ non-nil, undo regardless of date."
         (org-todo old)
         (org-todoq-enqueue old)))))
 
-(defun my-org-tempdone-sched-READ (&optional interval)
-  (interactive "nInterval: ")
-  (org-todo "READ") (my-org-tempdone interval))
+(defun my-org-tempdone-sched-READ (&optional low-high)
+  (interactive)
+  (let (last)
+    (org-todo "READ")
+    (if low-high
+        (my-org-tempdone (my-randint (car low-high) (cadr low-high)))
+      (setq last (org-entry-get nil "TEMPDONE_INTERVAL"))
+      (when last (setq last (string-to-number last)))
+      (setq low-high (my-org-tempdone-read-low-high last))
+      (my-org-tempdone (my-randint (car low-high) (cadr low-high))))))
 
 (add-hook 'org-after-todo-state-change-hook
           'my-org-tempdone-after-state-change)
