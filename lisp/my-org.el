@@ -944,8 +944,13 @@ available."
              (isearch-filter-visible start end)
              (save-excursion (goto-char start) (org-on-heading-p))))))
     (isearch-mode t nil nil t)))
-
 (define-key org-mode-map (kbd "M-s e") 'my-org-isearch-headlines)
+
+(defun my-org-isearch-visible nil
+  (interactive)
+  (let ((search-invisible nil))
+    (isearch-mode t nil nil t)))
+(define-key org-mode-map (kbd "M-s v") 'my-org-isearch-visible)
 
 ;; without this, I get a "Running less..." error when
 ;; trying to open file links within Emacs
