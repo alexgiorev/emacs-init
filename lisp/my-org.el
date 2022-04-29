@@ -1390,7 +1390,7 @@ non-nil, undo regardless of date."
         (org-entry-delete nil "TEMPDONE_UNDO")
         (org-entry-delete nil "TEMPDONE_UNDO_DAY")
         (org-todo old)
-        (org-todoq-enqueue old)))))
+        (when day (org-todoq-enqueue old))))))
 
 (defun my-org-tempdone-sched-READ (&optional low-high)
   (interactive)
