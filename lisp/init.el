@@ -673,13 +673,15 @@ This is the tree whose root is the foremost ancestor of the current node."
 one which corresponds to NODE"
   (let* ((current (forest-current buffer-forest))
          (base-buffer (find-file-noselect (plist-get node :file)))
-         (buffer (if (plist-get node :indirect-p)
-                     (with-current-buffer base-buffer
-                       (clone-indirect-buffer (plist-get node :name) nil))
-                   base-buffer))
+         (buffer (or (get-buffer (plist-get node :name))
+                     (if (plist-get node :indirect-p)
+                         (with-current-buffer base-buffer
+                           (clone-indirect-buffer (plist-get node :name) nil))
+                       base-buffer)))
          (org-node-id (plist-get node :org-node-id)))
     (when org-node-id
       (with-current-buffer buffer
+        (widen)
         (when (ignore-errors (org-link-search (format "#%s" org-node-id)))
           (org-narrow-to-subtree))))
     (plist-put current :buffer buffer)
