@@ -1418,7 +1418,8 @@ non-nil, undo regardless of date."
 (add-hook 'org-after-todo-state-change-hook
           'my-org-tempdone-after-state-change)
 (add-hook 'org-mode-hook
-          'my-org-tempdone-undo-buffer)
+          'my-org-tempdone-undo-buffer
+          1)
 
 ;;════════════════════════════════════════════════════════════
 ;; nodes
