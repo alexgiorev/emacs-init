@@ -567,10 +567,12 @@ function with no arguments called with point at the beginning of the heading"
   (interactive)
   (let (start end)
     (if (use-region-p)
-        (progn (setq start (region-beginning) end (region-end))
-          (goto-char start) (insert "=")
-          (goto-char (1+ end)) (insert "="))
-      (insert "==") (backward-char))))
+        (progn (org-PO-face-code (region-beginning) (region-end))
+               (deactivate-mark))
+      (setq start (point))
+      (insert (read-string "Code: "))
+      (setq end (point))
+      (org-PO-face-code start end))))
 
 (with-eval-after-load 'org
   (define-key org-mode-map (kbd "C-M-c") 'my-org-codify-region))
@@ -1993,7 +1995,10 @@ ELEMENT."
 
 (defun org-todoq-queues-file (&optional file)
   (setq file (or file (buffer-file-name (buffer-base-buffer))))
-  (concat file "_todoq.el"))
+  (concat (file-name-directory file)
+          "extra/"
+          (file-name-sans-extension (file-name-nondirectory file))
+          "_todoq.el"))
 
 (defun org-todoq-load nil
   (let ((queues-file (org-todoq-queues-file))
@@ -2071,6 +2076,110 @@ ELEMENT."
   (define-key org-todoq-map "r" 'org-todoq-remove)
   (define-key org-todoq-map "s" 'org-todoq-select-kwd))
 (define-key org-mode-map "\C-cq" org-todoq-map)
+
+;; org-PO (persistent overlays)
+;; ════════════════════════════════════════
+
+(defvar-local org-PO-overlays nil
+  "A list of the overlays")
+
+(defun org-PO-overlays-file (&optional file)
+  (setq file (or file (buffer-file-name (buffer-base-buffer))))
+  (concat (file-name-directory file)
+          "extra/"
+          (file-name-sans-extension (file-name-nondirectory file))
+          "_PO.el"))
+
+(defun org-PO-load nil
+  (let ((overlays-file (org-PO-overlays-file))
+        file-overlays overlay)
+    (when (file-exists-p overlays-file)
+      (setq file-overlays (car (my-read-file overlays-file)))
+      (dolist (overlay-rep file-overlays)
+        (let* ((region (car overlay-rep))
+               (start (car region)) (end (cdr region))
+               (properties (cadr overlay-rep)))
+          (setq overlay (make-overlay start end))
+          (my-plist-foreach
+           (lambda (prop value)
+             (overlay-put overlay prop value))
+           properties)
+          (overlay-put overlay :org-PO t))
+        (push overlay org-PO-overlays)))))
+(add-hook 'org-mode-hook 'org-PO-load)
+
+(defun org-PO-save nil
+  (when org-PO-overlays
+    (org-PO-clear)
+    (let ((overlay-reps nil) current-rep)
+      ;; construct OVERLAY-REPS
+      (dolist (overlay org-PO-overlays)
+        (setq current-rep `((,(overlay-start overlay) . ,(overlay-end overlay))
+                            ,(org-PO-overlay-properties overlay)))
+        (push current-rep overlay-reps))
+      (with-temp-file (org-PO-overlays-file)
+        (pp overlay-reps (current-buffer))))))
+(add-hook 'after-save-hook 'org-PO-save)
+
+(defun org-PO-clear nil
+  (setq org-PO-overlays
+        (-filter (lambda (overlay) (overlay-buffer overlay))
+                 org-PO-overlays)))
+
+(defvar org-PO-allowed-properties
+  '(face evaporate))
+(defun org-PO-overlay-properties (overlay)
+  (let ((result nil))
+    (my-plist-foreach
+     (lambda (prop value)
+       (when (memq prop org-PO-allowed-properties)
+         (setq result (cons prop (cons value result)))))
+     (overlay-properties overlay))
+    result))
+
+(defun org-PO-add-overlay (overlay)
+  (overlay-put overlay :org-PO t)
+  (push overlay org-PO-overlays)
+  (set-buffer-modified-p t))
+
+(defun org-PO-remove-overlays (start end)
+  (interactive "r")
+  (remove-overlays start end :org-PO t)
+  (set-buffer-modified-p t))
+
+;; org-PO-face
+;; ════════════════════
+
+(defun org-PO-face (face start end)
+  (let ((overlay (make-overlay start end)))
+    (overlay-put overlay 'face face)
+    (overlay-put overlay 'evaporate t)
+    (org-PO-add-overlay overlay)))
+
+(defun org-PO-face-code (start end)
+  (interactive "r")
+  (org-PO-face 'org-code start end))
+
+(defun org-PO-face-bold (start end)
+  (interactive "r")
+  (org-PO-face 'bold start end))
+
+(defun org-PO-face-italic (start end)
+  (interactive "r")
+  (org-PO-face 'italic start end))
+
+(defun org-PO-face-underline (start end)
+  (interactive "r")
+  (org-PO-face 'underline start end))
+
+(defvar my-org-face-map (make-sparse-keymap))
+(progn
+  (define-key my-org-face-map "b" 'org-PO-face-bold)
+  (define-key my-org-face-map "c" 'org-PO-face-code)
+  (define-key my-org-face-map "u" 'org-PO-face-underline)
+  (define-key my-org-face-map "i" 'org-PO-face-italic)
+  (define-key my-org-face-map "\C-?" 'org-PO-remove-overlays))
+(define-key org-mode-map "\C-cf" my-org-face-map)
 
 ;; ════════════════════════════════════════
 (provide 'my-org)
