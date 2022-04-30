@@ -344,11 +344,11 @@ entries from the file."
 ;; mark the type of the entry, whereas "TODO" keywords serve to attract may
 ;; attention as well.
 (setq org-todo-keywords
-      '((sequence "TODO" "|" "DONE")
+      '((sequence "TODO" "TODO_L" "|" "DONE")
         (sequence "PROCESS" "|" "PROCESSED")
         (sequence "NEW" "|")
         (type "|" "TEMPDONE(-)")
-        (type "|" "PASSIVE(s)")
+        (type "PASSIVE(s)" "|")
         (type "|" "LIST" "HEAP")
         (type "|" "CLONE")
         (type "|" "DECISION(n)" "PAST_DECISION")
