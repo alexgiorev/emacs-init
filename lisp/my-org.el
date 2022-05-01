@@ -563,16 +563,25 @@ function with no arguments called with point at the beginning of the heading"
       (setq text (buffer-string)))
     (save-excursion (insert text))))
 
+;; (defun my-org-codify-region nil
+;;   (interactive)
+;;   (let (start end)
+;;     (if (use-region-p)
+;;         (progn (org-PO-face-code (region-beginning) (region-end))
+;;                (deactivate-mark))
+;;       (setq start (point))
+;;       (insert (read-string "Code: "))
+;;       (setq end (point))
+;;       (org-PO-face-code start end))))
+
 (defun my-org-codify-region nil
   (interactive)
   (let (start end)
     (if (use-region-p)
-        (progn (org-PO-face-code (region-beginning) (region-end))
-               (deactivate-mark))
-      (setq start (point))
-      (insert (read-string "Code: "))
-      (setq end (point))
-      (org-PO-face-code start end))))
+        (progn (setq start (region-beginning) end (region-end))
+               (goto-char start) (insert "=")
+               (goto-char (1+ end)) (insert "="))
+      (insert "=" (read-string "Codify: ") "="))))
 
 (with-eval-after-load 'org
   (define-key org-mode-map (kbd "C-M-c") 'my-org-codify-region))
@@ -876,7 +885,7 @@ Point must be on a CLONE entry for this to work."
                    (org-entry-put nil "ID" orig-id))
                  :dont-delete)))))))))
 
-;;════════════════════════════════════════════════════════════
+;; ════════════════════════════════════════════════════════════
 ;; * misc
 
 (defsubst my-org-move-to-title nil
@@ -1089,6 +1098,8 @@ of `org-todo-keywords-1'."
     (org-narrow-to-subtree))
   (when arg
     (buffer-forest-new-node)))
+
+(setq org-hide-emphasis-markers t)
 
 (define-key org-mode-map (kbd "C-c C-x C-s") nil)
 
