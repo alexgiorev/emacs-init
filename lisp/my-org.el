@@ -345,7 +345,7 @@ entries from the file."
 ;; attention as well.
 (setq org-todo-keywords
       '((sequence "TODO" "TODO_L" "|" "DONE")
-        (sequence "PROCESS" "|" "PROCESSED")
+        (sequence "PROCESS(P)" "|" "PROCESSED")
         (sequence "NEW" "|")
         (type "|" "TEMPDONE(-)")
         (type "PASSIVE(s)" "|")
@@ -2103,25 +2103,26 @@ ELEMENT."
           "_PO.el"))
 
 (defun org-PO-load nil
-  (let ((overlays-file (org-PO-overlays-file))
-        file-overlays overlay)
-    (when (file-exists-p overlays-file)
-      (setq file-overlays (car (my-read-file overlays-file)))
-      (dolist (overlay-rep file-overlays)
-        (let* ((region (car overlay-rep))
-               (start (car region)) (end (cdr region))
-               (properties (cadr overlay-rep)))
-          (setq overlay (make-overlay start end))
-          (my-plist-foreach
-           (lambda (prop value)
-             (overlay-put overlay prop value))
-           properties)
-          (overlay-put overlay :org-PO t))
-        (push overlay org-PO-overlays)))))
+  (when (derived-mode-p 'org-mode)
+    (let ((overlays-file (org-PO-overlays-file))
+          file-overlays overlay)
+      (when (file-exists-p overlays-file)
+        (setq file-overlays (car (my-read-file overlays-file)))
+        (dolist (overlay-rep file-overlays)
+          (let* ((region (car overlay-rep))
+                 (start (car region)) (end (cdr region))
+                 (properties (cadr overlay-rep)))
+            (setq overlay (make-overlay start end))
+            (my-plist-foreach
+             (lambda (prop value)
+               (overlay-put overlay prop value))
+             properties)
+            (overlay-put overlay :org-PO t))
+          (push overlay org-PO-overlays))))))
 (add-hook 'org-mode-hook 'org-PO-load)
 
 (defun org-PO-save nil
-  (when org-PO-overlays
+  (when (and (derived-mode-p 'org-mode) org-PO-overlays)
     (org-PO-clear)
     (let ((overlay-reps nil) current-rep)
       ;; construct OVERLAY-REPS
