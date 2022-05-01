@@ -356,7 +356,7 @@ entries from the file."
         (type "|" "DECL(e)" "CONNECTION" "FACT" "CONCEPT(c)" "SOURCE" "EXAMPLES" "TEMP")
         (type "QUESTION(q)" "|" "ANSWERED" "ANSWER(a)")
         (type "PROBLEM(p)" "PROBLEM_L" "|" "SOLVED" "PROBLEM_D" "SOLUTION(o)")
-        (type "BUG" "|" "BUG_D")
+        (type "BUG" "|" "BUG_FIXED")
         (type "UNDERSTAND(u)" "|" "UNDERSTOOD")
         (type "GOAL(g)" "|" "GOAL_D")
         (type "FIND(f)" "FIND_L" "|" "FOUND")
@@ -580,9 +580,9 @@ function with no arguments called with point at the beginning of the heading"
   (let (start end)
     (if (use-region-p)
         (progn (setq start (region-beginning) end (region-end))
-               (goto-char start) (insert "=")
-               (goto-char (1+ end)) (insert "="))
-      (insert "=" (read-string "Codify: ") "="))))
+               (goto-char start) (insert "~")
+               (goto-char (1+ end)) (insert "~"))
+      (insert "~" (read-string "Codify: ") "~"))))
 
 (with-eval-after-load 'org
   (define-key org-mode-map (kbd "C-M-c") 'my-org-codify-region))
@@ -2076,6 +2076,12 @@ ELEMENT."
       (setcdr pair (--remove
                     (string= it custom-id)
                     (cdr pair))))))
+
+(defun org-todoq-empty (kwd)
+  (interactive
+   (list (completing-read "Queue: " org-todo-keywords-1)))
+  (setq org-todoq-queues (assoc-delete-all kwd org-todoq-queues 'string=))
+  (set-buffer-modified-p t))
 
 (defun org-todoq-after-todo-change nil
   (when (not (string= org-state org-last-state))
