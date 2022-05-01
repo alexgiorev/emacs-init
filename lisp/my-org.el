@@ -356,6 +356,7 @@ entries from the file."
         (type "|" "DECL(e)" "CONNECTION" "FACT" "CONCEPT(c)" "SOURCE" "EXAMPLES" "TEMP")
         (type "QUESTION(q)" "|" "ANSWERED" "ANSWER(a)")
         (type "PROBLEM(p)" "PROBLEM_L" "|" "SOLVED" "PROBLEM_D" "SOLUTION(o)")
+        (type "BUG" "|" "BUG_D")
         (type "UNDERSTAND(u)" "|" "UNDERSTOOD")
         (type "GOAL(g)" "|" "GOAL_D")
         (type "FIND(f)" "FIND_L" "|" "FOUND")
@@ -2007,24 +2008,25 @@ ELEMENT."
 
 (defun org-todoq-queues-file (&optional file)
   (setq file (or file (buffer-file-name (buffer-base-buffer))))
-  (concat (file-name-directory file)
-          "extra/"
-          (file-name-sans-extension (file-name-nondirectory file))
-          "_todoq.el"))
+  (when file
+    (concat (file-name-directory file)
+            "extra/"
+            (file-name-sans-extension (file-name-nondirectory file))
+            "_todoq.el")))
 
 (defun org-todoq-load nil
   (let ((queues-file (org-todoq-queues-file))
         queues current)
-    (when (file-exists-p queues-file)
+    (when (and queues-file (file-exists-p queues-file))
       (setq org-todoq-queues (car (my-read-file queues-file))
             org-todoq-current (caar org-todoq-queues)))))
 (add-hook 'org-mode-hook 'org-todoq-load)
 
 (defun org-todoq-save nil
-  (when org-todoq-queues
-    (let ((queues org-todoq-queues))
-      (with-temp-file (org-todoq-queues-file)
-        (pp queues (current-buffer))))))
+  (let ((queues-file (org-todoq-queues-file)))  
+    (when (and queues-file org-todoq-queues)
+      (with-temp-file queues-file
+        (pp org-todoq-queues (current-buffer))))))
 (add-hook 'after-save-hook 'org-todoq-save)
 
 (defun org-todoq-select-kwd nil
@@ -2097,16 +2099,17 @@ ELEMENT."
 
 (defun org-PO-overlays-file (&optional file)
   (setq file (or file (buffer-file-name (buffer-base-buffer))))
-  (concat (file-name-directory file)
-          "extra/"
-          (file-name-sans-extension (file-name-nondirectory file))
-          "_PO.el"))
+  (when file
+    (concat (file-name-directory file)
+            "extra/"
+            (file-name-sans-extension (file-name-nondirectory file))
+            "_PO.el")))
 
 (defun org-PO-load nil
   (when (derived-mode-p 'org-mode)
     (let ((overlays-file (org-PO-overlays-file))
           file-overlays overlay)
-      (when (file-exists-p overlays-file)
+      (when (and overlays-file (file-exists-p overlays-file))
         (setq file-overlays (car (my-read-file overlays-file)))
         (dolist (overlay-rep file-overlays)
           (let* ((region (car overlay-rep))
@@ -2124,14 +2127,16 @@ ELEMENT."
 (defun org-PO-save nil
   (when (and (derived-mode-p 'org-mode) org-PO-overlays)
     (org-PO-clear)
-    (let ((overlay-reps nil) current-rep)
+    (let ((overlays-file (org-PO-overlays-file))
+          overlay-reps current-rep)
+      (when overlays-file
       ;; construct OVERLAY-REPS
-      (dolist (overlay org-PO-overlays)
-        (setq current-rep `((,(overlay-start overlay) . ,(overlay-end overlay))
-                            ,(org-PO-overlay-properties overlay)))
-        (push current-rep overlay-reps))
-      (with-temp-file (org-PO-overlays-file)
-        (pp overlay-reps (current-buffer))))))
+        (dolist (overlay org-PO-overlays)
+          (setq current-rep `((,(overlay-start overlay) . ,(overlay-end overlay))
+                              ,(org-PO-overlay-properties overlay)))
+          (push current-rep overlay-reps))
+        (with-temp-file overlays-file
+          (pp overlay-reps (current-buffer)))))))
 (add-hook 'after-save-hook 'org-PO-save)
 
 (defun org-PO-clear nil
