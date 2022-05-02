@@ -366,7 +366,7 @@ entries from the file."
         (type "IDEA(i)" "|" "IDEA_DECL")
         (type "READ(r)" "READ_L" "|" "READ_D")
         (type "EXPLORE(x)" "ANKIFY(y)" "CONTINUE" "MORE(m)"
-              "EXPERIMENT" "ACTION" "HOOK" "LATER" "FUN" "|")))
+              "EXPERIMENT" "ACTION" "HOOK" "LATER" "FUN(F)" "|")))
 
 ;; so that level 2 entries are also considered when refiling
 (setq org-refile-targets
@@ -900,13 +900,13 @@ beginning of the heading when it has no title."
 (defsubst org-goto-root nil
   (while (org-up-heading-safe)))
 
-(defun my-org-level-count (level)
-  (interactive "nLevel: ")
-  (let ((count 0))
-    (org-map-region
-     (lambda nil (when (= level (org-current-level)) (cl-incf count)))
-     (point-min) (point-max))
-    (if (called-interactively-p t) (message "%s" count) count)))
+(defun my-org-count nil
+  (interactive)
+  (let ((match-string (read-string "Match: "))
+        (count 0))
+    (org-map-entries (lambda nil (setq count (1+ count)))
+                     match-string)
+    (message "%s" count)))
 
 (defsubst org-goto-first-heading nil
   "Move to the first heading in the buffer"
