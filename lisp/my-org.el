@@ -345,7 +345,7 @@ entries from the file."
 ;; attention as well.
 (setq org-todo-keywords
       '((sequence "TODO" "TODO_L" "|" "DONE")
-        (sequence "PROCESS(P)" "|" "PROCESSED")
+        (sequence "PROCESS(0)" "|" "PROCESSED")
         (sequence "NEW" "|")
         (type "|" "TEMPDONE(-)")
         (type "PASSIVE(s)" "|")
@@ -353,7 +353,8 @@ entries from the file."
         (type "|" "CLONE")
         (type "|" "DECISION(n)" "PAST_DECISION")
         (type "CONJECTURE(j)" "|" "CONJECTURE_D")
-        (type "|" "DECL(e)" "CONNECTION" "FACT" "CONCEPT(c)" "SOURCE" "EXAMPLES" "TEMP")
+        (type "|" "DECL(e)" "THEOREM(T)" "CONNECTION" "FACT"
+              "CONCEPT(c)" "SOURCE" "EXAMPLES" "TEMP")
         (type "QUESTION(q)" "|" "ANSWERED" "ANSWER(a)")
         (type "PROBLEM(p)" "PROBLEM_L" "|" "SOLVED" "PROBLEM_D" "SOLUTION(o)")
         (type "BUG" "|" "BUG_FIXED")
@@ -364,7 +365,7 @@ entries from the file."
         (type "EXPLAIN(l)" "|" "EXPLAINED")
         (type "IDEA(i)" "|" "IDEA_DECL")
         (type "READ(r)" "READ_L" "|" "READ_D")
-        (type "EXPLORE(x)" "ANKIFY(y)" "CONTINUE"
+        (type "EXPLORE(x)" "ANKIFY(y)" "CONTINUE" "MORE(m)"
               "EXPERIMENT" "ACTION" "HOOK" "LATER" "FUN" "|")))
 
 ;; so that level 2 entries are also considered when refiling
@@ -1397,7 +1398,7 @@ found under the `invisible' property, or nil when the region is visible there."
 (defvar my-org-tempdone-exclude-from-todoq nil
   "A list of keywords which to not enqueue on a todoq queue when UNDOing the TEMPDONE")
 (setq my-org-tempdone-exclude-from-todoq
-      '("READ_L" "PROBLEM_L"))
+      '("READ_L" "PROBLEM_L" "PROVE"))
 (defun my-org-tempdone-undo (&optional force)
   "If the current entry is a TEMPDONE, undo it. If a TEMPDONE date is present,
 don't undo unless it refers to today or a day that has passed. If FORCE is
@@ -2003,8 +2004,10 @@ ELEMENT."
 
 ;; org-todoq
 ;; ════════════════════════════════════════
-(defvar-local org-todoq-queues nil)
-(defvar-local org-todoq-current nil)
+(defvar org-todoq-queues nil)
+(put 'org-todoq-queues 'permanent-local t)
+(defvar org-todoq-current nil)
+(put 'org-todoq-current 'permanent-local t)
 
 (defun org-todoq-queues-file (&optional file)
   (setq file (or file (buffer-file-name (buffer-base-buffer))))
@@ -2023,10 +2026,11 @@ ELEMENT."
 (add-hook 'org-mode-hook 'org-todoq-load)
 
 (defun org-todoq-save nil
-  (let ((queues-file (org-todoq-queues-file)))  
+  (let ((queues-file (org-todoq-queues-file))
+        (queues org-todoq-queues))
     (when (and queues-file org-todoq-queues)
       (with-temp-file queues-file
-        (pp org-todoq-queues (current-buffer))))))
+        (pp queues (current-buffer))))))
 (add-hook 'after-save-hook 'org-todoq-save)
 
 (defun org-todoq-select-kwd nil
@@ -2102,6 +2106,7 @@ ELEMENT."
 
 (defvar-local org-PO-overlays nil
   "A list of the overlays")
+(put 'org-PO-overlays 'permanent-local t)
 
 (defun org-PO-overlays-file (&optional file)
   (setq file (or file (buffer-file-name (buffer-base-buffer))))
