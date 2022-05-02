@@ -2026,11 +2026,12 @@ ELEMENT."
 (add-hook 'org-mode-hook 'org-todoq-load)
 
 (defun org-todoq-save nil
-  (let ((queues-file (org-todoq-queues-file))
-        (queues org-todoq-queues))
-    (when (and queues-file org-todoq-queues)
-      (with-temp-file queues-file
-        (pp queues (current-buffer))))))
+  (when (derived-mode-p 'org-mode)
+    (let ((queues-file (org-todoq-queues-file))
+          (queues org-todoq-queues))
+      (when (and queues-file queues)
+        (with-temp-file queues-file
+          (pp queues (current-buffer)))))))
 (add-hook 'after-save-hook 'org-todoq-save)
 
 (defun org-todoq-select-kwd nil
