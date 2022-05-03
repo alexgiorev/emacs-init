@@ -1395,10 +1395,13 @@ found under the `invisible' property, or nil when the region is visible there."
   (org-map-region (apply-partially 'my-org-tempdone-undo force) start end)
   (deactivate-mark))
 
-(defvar my-org-tempdone-exclude-from-todoq nil
+(defvar my-org-tempdone-exclude-from-todoq
+  '("READ_L" "PROBLEM_L" "PROVE")
   "A list of keywords which to not enqueue on a todoq queue when UNDOing the TEMPDONE")
-(setq my-org-tempdone-exclude-from-todoq
-      '("READ_L" "PROBLEM_L" "PROVE"))
+(defvar my-org-tempdone-todoq-remap
+  '(("UNDERSTAND" . "PROBLEM")
+    ("EXPLAIN" . "PROBLEM")
+    ("PASSIVE" . "READ")))
 (defun my-org-tempdone-undo (&optional force)
   "If the current entry is a TEMPDONE, undo it. If a TEMPDONE date is present,
 don't undo unless it refers to today or a day that has passed. If FORCE is
@@ -1415,7 +1418,8 @@ non-nil, undo regardless of date."
         (org-entry-delete nil "TEMPDONE_UNDO_DAY")
         (org-todo old)
         (when (and day (not (member old my-org-tempdone-exclude-from-todoq)))
-          (org-todoq-enqueue old))))))
+          (let ((remapped (assoc old my-org-tempdone-todoq-remap)))
+            (org-todoq-enqueue (or remapped old))))))))
 
 (defun my-org-tempdone-sched-READ (&optional low-high)
   (interactive)
@@ -2004,9 +2008,9 @@ ELEMENT."
 
 ;; org-todoq
 ;; ════════════════════════════════════════
-(defvar org-todoq-queues nil)
+(defvar-local org-todoq-queues nil)
 (put 'org-todoq-queues 'permanent-local t)
-(defvar org-todoq-current nil)
+(defvar-local org-todoq-current nil)
 (put 'org-todoq-current 'permanent-local t)
 
 (defun org-todoq-queues-file (&optional file)
