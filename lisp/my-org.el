@@ -3,7 +3,7 @@
 (require 'org-id)
 (require 'my-macs)
 (require 'sched (concat (file-name-directory load-file-name) "sched/sched.el"))
-(require 'my-org-vars (concat (file-name-directory load-file-name) "my-org-vars/my-org-vars.el"))
+(require 'my-org-vars)
 (require 'dash)
 
 ;;════════════════════════════════════════════════════════════
@@ -356,7 +356,7 @@ entries from the file."
         (type "|" "DECL(e)" "THEOREM(T)" "CONNECTION" "FACT"
               "CONCEPT(c)" "SOURCE" "EXAMPLES" "TEMP")
         (type "QUESTION(q)" "|" "ANSWERED" "ANSWER(a)")
-        (type "PROBLEM(p)" "PROBLEM_L" "|" "SOLVED" "PROBLEM_D" "SOLUTION(o)")
+        (type "PROBLEM(p)" "PROBLEM_L(P)" "|" "SOLVED" "PROBLEM_D" "SOLUTION(o)")
         (type "BUG" "|" "BUG_FIXED")
         (type "UNDERSTAND(u)" "|" "UNDERSTOOD")
         (type "GOAL(g)" "|" "GOAL_D")
@@ -468,18 +468,22 @@ function with no arguments called with point at the beginning of the heading"
 (setq-default org-fontify-done-headline nil)
 (setq org-blank-before-new-entry '((heading . nil) (plain-list-item . nil)))
 (setq org-cycle-separator-lines 0)
-;;════════════════════════════════════════════════════════════
 ;; links
+;;════════════════════════════════════════════════════════════
 
 (setq org-id-link-to-org-use-id t)
 
-(defun my-org-get-link (&optional components)
+(defun my-org-get-link (&optional components-p region-p)
   (if current-prefix-arg
       (let ((custom-id (my-org-custom-id-get-create))
+            (start (region-beginning)) (end (region-end))
             link desc)
         (setq link (concat "file:" (buffer-file-name (buffer-base-buffer)) "::#" custom-id)
-              desc (my-org-strip-links (org-get-heading t t t t)))
-        (if components (list link desc) (format "[[%s][%s]]" link desc)))
+              desc (my-org-strip-links
+                    (if region-p
+                        (prog1 (buffer-substring start end) (deactivate-mark))
+                      (org-get-heading t t t t))))
+        (if components-p (list link desc) (format "[[%s][%s]]" link desc)))
     (org-store-link 1)))
 
 (defun my-org-custom-id-get-create nil
@@ -491,7 +495,7 @@ function with no arguments called with point at the beginning of the heading"
 (defun my-org-store-link (arg)
   (interactive "P")
   (if arg
-      (push (my-org-get-link t) org-stored-links)
+      (push (my-org-get-link t (use-region-p)) org-stored-links)
     (org-store-link arg t)))
 
 (defun my-org-custom-id-from-title nil
@@ -517,16 +521,14 @@ function with no arguments called with point at the beginning of the heading"
   (save-excursion
     (let (link)
       (org-back-to-heading t)
-      (setq link (my-org-get-link))
+      (setq link (my-org-get-link nil (use-region-p)))
       (org-insert-heading)
       (insert link)
       (org-refile))))
 
 (defun my-org-kill-link nil
   (interactive)
-  (save-excursion
-    (org-back-to-heading t)
-    (kill-new (my-org-get-link))))
+  (kill-new (my-org-get-link nil (use-region-p))))
 
 (defun my-org-link-file (file)
   (interactive "f")
@@ -1104,6 +1106,18 @@ of `org-todo-keywords-1'."
 (setq org-hide-emphasis-markers t)
 
 (define-key org-mode-map (kbd "C-c C-x C-s") nil)
+
+(defun my-org-double-quote-region nil
+  (interactive)
+  (let (start end)
+    (if (use-region-p)
+        (progn (setq start (region-beginning) end (region-end))
+               (goto-char start) (insert "/\"")
+               (goto-char (+ end 2)) (insert "\"/"))
+      (insert "/\"" (read-string "Text: ") "\"/"))))
+(define-key org-mode-map (kbd "C-c \"") 'my-org-double-quote-region)
+
+(setq org-loop-over-headlines-in-active-region 'start-level)
 
 ;;════════════════════════════════════════
 ;; misc_yanking_images
