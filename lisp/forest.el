@@ -391,7 +391,7 @@ and nil if they did quit."
   (when forest
     (let ((selection-buffer (get-buffer-create forest-select--buffer-name))
           result)
-      (switch-to-buffer-other-window selection-buffer)
+      (switch-to-buffer selection-buffer)
       (forest-select-mode)
       (setq forest-select-forest forest
             forest-select-initial-current (forest-current forest)
@@ -408,7 +408,7 @@ and nil if they did quit."
       (setq result (not forest-select-did-quit))
       ;; killing the buffer must come after computing the result as otherwise
       ;; local variables will be lost
-      (kill-buffer-and-window)
+      (kill-buffer)
       result)))
 
 (defun forest-select-redraw nil
