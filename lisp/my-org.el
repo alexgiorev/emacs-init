@@ -473,8 +473,8 @@ function with no arguments called with point at the beginning of the heading"
 
 (setq org-id-link-to-org-use-id t)
 
-(defun my-org-get-link (&optional components-p region-p)
-  (if current-prefix-arg
+(defun my-org-get-link (&optional custom-id components-p region-p)
+  (if custom-id
       (let ((custom-id (my-org-custom-id-get-create))
             (start (region-beginning)) (end (region-end))
             link desc)
@@ -495,7 +495,7 @@ function with no arguments called with point at the beginning of the heading"
 (defun my-org-store-link (arg)
   (interactive "P")
   (if arg
-      (push (my-org-get-link t (use-region-p)) org-stored-links)
+      (push (my-org-get-link :custom-id (use-region-p)) org-stored-links)
     (org-store-link arg t)))
 
 (defun my-org-custom-id-from-title nil
@@ -515,20 +515,20 @@ function with no arguments called with point at the beginning of the heading"
   (prog1 (number-to-string my-org-custom-id)
     (cl-incf my-org-custom-id)))
 
-(defun my-org-refile-link nil
+(defun my-org-refile-link (arg)
   "Creates a link to the current entry and refiles it."
-  (interactive)
+  (interactive "P")
   (save-excursion
     (let (link)
       (org-back-to-heading t)
-      (setq link (my-org-get-link nil (use-region-p)))
+      (setq link (my-org-get-link arg nil (use-region-p)))
       (org-insert-heading)
       (insert link)
       (org-refile))))
 
-(defun my-org-kill-link nil
-  (interactive)
-  (kill-new (my-org-get-link nil (use-region-p))))
+(defun my-org-kill-link (arg)
+  (interactive "P")
+  (kill-new (my-org-get-link (not arg) nil (use-region-p))))
 
 (defun my-org-link-file (file)
   (interactive "f")
@@ -1115,7 +1115,7 @@ of `org-todo-keywords-1'."
                (goto-char start) (insert "/\"")
                (goto-char (+ end 2)) (insert "\"/"))
       (insert "/\"" (read-string "Text: ") "\"/"))))
-(define-key org-mode-map (kbd "C-c \"") 'my-org-double-quote-region)
+(define-key org-mode-map (kbd "C-c '") 'my-org-double-quote-region)
 
 (setq org-loop-over-headlines-in-active-region 'start-level)
 
