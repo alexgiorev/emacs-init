@@ -344,7 +344,7 @@ entries from the file."
 ;; mark the type of the entry, whereas "TODO" keywords serve to attract may
 ;; attention as well.
 (setq org-todo-keywords
-      '((sequence "TODO" "TODO_L" "|" "DONE")
+      '((sequence "TODO" "TODO_L" "|" "DONE(d)")
         (sequence "PROCESS(0)" "|" "PROCESSED")
         (sequence "NEW" "|")
         (type "|" "TEMPDONE(-)")
@@ -358,7 +358,7 @@ entries from the file."
         (type "QUESTION(q)" "|" "ANSWERED" "ANSWER(a)")
         (type "PROBLEM(p)" "PROBLEM_L(P)" "|" "SOLVED" "PROBLEM_D" "SOLUTION(o)")
         (type "BUG" "|" "BUG_FIXED")
-        (type "UNDERSTAND(u)" "UNDERSTAND(U)" "|" "UNDERSTOOD")
+        (type "UNDERSTAND(u)" "UNDERSTAND_L(U)" "|" "UNDERSTOOD")
         (type "GOAL(g)" "|" "GOAL_D")
         (type "FIND(f)" "FIND_L" "|" "FOUND")
         (type "PROVE(v)" "|" "PROVED")
