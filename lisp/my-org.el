@@ -364,7 +364,7 @@ entries from the file."
         (type "PROVE(v)" "|" "PROVED")
         (type "EXPLAIN(l)" "|" "EXPLAINED")
         (type "IDEA(i)" "|" "IDEA_DECL")
-        (type "READ(r)" "READ_L" "|" "READ_D")
+        (type "READ(r)" "READ_L(R)" "|" "READ_D")
         (type "EXPLORE(x)" "ANKIFY(y)" "CONTINUE" "MORE(m)"
               "EXPERIMENT" "ACTION" "HOOK" "LATER" "FUN(F)" "|")))
 
@@ -468,21 +468,22 @@ function with no arguments called with point at the beginning of the heading"
 (setq-default org-fontify-done-headline nil)
 (setq org-blank-before-new-entry '((heading . nil) (plain-list-item . nil)))
 (setq org-cycle-separator-lines 0)
+
 ;; links
 ;;════════════════════════════════════════════════════════════
 
 (setq org-id-link-to-org-use-id t)
 
-(defun my-org-get-link (&optional custom-id components-p region-p)
+(defun my-org-get-link (&optional custom-id components-p region-p text)
   (if custom-id
       (let ((custom-id (my-org-custom-id-get-create))
             (start (region-beginning)) (end (region-end))
             link desc)
         (setq link (concat "file:" (buffer-file-name (buffer-base-buffer)) "::#" custom-id)
               desc (my-org-strip-links
-                    (if region-p
-                        (prog1 (buffer-substring start end) (deactivate-mark))
-                      (org-get-heading t t t t))))
+                    (cond (text text)
+                          (region-p (prog1 (buffer-substring start end) (deactivate-mark)))
+                          (org-get-heading t t t t))))
         (if components-p (list link desc) (format "[[%s][%s]]" link desc)))
     (org-store-link 1)))
 
@@ -528,7 +529,9 @@ function with no arguments called with point at the beginning of the heading"
 
 (defun my-org-kill-link (arg)
   (interactive "P")
-  (kill-new (my-org-get-link (not arg) nil (use-region-p))))
+  (let ((custom-id-p (not (equal arg '(4))))
+        (text (when (equal arg 1) "see")))
+    (kill-new (my-org-get-link custom-id-p nil (use-region-p) text))))
 
 (defun my-org-link-file (file)
   (interactive "f")
@@ -1410,12 +1413,13 @@ found under the `invisible' property, or nil when the region is visible there."
   (deactivate-mark))
 
 (defvar my-org-tempdone-exclude-from-todoq
-  '("READ_L" "PROBLEM_L" "PROVE")
+  '("READ_L" "PROBLEM_L" "UNDERSTAND_L" "PROVE")
   "A list of keywords which to not enqueue on a todoq queue when UNDOing the TEMPDONE")
 (defvar my-org-tempdone-todoq-remap
   '(("UNDERSTAND" . "PROBLEM")
     ("EXPLAIN" . "PROBLEM")
-    ("PASSIVE" . "READ")))
+    ("PASSIVE" . "READ")
+    ("PROCESS" . "READ")))
 (defun my-org-tempdone-undo (&optional force)
   "If the current entry is a TEMPDONE, undo it. If a TEMPDONE date is present,
 don't undo unless it refers to today or a day that has passed. If FORCE is
@@ -1432,7 +1436,7 @@ non-nil, undo regardless of date."
         (org-entry-delete nil "TEMPDONE_UNDO_DAY")
         (org-todo old)
         (when (and day (not (member old my-org-tempdone-exclude-from-todoq)))
-          (let ((remapped (assoc old my-org-tempdone-todoq-remap)))
+          (let ((remapped (cdr (assoc old my-org-tempdone-todoq-remap))))
             (org-todoq-enqueue (or remapped old))))))))
 
 (defun my-org-tempdone-sched-READ (&optional low-high)
