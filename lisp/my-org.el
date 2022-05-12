@@ -483,7 +483,7 @@ function with no arguments called with point at the beginning of the heading"
               desc (my-org-strip-links
                     (cond (text text)
                           (region-p (prog1 (buffer-substring start end) (deactivate-mark)))
-                          (org-get-heading t t t t))))
+                          (t (org-get-heading t t t t)))))
         (if components-p (list link desc) (format "[[%s][%s]]" link desc)))
     (org-store-link 1)))
 
@@ -581,17 +581,19 @@ function with no arguments called with point at the beginning of the heading"
 ;;       (setq end (point))
 ;;       (org-PO-face-code start end))))
 
-(defun my-org-codify-region nil
+(defun my-org-codify nil
   (interactive)
   (let (start end)
     (if (use-region-p)
         (progn (setq start (region-beginning) end (region-end))
                (goto-char start) (insert "~")
                (goto-char (1+ end)) (insert "~"))
-      (insert "~" (read-string "Codify: ") "~"))))
-
-(with-eval-after-load 'org
-  (define-key org-mode-map (kbd "C-M-c") 'my-org-codify-region))
+      (if (org-in-regexp "~\\(.*?\\)~")
+          (let* ((current-text (match-string-no-properties 1))
+                 (new-text (read-string "Codify: " current-text)))
+            (replace-match new-text nil nil nil 1))
+        (insert "~" (read-string "Codify: ") "~")))))
+(define-key org-mode-map (kbd "C-M-c") 'my-org-codify)
 
 (defun my-org-code (start end)
   (interactive "r")
