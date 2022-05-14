@@ -527,10 +527,12 @@ function with no arguments called with point at the beginning of the heading"
       (insert link)
       (org-refile))))
 
+(defvar my-org-kill-link-descrs
+  '((1 . "see") (2 . "here") (3 . "this")))
 (defun my-org-kill-link (arg)
   (interactive "P")
   (let ((custom-id-p (not (equal arg '(4))))
-        (text (when (equal arg 1) "see")))
+        (text (cdr (assoc arg my-org-kill-link-descrs))))
     (kill-new (my-org-get-link custom-id-p nil (use-region-p) text))))
 
 (defun my-org-link-file (file)
@@ -570,7 +572,7 @@ function with no arguments called with point at the beginning of the heading"
       (setq text (buffer-string)))
     (save-excursion (insert text))))
 
-;; (defun my-org-codify-region nil
+;; (defun my-org-codify nil
 ;;   (interactive)
 ;;   (let (start end)
 ;;     (if (use-region-p)
@@ -591,7 +593,8 @@ function with no arguments called with point at the beginning of the heading"
       (if (org-in-regexp "~\\(.*?\\)~")
           (let* ((current-text (match-string-no-properties 1))
                  (new-text (read-string "Codify: " current-text)))
-            (replace-match new-text nil nil nil 1))
+            (replace-match new-text nil nil nil 1)
+            (forward-char))
         (insert "~" (read-string "Codify: ") "~")))))
 (define-key org-mode-map (kbd "C-M-c") 'my-org-codify)
 
