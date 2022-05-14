@@ -583,19 +583,23 @@ function with no arguments called with point at the beginning of the heading"
 ;;       (setq end (point))
 ;;       (org-PO-face-code start end))))
 
-(defun my-org-codify nil
-  (interactive)
-  (let (start end)
+(defvar my-org-codify-chars
+  '((nil . "~") (1 . "*") (2 . "/") (3 . "_")))
+(defun my-org-codify (&optional arg)
+  (interactive "P")
+  (let ((char (cdr (assoc arg my-org-codify-chars))))
     (if (use-region-p)
-        (progn (setq start (region-beginning) end (region-end))
-               (goto-char start) (insert "~")
-               (goto-char (1+ end)) (insert "~"))
-      (if (org-in-regexp "~\\(.*?\\)~")
+        (let ((start (region-beginning))
+              (end (region-end)))
+          (goto-char start) (insert char)
+          (goto-char (1+ end)) (insert char))
+      (if (org-in-regexp (format "%s\\(.*?\\)%s"
+                                 (regexp-quote char) (regexp-quote char)))
           (let* ((current-text (match-string-no-properties 1))
                  (new-text (read-string "Codify: " current-text)))
             (replace-match new-text nil nil nil 1)
             (forward-char))
-        (insert "~" (read-string "Codify: ") "~")))))
+        (insert char (read-string "Codify: ") char)))))
 (define-key org-mode-map (kbd "C-M-c") 'my-org-codify)
 
 (defun my-org-code (start end)
