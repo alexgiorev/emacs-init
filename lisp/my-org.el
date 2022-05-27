@@ -584,22 +584,24 @@ function with no arguments called with point at the beginning of the heading"
 ;;       (org-PO-face-code start end))))
 
 (defvar my-org-codify-chars
-  '((nil . "~") (1 . "*") (2 . "/") (3 . "_")))
+  '((nil "~" "~") (1 "*" "*") (2 "/" "/") (3 "_" "_")
+    (4 "*[" "]*") (5 "{{c1::" "}}")))
 (defun my-org-codify (&optional arg)
   (interactive "P")
-  (let ((char (cdr (assoc arg my-org-codify-chars))))
+  (let* ((delimiters (cdr (assoc arg my-org-codify-chars)))
+         (left (car delimiters)) (right (cadr delimiters)))
     (if (use-region-p)
         (let ((start (region-beginning))
               (end (region-end)))
-          (goto-char start) (insert char)
-          (goto-char (1+ end)) (insert char))
+          (goto-char start) (insert left)
+          (goto-char (+ end (length left))) (insert right))
       (if (org-in-regexp (format "%s\\(.*?\\)%s"
-                                 (regexp-quote char) (regexp-quote char)))
+                                 (regexp-quote left) (regexp-quote right)))
           (let* ((current-text (match-string-no-properties 1))
                  (new-text (read-string "Codify: " current-text)))
             (replace-match new-text nil nil nil 1)
             (forward-char))
-        (insert char (read-string "Codify: ") char)))))
+        (insert left (read-string "Codify: ") right)))))
 (define-key org-mode-map (kbd "C-M-c") 'my-org-codify)
 
 (defun my-org-code (start end)
@@ -914,10 +916,9 @@ beginning of the heading when it has no title."
 (defsubst org-goto-root nil
   (while (org-up-heading-safe)))
 
-(defun my-org-count nil
-  (interactive)
-  (let ((match-string (read-string "Match: "))
-        (count 0))
+(defun my-org-count (match-string)
+  (interactive "MMatch: ")
+  (let ((count 0))
     (org-map-entries (lambda nil (setq count (1+ count)))
                      match-string)
     (message "%s" count)))
@@ -1130,6 +1131,20 @@ of `org-todo-keywords-1'."
 (define-key org-mode-map (kbd "C-c '") 'my-org-double-quote-region)
 
 (setq org-loop-over-headlines-in-active-region 'start-level)
+
+(defun my-org-item-return nil
+  (interactive)
+  (let ((ind (current-indentation)))
+    (delete-horizontal-space)
+    (insert "\n" (make-string ind (string-to-char " ")) "- ...")))
+(define-key org-mode-map (kbd "C-M-<return>") 'my-org-item-return)
+
+
+(defun my-org-due-tomorrow nil
+  (interactive)
+  (let ((tomorrow (1+ (my-time-today))))
+    (org-with-wide-buffer
+      (my-org-count (format "TEMPDONE_UNDO_DAY=\"%s\"" tomorrow)))))
 
 ;;════════════════════════════════════════
 ;; misc_yanking_images
@@ -2073,6 +2088,8 @@ ELEMENT."
            org-todoq-current
            (length (cdr (assoc org-todoq-current org-todoq-queues)))))
 
+(defvar org-todoq-dequeue-last nil)
+
 (defun org-todoq-dequeue nil
   (interactive)
   (unless org-todoq-current (org-todoq-select-kwd))
@@ -2086,7 +2103,8 @@ ELEMENT."
     (org-link-search (format "#%s" head))
     (push-mark)
     (my-org-node-show)
-    (set-buffer-modified-p t)))
+    (set-buffer-modified-p t)
+    (setq org-todoq-dequeue-last head)))
 
 (defun org-todoq-enqueue (&optional kwd prepend)
   (let* ((kwd (or kwd (org-get-todo-state)))
