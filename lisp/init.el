@@ -418,7 +418,16 @@ current buffer"
 ;; * registers
 (set-register ?r "(region-beginning) (region-end)")
 (set-register ?p "(point-min) (point-max)")
-(set-register ?l "════════════════════════════════════════════════════════════")
+(set-register ?u "*[UPDATE]* ")
+
+(defvar my-insert-math-char-alist
+  '((?i . "∫") (?e . "ε") (?d . "δ")))
+(defun my-insert-math-char nil
+  (interactive)
+  (let* ((code (read-char-exclusive))
+         (char (cdr (assoc code my-insert-math-char-alist))))
+    (when char (insert char))))
+(global-set-key (kbd "C-x m") 'my-insert-math-char)
 
 ;;════════════════════════════════════════
 ;; magit
