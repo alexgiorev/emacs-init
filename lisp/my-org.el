@@ -348,7 +348,7 @@ entries from the file."
         (sequence "PROCESS(0)" "|" "PROCESSED")
         (sequence "NEW" "|")
         (type "|" "TEMPDONE(-)")
-        (type "PASSIVE(s)" "|")
+        (type "PASSIVE(s)" "REVIEW(w)" "|")
         (type "|" "LIST" "HEAP")
         (type "|" "CLONE")
         (type "|" "DECISION(n)" "PAST_DECISION")
@@ -1442,7 +1442,7 @@ found under the `invisible' property, or nil when the region is visible there."
 (defvar my-org-tempdone-todoq-remap
   '(("UNDERSTAND" . "PROBLEM")
     ("EXPLAIN" . "PROBLEM")
-    ("PASSIVE" . "READ")
+    ("PASSIVE" . "READ") ("REVIEW" . "READ")
     ("PROCESS" . "READ")))
 (defun my-org-tempdone-undo (&optional force)
   "If the current entry is a TEMPDONE, undo it. If a TEMPDONE date is present,
@@ -2100,11 +2100,14 @@ ELEMENT."
     (unless (cdr pair)
       (setq org-todoq-queues
             (assoc-delete-all org-todoq-current org-todoq-queues)))
-    (org-link-search (format "#%s" head))
-    (push-mark)
-    (my-org-node-show)
-    (set-buffer-modified-p t)
-    (setq org-todoq-dequeue-last head)))
+    (org-todoq-jump head)
+    (setq org-todoq-dequeue-last head)
+    (set-buffer-modified-p t)))
+
+(defun org-todoq-jump (head)
+  (org-link-search (format "#%s" head))
+  (push-mark)
+  (my-org-node-show))
 
 (defun org-todoq-enqueue (&optional kwd prepend)
   (let* ((kwd (or kwd (org-get-todo-state)))
@@ -2137,6 +2140,11 @@ ELEMENT."
   (setq org-todoq-queues (assoc-delete-all kwd org-todoq-queues 'string=))
   (set-buffer-modified-p t))
 
+(defun org-todoq-goto-last nil
+  (interactive)
+  (when org-todoq-dequeue-last
+    (org-todoq-jump org-todoq-dequeue-last)))
+
 (defun org-todoq-after-todo-change nil
   (when (not (string= org-state org-last-state))
     (org-todoq-remove org-last-state)))
@@ -2148,7 +2156,8 @@ ELEMENT."
   (define-key org-todoq-map "e" 'org-todoq-enqueue-cmd)
   (define-key org-todoq-map "n" 'org-todoq-dequeue)
   (define-key org-todoq-map "r" 'org-todoq-remove)
-  (define-key org-todoq-map "s" 'org-todoq-select-kwd))
+  (define-key org-todoq-map "s" 'org-todoq-select-kwd)
+  (define-key org-todoq-map "l" 'org-todoq-goto-last))
 (define-key org-mode-map "\C-cq" org-todoq-map)
 
 ;; org-PO (persistent overlays)
