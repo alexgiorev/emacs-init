@@ -362,6 +362,7 @@ entries from the file."
         (type "GOAL(g)" "|" "GOAL_D")
         (type "FIND(f)" "FIND_L" "|" "FOUND")
         (type "PROVE(v)" "|" "PROVED")
+        (type "RETURN(\r)" "RETURN_L" "|" "RETURN_D")
         (type "EXPLAIN(l)" "|" "EXPLAINED")
         (type "IDEA(i)" "|" "IDEA_DECL")
         (type "READ(r)" "READ_L(R)" "|" "READ_D")
@@ -1146,6 +1147,40 @@ of `org-todo-keywords-1'."
     (org-with-wide-buffer
       (my-org-count (format "TEMPDONE_UNDO_DAY=\"%s\"" tomorrow)))))
 
+(defun my-org-fill-item nil
+  (interactive)
+  (save-excursion
+    (when (org-match-line org-list-full-item-re)
+      (save-match-data (my-org-unfill-item))
+      (let ((indentation (make-string (current-indentation) ?\s))
+            (text (buffer-substring (match-end 1) (line-end-position)))
+            filled-text)
+        (with-temp-buffer
+          (insert text)
+          (let ((fill-column 100))
+            (fill-region (point-min) (point-max))
+            (beginning-of-buffer)
+            (insert indentation "- ") (forward-line)
+            (while (not (eobp))
+              (insert indentation "  - ...")
+              (forward-line)))
+          (setq filled-text (buffer-string)))
+        (replace-region-contents
+         (line-beginning-position) (line-end-position)
+         (lambda nil filled-text))))))
+
+(defun my-org-unfill-item nil
+  (save-excursion
+    (end-of-line)
+    (while (looking-at "\n *- \\.\\.\\.")
+      (replace-match " ")
+      (end-of-line))))
+
+(defvar my-org-misc-map (make-sparse-keymap))
+(progn
+  (define-key my-org-misc-map "i" 'my-org-fill-item))
+(define-key org-mode-map "\C-cm" my-org-misc-map)
+
 ;;════════════════════════════════════════
 ;; misc_yanking_images
 
@@ -1437,13 +1472,11 @@ found under the `invisible' property, or nil when the region is visible there."
   (deactivate-mark))
 
 (defvar my-org-tempdone-exclude-from-todoq
-  '("READ_L" "PROBLEM_L" "UNDERSTAND_L" "PROVE")
+  '("READ_L" "PROBLEM_L" "UNDERSTAND_L" "RETURN_L" "PROVE")
   "A list of keywords which to not enqueue on a todoq queue when UNDOing the TEMPDONE")
 (defvar my-org-tempdone-todoq-remap
-  '(("UNDERSTAND" . "PROBLEM")
-    ("EXPLAIN" . "PROBLEM")
-    ("PASSIVE" . "READ") ("REVIEW" . "READ")
-    ("PROCESS" . "READ")))
+  '(("UNDERSTAND" . "PROBLEM") ("EXPLAIN" . "PROBLEM")
+    ("PASSIVE" . "REVIEW") ("PROCESS" . "READ") ("ANKIFY" . "READ")))
 (defun my-org-tempdone-undo (&optional force)
   "If the current entry is a TEMPDONE, undo it. If a TEMPDONE date is present,
 don't undo unless it refers to today or a day that has passed. If FORCE is
