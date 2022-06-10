@@ -1155,6 +1155,10 @@ of `org-todo-keywords-1'."
     (let ((element (org-element-at-point)))
       (goto-char (org-element-property :begin element))
       (when (org-match-line org-list-full-item-re)
+        (save-match-data
+          (when (memq (org-element-type element) '(item plain-list))
+            (goto-char (match-end 1))
+            (setq element (org-element-at-point))))
         (let* ((start (match-end 1)) (end (org-element-property :end element))
                (indentation (current-indentation))
                (text (buffer-substring start end))
