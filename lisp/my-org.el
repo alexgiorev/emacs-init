@@ -119,6 +119,17 @@ add a backlink as a BACKLINK property."
                (forward-line)
                (not (eobp)))))))
 
+(defun my-org-yank-dashed nil
+  (interactive)
+  (let (text)
+    (with-temp-buffer
+      (yank) (beginning-of-buffer)
+      (save-excursion (while (re-search-forward "[^a-zA-Z- ]" nil t) (replace-match "")))
+      (save-excursion (while (re-search-forward " +" nil t) (replace-match "-")))
+      (downcase-region (point-min) (point-max))
+      (setq text (buffer-string)))
+    (push-mark) (insert text)))
+
 (defun my-yank-from-pdf nil
   (interactive)
   (let (text)
@@ -234,7 +245,8 @@ add a backlink as a BACKLINK property."
   (define-key my-org-yank-map "i" 'my-org-yank-image)
   (define-key my-org-yank-map "_" 'my-org-yank-_)
   (define-key my-org-yank-map "[" 'my-org-save-no-links)
-  (define-key my-org-yank-map "n" 'my-org-yank-as-last-child))
+  (define-key my-org-yank-map "n" 'my-org-yank-as-last-child)
+  (define-key my-org-yank-map "-" 'my-org-yank-dashed))
 (define-key org-mode-map "\C-cy" my-org-yank-map)
 (global-set-key "\C-\M-y" 'my-yank-unfill)
 
@@ -499,16 +511,6 @@ function with no arguments called with point at the beginning of the heading"
   (if arg
       (push (my-org-get-link :custom-id (use-region-p)) org-stored-links)
     (org-store-link arg t)))
-
-(defun my-org-custom-id-from-title nil
-  (let ((title (org-get-heading t t t t)))
-    (with-temp-buffer
-      (insert title) (beginning-of-buffer)
-      (save-excursion (while (re-search-forward " +" nil t) (replace-match "-")))
-      (save-excursion (while (re-search-forward "[^a-zA-Z-]" nil t) (replace-match "")))
-      (downcase-region (point-min) (point-max))
-      (insert "CUSTOM_ID_")
-      (buffer-substring-no-properties (point-min) (point-max)))))
 
 (pvars-add 'my-org-custom-id)
 (unless (boundp 'my-org-custom-id)
@@ -1147,34 +1149,26 @@ of `org-todo-keywords-1'."
     (org-with-wide-buffer
       (my-org-count (format "TEMPDONE_UNDO_DAY=\"%s\"" tomorrow)))))
 
-(defun my-org-fill-item nil
-  (interactive)
+(defun my-org-fill-item (&optional unfill-p)
+  (interactive "P")
   (save-excursion
-    (when (org-match-line org-list-full-item-re)
-      (save-match-data (my-org-unfill-item))
-      (let ((indentation (make-string (current-indentation) ?\s))
-            (text (buffer-substring (match-end 1) (line-end-position)))
-            filled-text)
-        (with-temp-buffer
-          (insert text)
-          (let ((fill-column 100))
-            (fill-region (point-min) (point-max))
-            (beginning-of-buffer)
-            (insert indentation "- ") (forward-line)
-            (while (not (eobp))
-              (insert indentation "  - ...")
-              (forward-line)))
-          (setq filled-text (buffer-string)))
-        (replace-region-contents
-         (line-beginning-position) (line-end-position)
-         (lambda nil filled-text))))))
-
-(defun my-org-unfill-item nil
-  (save-excursion
-    (end-of-line)
-    (while (looking-at "\n *- \\.\\.\\.")
-      (replace-match " ")
-      (end-of-line))))
+    (let ((element (org-element-at-point)))
+      (goto-char (org-element-property :begin element))
+      (when (org-match-line org-list-full-item-re)
+        (let* ((start (match-end 1)) (end (org-element-property :end element))
+               (indentation (current-indentation))
+               (text (buffer-substring start end))
+               (fill-column 100))
+          (replace-region-contents
+           start end
+           (lambda nil
+             (with-temp-buffer
+               (insert text) (unfill-region (point-min) (point-max))
+               (unless unfill-p
+                 (fill-region (point-min) (point-max))
+                 (beginning-of-buffer) (beginning-of-line 2)
+                 (indent-rigidly (point) (point-max) (+ 2 indentation)))
+               (buffer-string)))))))))
 
 (defvar my-org-misc-map (make-sparse-keymap))
 (progn
