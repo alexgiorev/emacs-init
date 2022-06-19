@@ -531,7 +531,7 @@ function with no arguments called with point at the beginning of the heading"
       (org-refile))))
 
 (defvar my-org-kill-link-descrs
-  '((1 . "see") (2 . "here") (3 . "this")))
+  '((1 . "see") (2 . "here") (3 . "this") (4. "*[return]*")))
 (defun my-org-kill-link (arg)
   (interactive "P")
   (let ((custom-id-p (not (equal arg '(4))))
@@ -1149,6 +1149,12 @@ of `org-todo-keywords-1'."
     (org-with-wide-buffer
       (my-org-count (format "TEMPDONE_UNDO_DAY=\"%s\"" tomorrow)))))
 
+(defun my-org-fill-item-or-heading (&optional unfill-p)
+  (interactive "P")
+  (if (org-on-heading-p)
+      (my-org-split-heading)
+    (my-org-fill-item unfill-p)))
+
 (defun my-org-fill-item (&optional unfill-p)
   (interactive "P")
   (save-excursion
@@ -1159,7 +1165,9 @@ of `org-todo-keywords-1'."
           (when (memq (org-element-type element) '(item plain-list))
             (goto-char (match-end 1))
             (setq element (org-element-at-point))))
-        (let* ((start (match-end 1)) (end (org-element-property :end element))
+        (let* ((start (match-end 1))
+               (end (min (point-max)
+                         (org-element-property :end element)))
                (indentation (current-indentation))
                (text (buffer-substring start end))
                (fill-column 100))
@@ -1170,13 +1178,38 @@ of `org-todo-keywords-1'."
                (insert text) (unfill-region (point-min) (point-max))
                (unless unfill-p
                  (fill-region (point-min) (point-max))
+                 ;; this is because when I'm using tags like *[READ]* the
+                 ;; beginning "*" causes an indentation after filling
+                 (indent-rigidly (point-min) (point-max) -30)
                  (beginning-of-buffer) (beginning-of-line 2)
                  (indent-rigidly (point) (point-max) (+ 2 indentation)))
                (buffer-string)))))))))
 
+(defun my-org-split-heading nil
+  (interactive)
+  (when (org-on-heading-p)
+    (let ((max-column 100)
+          right-part)
+      (org-back-to-heading)
+      (save-excursion
+        (when (> (line-length) max-column)
+          (while (< (current-column) max-column)
+            (forward-word))
+          (backward-word)
+          (delete-horizontal-space)
+          (setq right-part
+                (delete-and-extract-region
+                 (point) (line-end-position)))
+          (let ((property-block (org-get-property-block)))
+            (if property-block
+                (progn (goto-char (cdr property-block))
+                       (beginning-of-line 2))
+              (beginning-of-line 2)))
+          (insert "- ..." right-part "\n"))))))
+
 (defvar my-org-misc-map (make-sparse-keymap))
 (progn
-  (define-key my-org-misc-map "i" 'my-org-fill-item))
+  (define-key my-org-misc-map "i" 'my-org-fill-item-or-heading))
 (define-key org-mode-map "\C-cm" my-org-misc-map)
 
 ;;════════════════════════════════════════
@@ -1428,18 +1461,27 @@ found under the `invisible' property, or nil when the region is visible there."
 (defun my-org-tempdone-cmd (&optional arg)
   (interactive "P")
   (let* (last-interval low-high prompt)
-    (if arg
-        (progn (setq low-high (read-string "Interval: "))
-               (org-map-tree
-                (lambda nil
-                  (when (org-entry-is-todo-p)
-                    (my-org-tempdone (my-randint (car low-high)
-                                                 (cadr low-high)))))))
-      (setq last-interval (org-entry-get nil "TEMPDONE_INTERVAL"))
-      (setq low-high (my-org-tempdone-read-low-high last-interval))
-      (my-org-tempdone
-       (my-randint (car low-high)
-                   (cadr low-high))))))
+    (cond (arg
+           (progn (setq low-high (my-org-tempdone-read-low-high))
+                  (org-map-tree
+                   (lambda nil
+                     (when (org-entry-is-todo-p)
+                       (my-org-tempdone (my-randint (car low-high)
+                                                    (cadr low-high))))))))
+           ((org-region-active-p)
+            (setq low-high (my-org-tempdone-read-low-high))
+            (org-map-region
+             (lambda nil
+               (when (org-entry-is-todo-p)
+                 (my-org-tempdone (my-randint (car low-high)
+                                              (cadr low-high)))))
+             (region-beginning) (region-end)))
+           (t
+            (setq last-interval (org-entry-get nil "TEMPDONE_INTERVAL"))
+            (setq low-high (my-org-tempdone-read-low-high last-interval))
+            (my-org-tempdone
+             (my-randint (car low-high)
+                         (cadr low-high)))))))
 
 (defun my-org-tempdone-read-low-high (&optional last-interval)
   (let ((prompt (if last-interval (format "Interval (last was %s): "
@@ -1510,7 +1552,6 @@ non-nil, undo regardless of date."
 (add-hook 'org-mode-hook
           'my-org-tempdone-undo-buffer
           1)
-
 ;;════════════════════════════════════════════════════════════
 ;; nodes
 
