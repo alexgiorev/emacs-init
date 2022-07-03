@@ -531,7 +531,7 @@ function with no arguments called with point at the beginning of the heading"
       (org-refile))))
 
 (defvar my-org-kill-link-descrs
-  '((1 . "see") (2 . "here") (3 . "this") (4. "*[return]*")))
+  '((1 . "see") (2 . "here") (3 . "this") (4 . "(return)")))
 (defun my-org-kill-link (arg)
   (interactive "P")
   (let ((custom-id-p (not (equal arg '(4))))
@@ -1018,8 +1018,9 @@ FUNC."
         (when (not (eq major-mode 'org-mode))
           (org-mode))
         (with-current-buffer buffer
-          (save-excursion
-           (funcall func) (save-buffer)))
+          (org-with-point-at 1
+            (funcall func)
+            (when save (save-buffer))))
         (unless was-visited
           (kill-buffer buffer))))))
 
@@ -1205,7 +1206,8 @@ of `org-todo-keywords-1'."
                 (progn (goto-char (cdr property-block))
                        (beginning-of-line 2))
               (beginning-of-line 2)))
-          (insert "- ..." right-part "\n"))))))
+          (save-excursion (insert "- ..." right-part "\n"))
+          (my-org-fill-item))))))
 
 (defvar my-org-misc-map (make-sparse-keymap))
 (progn
