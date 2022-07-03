@@ -179,6 +179,15 @@
   (insert (make-string length ?═)))
 (define-key global-map (kbd "C-x C-r") 'my-insert-ruler)
 
+(defun my-leng-files nil
+  "Returns a list of the leng files. Currently these are the files in ~/leng
+  which are not excluded (via leng-exclude.el)"
+  (let ((leng-exclude (read (with-temp-buffer
+                              (insert-file-contents "~/leng/leng-exclude.el")
+                              (buffer-string)))))
+    (my-directory-non-directory-files
+     "~/leng" nil (lambda (file) (not (member file leng-exclude))))))
+
 ;;════════════════════════════════════════
 
 (defun my-books ()
@@ -421,7 +430,8 @@ current buffer"
 (set-register ?u "*[UPDATE]* ")
 
 (defvar my-insert-math-char-alist
-  '((?i . "∫") (?e . "ε") (?d . "δ")))
+  '((?i . "∫") (?e . "ε") (?d . "δ")
+    (?a . "α") (?b . "β") (?g . "γ")))
 (defun my-insert-math-char nil
   (interactive)
   (let* ((code (read-char-exclusive))
