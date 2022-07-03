@@ -179,14 +179,28 @@
   (insert (make-string length ?═)))
 (define-key global-map (kbd "C-x C-r") 'my-insert-ruler)
 
-(defun my-leng-files nil
+(defun my-directory-non-directory-files (dir &optional full pred)
+  (let ((all-files (directory-files dir :full))
+        result)
+    (setq result (seq-filter (lambda (file) (not (file-directory-p file)))
+                             all-files))
+    (unless full
+      (setq result (mapcar 'file-name-nondirectory result)))
+    (when pred
+      (setq result (seq-filter pred result)))
+    result))
+
+(defvar my-leng-dir "~/notes/leng")
+(defun my-leng-files (&optional full)
   "Returns a list of the leng files. Currently these are the files in ~/leng
   which are not excluded (via leng-exclude.el)"
   (let ((leng-exclude (read (with-temp-buffer
                               (insert-file-contents "~/leng/leng-exclude.el")
                               (buffer-string)))))
     (my-directory-non-directory-files
-     "~/leng" nil (lambda (file) (not (member file leng-exclude))))))
+     my-leng-dir full
+     (lambda (file)
+       (not (member (file-name-nondirectory file) leng-exclude))))))
 
 ;;════════════════════════════════════════
 

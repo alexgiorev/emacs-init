@@ -131,7 +131,9 @@ not bound to any node."
                  link (format "[[id:%s][%s]]" id name))
            (move-overlay overlay (match-beginning 0) (match-end 0))
            (when (not (member id found))
-             (unless (eq (char-after) ?\])
+             (unless (memq (or (car-safe (get-text-property 0 'face name))
+                               (get-text-property 0 'face name))
+                           '(org-link org-code org-verbatim))
                (when (or (not incremental-p)
                          (string= (read-answer "Link? " '(("yes" ?y) ("no" ?n)))
                                   "yes"))
@@ -152,19 +154,18 @@ not bound to any node."
     (my-org-vars-flush)))
   
 ;; keymap
-
 ;; ════════════════════════════════════════
 
 (defvar my-org-vars-map (make-sparse-keymap))
 (progn
   (define-key my-org-vars-map "g" 'my-org-vars-goto)
-  (define-key my-org-vars-map "s" 'my-org-vars-set)
+  (define-key my-org-vars-map " " 'my-org-vars-set)
   (define-key my-org-vars-map "u" 'my-org-vars-unset)
   (define-key my-org-vars-map "l" 'my-org-vars-insert-link)
   (define-key my-org-vars-map "n" 'my-org-vars-link-region))
 (define-key global-map "\C-xv" my-org-vars-map)
 
-;; * initialization
+;; initialization
 ;; ════════════════════════════════════════
 
 (my-org-vars-load)

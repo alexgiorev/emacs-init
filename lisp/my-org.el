@@ -1012,8 +1012,7 @@ FUNC."
   (let (buffer was-visited)
     (dolist (file files)
       (unless (file-directory-p file)
-        (setq was-visited nil)
-        (unless (setq was-visited (setq buffer (get-file-buffer file)))
+        (unless (setq was-visited (not (null (setq buffer (get-file-buffer file)))))
           (setq buffer (find-file-noselect file)))
         (when (not (eq major-mode 'org-mode))
           (org-mode))
@@ -1213,6 +1212,29 @@ of `org-todo-keywords-1'."
 (progn
   (define-key my-org-misc-map "i" 'my-org-fill-item-or-heading))
 (define-key org-mode-map "\C-cm" my-org-misc-map)
+
+(defvar my-org-custom-id-link-re
+  "\\[\\[\\(?:\\(.*?\\)::\\)?#\\(.*?\\)\\]\\[\\(.*?\\)]\\]")
+(defvar my-org-custom-id-link-re-format
+  "\\[\\[\\(?:\\(.*?\\)::\\)?#\\(%s\\)\\]\\[\\(.*?\\)]\\]")
+
+(defun my-org-fix-custom-id-links-after-move (&optional files)
+  (let* ((custom-ids (my-org-tree-custom-ids))
+         (link-regexp (format my-org-custom-id-link-re-format
+                              (regexp-opt custom-ids)))
+         (current-file (buffer-file-name (buffer-base-buffer)))
+         (count 0) current-id description new-link)
+    (my-org-run-in-files
+     (lambda nil
+       (while (re-search-forward link-regexp nil t)
+         (setq current-id (match-string 2)
+               description (match-string 3)
+               new-link (format "[[%s::#%s][%s]]" current-file current-id description))
+         (replace-match new-link)
+         (setq count (1+ count))))
+     (or files (my-leng-files :full)) :save)
+    count))
+
 
 ;;════════════════════════════════════════
 ;; misc_yanking_images
@@ -1433,6 +1455,14 @@ found under the `invisible' property, or nil when the region is visible there."
           (org-flag-region (max start (overlay-start overlay))
                            (min end (overlay-end overlay))
                            nil spec))))))
+
+(defun my-org-tree-custom-ids nil
+  (let ((custom-ids nil) custom-id)
+    (org-map-tree
+     (lambda nil
+       (when (setq custom-id (org-entry-get nil "CUSTOM_ID"))
+         (push custom-id custom-ids))))
+    custom-ids))
 
 ;;════════════════════════════════════════
 ;; TEMP and TEMPDONE
