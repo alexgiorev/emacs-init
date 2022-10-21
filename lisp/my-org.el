@@ -218,9 +218,9 @@ add a backlink as a BACKLINK property."
     (push-mark)
     (insert string)))
 
-(defun my-org-save-no-links (start end)
-  (interactive "r")
-  (kill-new (my-org-strip-links (buffer-substring start end)))
+(defun my-org-save-no-links (start end &optional arg)
+  (interactive "r\nP")
+  (kill-new (my-org-strip-links (buffer-substring start end) (not arg)))
   (deactivate-mark))
 
 (defun my-org-yank-as-last-child (&optional tree)
@@ -1050,11 +1050,12 @@ FUNC."
             (save-excursion (insert children))
             (org-map-region 'org-demote (point) (progn (end-of-buffer) (point)))))))))
 
-(defun my-org-strip-links (string)
+(defun my-org-strip-links (string &optional code-p)
   (with-temp-buffer
     (insert string) (beginning-of-buffer)
     (while (re-search-forward org-link-any-re nil t)
-      (replace-match (match-string 3)))
+      (replace-match (if code-p (concat "~" (match-string 3) "~")
+                       (match-string 3))))
     (buffer-string)))
 
 ;; Fixed the bug of "READ" showing "READ_L" as well
@@ -1152,7 +1153,7 @@ of `org-todo-keywords-1'."
 (defun my-org-fill-item-or-heading (&optional unfill-p)
   (interactive "P")
   (if (org-on-heading-p)
-      (my-org-split-heading)
+      (my-org-fill-heading)
     (my-org-fill-item unfill-p)))
 
 (defun my-org-fill-item (&optional unfill-p)
@@ -1185,8 +1186,8 @@ of `org-todo-keywords-1'."
                  (indent-rigidly (point) (point-max) (+ 2 indentation)))
                (buffer-string)))))))))
 
-(defun my-org-split-heading nil
-  (interactive)
+(defun my-org-fill-heading (&optional arg)
+  (interactive "P")
   (when (org-on-heading-p)
     (let ((max-column 100)
           right-part)
@@ -1235,6 +1236,7 @@ of `org-todo-keywords-1'."
      (or files (my-leng-files :full)) :save)
     count))
 
+(setq org-cycle-include-plain-lists 'integrate)
 
 ;;════════════════════════════════════════
 ;; misc_yanking_images

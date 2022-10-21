@@ -113,8 +113,7 @@ not bound to any node."
     (setq start (line-beginning-position)
           end (line-end-position)))
   (let ((re (concat "\\("
-                    (regexp-opt (my-alist-keys my-org-vars-alist)
-                                'words)
+                    (regexp-opt (my-alist-keys my-org-vars-alist) 'words)
                     "\\)"))
         (case-fold-search nil)
         (read-answer-short t)
@@ -127,7 +126,7 @@ not bound to any node."
      (unwind-protect
          (while (re-search-forward re nil t)
            (setq name (match-string 1)
-                 id (cdr (assoc name my-org-vars-alist))
+                 id (cdr (assoc (downcase name) my-org-vars-alist))
                  link (format "[[id:%s][%s]]" id name))
            (move-overlay overlay (match-beginning 0) (match-end 0))
            (when (not (member id found))

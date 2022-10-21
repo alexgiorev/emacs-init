@@ -445,7 +445,8 @@ current buffer"
 
 (defvar my-insert-math-char-alist
   '((?i . "∫") (?e . "ε") (?d . "δ")
-    (?a . "α") (?b . "β") (?g . "γ")))
+    (?a . "α") (?b . "β") (?g . "γ")
+    (?v . "∀") (?x . "∃")))
 (defun my-insert-math-char nil
   (interactive)
   (let* ((code (read-char-exclusive))
