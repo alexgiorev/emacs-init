@@ -1239,18 +1239,35 @@ of `org-todo-keywords-1'."
 (setq org-cycle-include-plain-lists 'integrate)
 
 (defvar my-org-item-tag-delimiters
-  '((nil "[" "]") (1 "(" ")")))
+  '((1 "(" ")")))
 (defvar my-org-item-tag-extras-list
-  '("understand" "didn't-understand"))
+  '("understand" "notund-interesting" "fun-suggestion"))
+(defvar my-org-btag-re "\\[\\(\\(?:[[:word:]]\\|\\s_\\)+\\)\\]")
+(defvar my-org-btag-seq-re "\\(?:\\[\\(?:[[:word:]]\\|\\s_\\)+\\]\\)+")
 (defun my-org-item-tag (&optional arg)
   (interactive "P")
-  (let* ((delimiters (cdr (assoc arg my-org-item-tag-delimiters)))
+  (let* ((delimiters (if (listp arg) (list "[" "]")
+                       (cdr (assoc arg my-org-item-tag-delimiters))))
          (left (car delimiters)) (right (cadr delimiters))
          (tag (completing-read "Tag: " (append my-org-item-tag-extras-list
                                                org-todo-keywords-1
-                                               (my-alist-keys my-org-vars-alist)))))
-    (insert "*" left tag right "* ")))
+                                               (my-alist-keys my-org-vars-alist))))
+         (item-beginning nil))
+    (if (equal arg '(4))
+        (save-excursion
+          (when (my-org-beginning-of-item)
+            (goto-char (match-end 1)) ;; after the bullet
+            (if (looking-at (concat "*\\(" my-org-btag-seq-re "\\)*"))
+                (replace-match (concat "[" tag "]") nil nil nil 1)
+              (insert "*[" tag "]* "))))
+      (insert "*" left tag right "* "))))
 (define-key org-mode-map (kbd "C-c m t") 'my-org-item-tag)
+
+(defun my-org-beginning-of-item nil
+  (interactive)
+  (let ((heading-beginning (save-excursion (org-back-to-heading) (point))))
+    (re-search-backward org-list-full-item-re heading-beginning t)))
+
 ;;════════════════════════════════════════
 ;; misc_yanking_images
 
