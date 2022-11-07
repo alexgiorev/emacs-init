@@ -1238,6 +1238,19 @@ of `org-todo-keywords-1'."
 
 (setq org-cycle-include-plain-lists 'integrate)
 
+(defvar my-org-item-tag-delimiters
+  '((nil "[" "]") (1 "(" ")")))
+(defvar my-org-item-tag-extras-list
+  '("understand" "didn't-understand"))
+(defun my-org-item-tag (&optional arg)
+  (interactive "P")
+  (let* ((delimiters (cdr (assoc arg my-org-item-tag-delimiters)))
+         (left (car delimiters)) (right (cadr delimiters))
+         (tag (completing-read "Tag: " (append my-org-item-tag-extras-list
+                                               org-todo-keywords-1
+                                               (my-alist-keys my-org-vars-alist)))))
+    (insert "*" left tag right "* ")))
+(define-key org-mode-map (kbd "C-c m t") 'my-org-item-tag)
 ;;════════════════════════════════════════
 ;; misc_yanking_images
 
