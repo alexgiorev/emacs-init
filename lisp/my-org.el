@@ -1156,6 +1156,7 @@ of `org-todo-keywords-1'."
       (my-org-fill-heading)
     (my-org-fill-item unfill-p)))
 
+(defvar my-org-fill-item-column 100)
 (defun my-org-fill-item (&optional unfill-p)
   (interactive "P")
   (save-excursion
@@ -1171,7 +1172,7 @@ of `org-todo-keywords-1'."
                          (org-element-property :end element)))
                (indentation (current-indentation))
                (text (buffer-substring start end))
-               (fill-column 100))
+               (fill-column my-org-fill-item-column))
           (replace-region-contents
            start end
            (lambda nil
@@ -1179,7 +1180,11 @@ of `org-todo-keywords-1'."
                (insert text) (unfill-region (point-min) (point-max))
                (unless unfill-p
                  (fill-region (point-min) (point-max))
-                 ;; this is because when I'm using tags like *[READ]* the
+                 (end-of-buffer) (beginning-of-line 0)
+                 (when (and (save-excursion (search-backward "\n"))
+                            (>= 12 (- (line-end-position) (save-excursion (org-skip-whitespace) (point)))))
+                   (delete-horizontal-space) (delete-backward-char 1) (insert " "))
+                 ;; This is because when I'm using tags like *[READ]* the
                  ;; beginning "*" causes an indentation after filling
                  (indent-rigidly (point-min) (point-max) -30)
                  (beginning-of-buffer) (beginning-of-line 2)
@@ -1238,15 +1243,23 @@ of `org-todo-keywords-1'."
 
 (setq org-cycle-include-plain-lists 'integrate)
 
-(defvar my-org-item-tag-delimiters
-  '((1 "(" ")")))
-(defvar my-org-item-tag-extras-list
-  '("understand" "notund-interesting" "fun-suggestion"))
 (defvar my-org-btag-re "\\[\\(\\(?:[[:word:]]\\|\\s_\\)+\\)\\]")
 (defvar my-org-btag-seq-re "\\(?:\\[\\(?:[[:word:]]\\|\\s_\\)+\\]\\)+")
+(defvar my-org-item-tag-delimiters
+  '((1 "(" ")") (2 "~" "~")))
+
+(defvar my-org-item-tag-extras-list)
+(ignore-errors
+  (setq my-org-item-tag-extras-list
+        '("understand" "notund-interesting"))
+  (with-temp-buffer
+    (insert-file-contents "~/leng/identifiers_list")
+    (beginning-of-buffer)
+    (while (re-search-forward "- \\(.*\\)" nil t)
+      (push (match-string 1) my-org-item-tag-extras-list))))
 (defun my-org-item-tag (&optional arg)
   (interactive "P")
-  (let* ((delimiters (if (listp arg) (list "[" "]")
+  (let* ((delimiters (if (listp arg) (list "*[" "]*")
                        (cdr (assoc arg my-org-item-tag-delimiters))))
          (left (car delimiters)) (right (cadr delimiters))
          (tag (completing-read "Tag: " (append my-org-item-tag-extras-list
@@ -1260,7 +1273,7 @@ of `org-todo-keywords-1'."
             (if (looking-at (concat "*\\(" my-org-btag-seq-re "\\)*"))
                 (replace-match (concat "[" tag "]") nil nil nil 1)
               (insert "*[" tag "]* "))))
-      (insert "*" left tag right "* "))))
+      (insert left tag right))))
 (define-key org-mode-map (kbd "C-c m t") 'my-org-item-tag)
 
 (defun my-org-beginning-of-item nil
