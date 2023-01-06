@@ -442,6 +442,7 @@ current buffer"
 (set-register ?r "(region-beginning) (region-end)")
 (set-register ?p "(point-min) (point-max)")
 (set-register ?u "*[UPDATE]* ")
+(set-register ?m "*[me]*[")
 
 (defvar my-insert-math-char-alist
   '((?i . "∫") (?e . "ε") (?d . "δ")

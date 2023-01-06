@@ -1054,7 +1054,7 @@ FUNC."
   (with-temp-buffer
     (insert string) (beginning-of-buffer)
     (while (re-search-forward org-link-any-re nil t)
-      (replace-match (if code-p (concat "~" (match-string 3) "~")
+      (replace-match (if code-p (concat "*" (match-string 3) "*")
                        (match-string 3))))
     (buffer-string)))
 
@@ -1181,7 +1181,7 @@ of `org-todo-keywords-1'."
                (unless unfill-p
                  (fill-region (point-min) (point-max))
                  (end-of-buffer) (beginning-of-line 0)
-                 (when (and (save-excursion (search-backward "\n"))
+                 (when (and (save-excursion (search-backward "\n" nil t))
                             (>= 12 (- (line-end-position) (save-excursion (org-skip-whitespace) (point)))))
                    (delete-horizontal-space) (delete-backward-char 1) (insert " "))
                  ;; This is because when I'm using tags like *[READ]* the
@@ -1246,8 +1246,7 @@ of `org-todo-keywords-1'."
 (defvar my-org-btag-re "\\[\\(\\(?:[[:word:]]\\|\\s_\\)+\\)\\]")
 (defvar my-org-btag-seq-re "\\(?:\\[\\(?:[[:word:]]\\|\\s_\\)+\\]\\)+")
 (defvar my-org-item-tag-delimiters
-  '((1 "(" ")") (2 "~" "~")))
-
+  '((1 "*" "*") (2 "~" "~")))
 (defvar my-org-item-tag-extras-list)
 (ignore-errors
   (setq my-org-item-tag-extras-list
@@ -1255,8 +1254,12 @@ of `org-todo-keywords-1'."
   (with-temp-buffer
     (insert-file-contents "~/leng/identifiers_list")
     (beginning-of-buffer)
-    (while (re-search-forward "- \\(.*\\)" nil t)
-      (push (match-string 1) my-org-item-tag-extras-list))))
+    (while (re-search-forward "^- \\([^[:space:]]*\\)\\(?: +:: \\(.*\\)\\)?" nil t)
+      (push (match-string 1) my-org-item-tag-extras-list)
+      (when (match-string 2)
+        (let ((elements (split-string (match-string 2))))
+          (dolist (element elements)
+            (push element my-org-item-tag-extras-list)))))))
 (defun my-org-item-tag (&optional arg)
   (interactive "P")
   (let* ((delimiters (if (listp arg) (list "*[" "]*")
@@ -1272,9 +1275,36 @@ of `org-todo-keywords-1'."
             (goto-char (match-end 1)) ;; after the bullet
             (if (looking-at (concat "*\\(" my-org-btag-seq-re "\\)*"))
                 (replace-match (concat "[" tag "]") nil nil nil 1)
-              (insert "*[" tag "]* "))))
-      (insert left tag right))))
+              (insert "*[" tag "]* "))
+            (my-org-fill-item)))
+      (insert left tag right " "))))
 (define-key org-mode-map (kbd "C-c m t") 'my-org-item-tag)
+
+(defun my-org-identifier-insert-direct nil
+  (interactive)
+  (let ((tag (completing-read "Tag: " (append my-org-item-tag-extras-list
+                                              org-todo-keywords-1
+                                              (my-alist-keys my-org-vars-alist)))))
+    (insert "*" tag "*")))
+
+(defun my-org-identifier-insert-paren nil
+  (interactive)
+  (let ((tag (completing-read "Tag: " (append my-org-item-tag-extras-list
+                                              org-todo-keywords-1
+                                              (my-alist-keys my-org-vars-alist)))))
+    (insert "*(" tag ")*")))
+
+(defun my-org-identifier-insert-bracket nil
+  (interactive)
+  (let ((tag (completing-read "Tag: " (append my-org-item-tag-extras-list
+                                              org-todo-keywords-1
+                                              (my-alist-keys my-org-vars-alist)))))
+    (insert "*[" tag "]*")))
+
+(progn
+  (define-key org-mode-map (kbd "C-x C-i") 'my-org-identifier-insert-direct)
+  (define-key org-mode-map (kbd "C-x (") 'my-org-identifier-insert-paren)
+  (define-key org-mode-map (kbd "C-x [") 'my-org-identifier-insert-bracket))
 
 (defun my-org-beginning-of-item nil
   (interactive)
