@@ -441,8 +441,11 @@ current buffer"
 ;; * registers
 (set-register ?r "(region-beginning) (region-end)")
 (set-register ?p "(point-min) (point-max)")
-(set-register ?u "*[UPDATE]* ")
-(set-register ?m "*[me]*[")
+(set-register ?u "*(UPDATE)* ")
+(set-register ?m "*(me)* ")
+(set-register ?b "*(book)* ")
+(set-register ?a "*⟶*")
+(set-register ?c "*(comment)* ")
 
 (defvar my-insert-math-char-alist
   '((?i . "∫") (?e . "ε") (?d . "δ")

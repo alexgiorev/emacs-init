@@ -399,12 +399,6 @@ entries from the file."
   (org-sort-entries nil ?f (lambda (&rest args) (random)))
   (org-cycle))
 
-;; quick insertion of caption
-(add-hook 'org-mode-hook
-          (lambda nil
-            (push (cons ?c "#+CAPTION: ")
-                  register-alist)))
-
 ;;════════════════════════════════════════════════════════════
 ;; Capture
 
@@ -587,7 +581,7 @@ function with no arguments called with point at the beginning of the heading"
 ;;       (org-PO-face-code start end))))
 
 (defvar my-org-codify-chars
-  '((nil "~" "~") (1 "*" "*") (2 "/" "/") (3 "_" "_")
+  '((nil "*" "*") (1 "~" "~") (2 "/" "/") (3 "_" "_")
     (4 "*[" "]*") (5 "{{c1::" "}}")))
 (defun my-org-codify (&optional arg)
   (interactive "P")
@@ -1168,8 +1162,7 @@ of `org-todo-keywords-1'."
             (goto-char (match-end 1))
             (setq element (org-element-at-point))))
         (let* ((start (match-end 1))
-               (end (min (point-max)
-                         (org-element-property :end element)))
+               (end (min (point-max) (org-element-property :end element)))
                (indentation (current-indentation))
                (text (buffer-substring start end))
                (fill-column my-org-fill-item-column))
@@ -1177,7 +1170,12 @@ of `org-todo-keywords-1'."
            start end
            (lambda nil
              (with-temp-buffer
-               (insert text) (unfill-region (point-min) (point-max))
+               (insert text)
+               ;; Do a custom unfill.
+               (save-excursion
+                 (beginning-of-buffer)
+                 (while (and (re-search-forward "\n\s*" nil t) (not (eobp)))
+                   (replace-match " ")))
                (unless unfill-p
                  (fill-region (point-min) (point-max))
                  (end-of-buffer) (beginning-of-line 0)
@@ -1248,18 +1246,21 @@ of `org-todo-keywords-1'."
 (defvar my-org-item-tag-delimiters
   '((1 "*" "*") (2 "~" "~")))
 (defvar my-org-item-tag-extras-list)
-(ignore-errors
-  (setq my-org-item-tag-extras-list
-        '("understand" "notund-interesting"))
-  (with-temp-buffer
-    (insert-file-contents "~/leng/identifiers_list")
-    (beginning-of-buffer)
-    (while (re-search-forward "^- \\([^[:space:]]*\\)\\(?: +:: \\(.*\\)\\)?" nil t)
-      (push (match-string 1) my-org-item-tag-extras-list)
-      (when (match-string 2)
-        (let ((elements (split-string (match-string 2))))
-          (dolist (element elements)
-            (push element my-org-item-tag-extras-list)))))))
+(defun my-org-load-identifiers nil
+  (interactive)
+  (ignore-errors
+    (setq my-org-item-tag-extras-list
+          '("understand" "notund-interesting"))
+    (with-temp-buffer
+      (insert-file-contents "~/leng/identifiers_list")
+      (beginning-of-buffer)
+      (while (re-search-forward "^- \\([^[:space:]]*\\)\\(?: +:: \\(.*\\)\\)?" nil t)
+        (push (match-string 1) my-org-item-tag-extras-list)
+        (when (match-string 2)
+          (let ((elements (split-string (match-string 2))))
+            (dolist (element elements)
+              (push element my-org-item-tag-extras-list))))))))
+(my-org-load-identifiers)
 (defun my-org-item-tag (&optional arg)
   (interactive "P")
   (let* ((delimiters (if (listp arg) (list "*[" "]*")
@@ -1280,12 +1281,22 @@ of `org-todo-keywords-1'."
       (insert left tag right " "))))
 (define-key org-mode-map (kbd "C-c m t") 'my-org-item-tag)
 
-(defun my-org-identifier-insert-direct nil
-  (interactive)
-  (let ((tag (completing-read "Tag: " (append my-org-item-tag-extras-list
-                                              org-todo-keywords-1
-                                              (my-alist-keys my-org-vars-alist)))))
-    (insert "*" tag "*")))
+(defun my-org-identifier-insert-direct (&optional arg)
+  (interactive "P")
+  (let* ((crm-separator ",")
+         (tags (completing-read-multiple
+                "Tag: " (append my-org-item-tag-extras-list
+                                org-todo-keywords-1
+                                (my-alist-keys my-org-vars-alist)))))
+    (if arg
+        (let* ((start (progn (skip-chars-backward "[[:word:]-]") (point)))
+               (end (progn (skip-chars-forward "[[:word:]-]") (point)))
+               (text (buffer-substring start end)))
+          (delete-region start end)
+          (insert (format "[[%s][%s]]" (mapconcat 'identity tags " ") text)))
+      (if (org-in-regexp "\\*\\(.*?\\)\\*")
+          (insert (car tags))
+        (insert "*" (car tags) "*")))))
 
 (defun my-org-identifier-insert-paren nil
   (interactive)
@@ -1299,7 +1310,9 @@ of `org-todo-keywords-1'."
   (let ((tag (completing-read "Tag: " (append my-org-item-tag-extras-list
                                               org-todo-keywords-1
                                               (my-alist-keys my-org-vars-alist)))))
-    (insert "*[" tag "]*")))
+    (if (org-in-regexp "\\*\\(.*?\\)\\*")
+        (insert "[" tag "]")
+      (insert "*[" tag "]*"))))
 
 (progn
   (define-key org-mode-map (kbd "C-x C-i") 'my-org-identifier-insert-direct)
@@ -1623,7 +1636,7 @@ found under the `invisible' property, or nil when the region is visible there."
   "A list of keywords which to not enqueue on a todoq queue when UNDOing the TEMPDONE")
 (defvar my-org-tempdone-todoq-remap
   '(("UNDERSTAND" . "PROBLEM") ("EXPLAIN" . "PROBLEM")
-    ("PASSIVE" . "REVIEW") ("PROCESS" . "READ") ("ANKIFY" . "READ")))
+    ("PASSIVE" . "REVIEW") ("ANKIFY" . "READ")))
 (defun my-org-tempdone-undo (&optional force)
   "If the current entry is a TEMPDONE, undo it. If a TEMPDONE date is present,
 don't undo unless it refers to today or a day that has passed. If FORCE is
