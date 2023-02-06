@@ -1245,74 +1245,91 @@ of `org-todo-keywords-1'."
 (defvar my-org-btag-seq-re "\\(?:\\[\\(?:[[:word:]]\\|\\s_\\)+\\]\\)+")
 (defvar my-org-item-tag-delimiters
   '((1 "*" "*") (2 "~" "~")))
-(defvar my-org-item-tag-extras-list)
+(defvar my-org-identifiers-alist nil)
 (defun my-org-load-identifiers nil
   (interactive)
   (ignore-errors
-    (setq my-org-item-tag-extras-list
-          '("understand" "notund-interesting"))
+    (setq my-org-identifiers-alist
+          '(("notund-interesting" . "notund-interesting")))
     (with-temp-buffer
       (insert-file-contents "~/leng/identifiers_list")
       (beginning-of-buffer)
       (while (re-search-forward "^- \\([^[:space:]]*\\)\\(?: +:: \\(.*\\)\\)?" nil t)
-        (push (match-string 1) my-org-item-tag-extras-list)
-        (when (match-string 2)
-          (let ((elements (split-string (match-string 2))))
-            (dolist (element elements)
-              (push element my-org-item-tag-extras-list))))))))
+        (let ((key (match-string 1))
+              (values nil))
+        (push (cons key key) my-org-identifiers-alist)
+        (when (setq values (match-string 2))
+          (setq values (split-string values))
+          (dolist (value values)
+            (push (cons value key) my-org-identifiers-alist))))))))
+
 (my-org-load-identifiers)
-(defun my-org-item-tag (&optional arg)
-  (interactive "P")
-  (let* ((delimiters (if (listp arg) (list "*[" "]*")
-                       (cdr (assoc arg my-org-item-tag-delimiters))))
-         (left (car delimiters)) (right (cadr delimiters))
-         (tag (completing-read "Tag: " (append my-org-item-tag-extras-list
-                                               org-todo-keywords-1
-                                               (my-alist-keys my-org-vars-alist))))
-         (item-beginning nil))
-    (if (equal arg '(4))
-        (save-excursion
-          (when (my-org-beginning-of-item)
-            (goto-char (match-end 1)) ;; after the bullet
-            (if (looking-at (concat "*\\(" my-org-btag-seq-re "\\)*"))
-                (replace-match (concat "[" tag "]") nil nil nil 1)
-              (insert "*[" tag "]* "))
-            (my-org-fill-item)))
-      (insert left tag right " "))))
-(define-key org-mode-map (kbd "C-c m t") 'my-org-item-tag)
+
+(defun my-org-identifier-key (identifier)
+  (let ((item (assoc identifier my-org-identifiers-alist)))
+    (if item (cdr item) identifier)))
+
+;; [2023-02-06] Commenting this out for now, I'm not using it much, and it needs an update.
+;; ════════════════════════════════════════════════════════════════════════════════
+;; (defun my-org-item-tag (&optional arg)
+;;   (interactive "P")
+;;   (let* ((delimiters (if (listp arg) (list "*[" "]*")
+;;                        (cdr (assoc arg my-org-item-tag-delimiters))))
+;;          (left (car delimiters)) (right (cadr delimiters))
+;;          (tag (completing-read "Tag: " (append my-org-item-tag-extras-list
+;;                                                org-todo-keywords-1
+;;                                                (my-alist-keys my-org-vars-alist))))
+;;          (item-beginning nil))
+;;     (if (equal arg '(4))
+;;         (save-excursion
+;;           (when (my-org-beginning-of-item)
+;;             (goto-char (match-end 1)) ;; after the bullet
+;;             (if (looking-at (concat "*\\(" my-org-btag-seq-re "\\)*"))
+;;                 (replace-match (concat "[" tag "]") nil nil nil 1)
+;;               (insert "*[" tag "]* "))
+;;             (my-org-fill-item)))
+;;       (insert left tag right " "))))
+;; (define-key org-mode-map (kbd "C-c m t") 'my-org-item-tag)
 
 (defun my-org-identifier-insert-direct (&optional arg)
   (interactive "P")
   (let* ((crm-separator ",")
          (tags (completing-read-multiple
-                "Tag: " (append my-org-item-tag-extras-list
+                "Tag: " (append (my-alist-keys my-org-identifiers-alist)
                                 org-todo-keywords-1
                                 (my-alist-keys my-org-vars-alist)))))
     (if arg
         (let* ((start (progn (skip-chars-backward "[[:word:]-]") (point)))
                (end (progn (skip-chars-forward "[[:word:]-]") (point)))
                (text (buffer-substring start end)))
+          (setq tags (mapcar 'my-org-identifier-key tags))
           (delete-region start end)
           (insert (format "[[%s][%s]]" (mapconcat 'identity tags " ") text)))
-      (if (org-in-regexp "\\*\\(.*?\\)\\*")
-          (insert (car tags))
-        (insert "*" (car tags) "*")))))
+      (let ((key (my-org-identifier-key (car tags))))
+        (if (eq 'bold (face-at-point)) (insert key)
+          (if (string= key (car tags))
+              (insert (format "[[%s]]" key))
+            (insert (format "[[%s][%s]]" key (car tags)))))))))
 
 (defun my-org-identifier-insert-paren nil
   (interactive)
-  (let ((tag (completing-read "Tag: " (append my-org-item-tag-extras-list
-                                              org-todo-keywords-1
-                                              (my-alist-keys my-org-vars-alist)))))
-    (insert "*(" tag ")*")))
+  (let ((crm-separator ",")
+        (tags (completing-read-multiple
+               "Tag: " (append (my-alist-keys my-org-identifiers-alist)
+                               org-todo-keywords-1
+                               (my-alist-keys my-org-vars-alist)))))
+    (insert "*(" (mapconcat 'identity (mapcar 'my-org-identifier-key tags) " ") ")*")))
 
 (defun my-org-identifier-insert-bracket nil
   (interactive)
-  (let ((tag (completing-read "Tag: " (append my-org-item-tag-extras-list
-                                              org-todo-keywords-1
-                                              (my-alist-keys my-org-vars-alist)))))
-    (if (org-in-regexp "\\*\\(.*?\\)\\*")
-        (insert "[" tag "]")
-      (insert "*[" tag "]*"))))
+  (let ((crm-separator ",")
+        (tags (completing-read-multiple
+               "Tag: " (append (my-alist-keys my-org-identifiers-alist)
+                               org-todo-keywords-1
+                               (my-alist-keys my-org-vars-alist)))))
+    (if (eq 'bold (face-at-point))
+        (insert "[" (mapconcat 'identity (mapcar 'my-org-identifier-key tags) "][") "]")
+      (insert "*[" (mapconcat 'identity (mapcar 'my-org-identifier-key tags) "][") "]*"))))
 
 (progn
   (define-key org-mode-map (kbd "C-x C-i") 'my-org-identifier-insert-direct)
