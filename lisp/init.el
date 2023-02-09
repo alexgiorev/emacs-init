@@ -202,6 +202,10 @@
      (lambda (file)
        (not (member (file-name-nondirectory file) leng-exclude))))))
 
+;; So that C-i isn't TAB, and C-m isn't RET
+(define-key input-decode-map [?\C-m] [C-m])
+(define-key input-decode-map [?\C-i] [C-i])
+
 ;;════════════════════════════════════════
 
 (defun my-books ()
@@ -754,3 +758,4 @@ one which corresponds to NODE"
 ;;════════════════════════════════════════
 ;; calc
 (setq calc-display-trail nil)
+
