@@ -223,6 +223,25 @@ add a backlink as a BACKLINK property."
   (kill-new (my-org-strip-links (buffer-substring start end) (not arg)))
   (deactivate-mark))
 
+(defun my-org-save-for-discord (start end)
+  (interactive "r")
+  (let ((text (buffer-substring start end)))
+    (with-temp-buffer
+      (insert text) (unfill-region (point-min) (point-max))
+      (dolist (org+discord '(("*" . "**") ("/" . "*") ("~" . "`")))
+        (beginning-of-buffer)
+        (let ((regexp (format "%s\\(.+?\\)%s"
+                              (regexp-quote (car org+discord))
+                              (regexp-quote (car org+discord)))))
+          (while (re-search-forward regexp nil t)
+            (replace-match (concat (cdr org+discord)
+                                   (match-string 1)
+                                   (cdr org+discord))))))
+      (kill-ring-save (point-min) (point-max))))
+  (deactivate-mark))
+
+(define-key org-mode-map (kbd "C-c s d") 'my-org-save-for-discord)
+
 (defun my-org-yank-as-last-child (&optional tree)
   (interactive)
   (setq tree (or tree (car kill-ring-yank-pointer)))
@@ -263,7 +282,7 @@ add a backlink as a BACKLINK property."
   (outline-hide-subtree))
 
 (defvar my-wrap-entry-title
-  "══════════════════════════════"
+  "*(BODY)*"
   "The title of the heading which is to wrap the entry of the current heading")
 
 (with-eval-after-load 'org
@@ -1048,8 +1067,8 @@ FUNC."
   (with-temp-buffer
     (insert string) (beginning-of-buffer)
     (while (re-search-forward org-link-any-re nil t)
-      (replace-match (if code-p (concat "*" (match-string 3) "*")
-                       (match-string 3))))
+      (let ((text (or (match-string 3) (match-string 2))))
+        (replace-match (if code-p (concat "*" text "*") text))))
     (buffer-string)))
 
 ;; Fixed the bug of "READ" showing "READ_L" as well
@@ -1307,9 +1326,7 @@ of `org-todo-keywords-1'."
           (insert (format "[[%s][%s]]" (mapconcat 'identity tags " ") text)))
       (let ((key (my-org-identifier-key (car tags))))
         (if (eq 'bold (face-at-point)) (insert key)
-          (if (string= key (car tags))
-              (insert (format "[[%s]]" key))
-            (insert (format "[[%s][%s]]" key (car tags)))))))))
+          (insert (format "[[%s][%s]]" key (read-string "Text: " (car tags)))))))))
 
 (defun my-org-identifier-insert-paren nil
   (interactive)
@@ -1318,7 +1335,7 @@ of `org-todo-keywords-1'."
                "Tag: " (append (my-alist-keys my-org-identifiers-alist)
                                org-todo-keywords-1
                                (my-alist-keys my-org-vars-alist)))))
-    (insert "*(" (mapconcat 'identity (mapcar 'my-org-identifier-key tags) " ") ")*")))
+    (insert "*(" (mapconcat 'identity (mapcar 'my-org-identifier-key tags) ")(") ")*")))
 
 (defun my-org-identifier-insert-bracket nil
   (interactive)
@@ -1331,15 +1348,43 @@ of `org-todo-keywords-1'."
         (insert "[" (mapconcat 'identity (mapcar 'my-org-identifier-key tags) "][") "]")
       (insert "*[" (mapconcat 'identity (mapcar 'my-org-identifier-key tags) "][") "]*"))))
 
+(defun my-org-identifier-new (&optional no-load)
+  (interactive "P")
+  (with-current-buffer "identifiers_list"
+    (beginning-of-buffer
+     (let (headings heading identifier)
+       (org-map-entries (lambda nil (push (cons (org-get-heading t t t t) (point)) headings)) "LEVEL=1")
+       (setq heading (completing-read "Heading: " (my-alist-keys headings) nil :require-match))
+       (setq identifier (read-string "Identifier: "))
+       (goto-char (cdr (assoc heading headings)))
+       (outline-next-heading) (unless (= (char-before) ?\n) (insert "\n"))
+       (insert "- " identifier "\n")
+       (save-buffer))))
+  (unless no-load (my-org-load-identifiers)))
+
 (progn
   (define-key org-mode-map (kbd "C-x C-i") 'my-org-identifier-insert-direct)
   (define-key org-mode-map (kbd "C-x (") 'my-org-identifier-insert-paren)
-  (define-key org-mode-map (kbd "C-x [") 'my-org-identifier-insert-bracket))
+  (define-key org-mode-map (kbd "C-x [") 'my-org-identifier-insert-bracket)
+  (define-key global-map "\C-x+" 'my-org-identifier-new))
 
 (defun my-org-beginning-of-item nil
   (interactive)
   (let ((heading-beginning (save-excursion (org-back-to-heading) (point))))
     (re-search-backward org-list-full-item-re heading-beginning t)))
+
+(defun my-org-item-todo nil
+  (interactive)
+  (let ((state (org-fast-todo-selection)))
+    (save-excursion
+      (when (my-org-beginning-of-item)
+        (goto-char (match-end 1)) ;; after the bullet
+        (if (looking-at (format "\\*(\\(%s\\))\\*" org-todo-regexp))
+            (replace-match state nil nil nil 1)
+          (insert "*(" state ")* "))
+        (my-org-fill-item)))))
+
+(define-key my-org-misc-map "t" 'my-org-item-todo)
 
 ;;════════════════════════════════════════
 ;; misc_yanking_images
@@ -1663,9 +1708,7 @@ non-nil, undo regardless of date."
     (when (string= (org-get-todo-state) "TEMPDONE")
       (setq day (ignore-errors (string-to-number (org-entry-get nil "TEMPDONE_UNDO_DAY"))))
       (when (or force (not day) (<= day (my-time-today)))
-        (setq old (org-entry-get nil "TEMPDONE_UNDO"))
-        (unless old
-          (error "TEMPDONE entry missing TEMPDONE_UNDO property"))
+        (setq old (or (org-entry-get nil "TEMPDONE_UNDO") ""))
         (org-entry-delete nil "TEMPDONE_UNDO")
         (org-entry-delete nil "TEMPDONE_UNDO_DAY")
         (org-todo old)
