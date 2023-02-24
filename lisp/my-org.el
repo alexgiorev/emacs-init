@@ -599,6 +599,25 @@ function with no arguments called with point at the beginning of the heading"
 ;;       (setq end (point))
 ;;       (org-PO-face-code start end))))
 
+;; [2023-02-24] Not sure if this function I should fuse somehow with
+;; my-org-codify, but for now it's a good-enough solution to leave them
+;; separate.
+(defun my-org-italic-individual-words (start end remove-p)
+  (interactive "r\nP")
+  (cond (remove-p
+         (save-restriction
+           (narrow-to-region start end)
+           (beginning-of-buffer)
+           (while (re-search-forward "/\\([^[:space:]]+\\)/" nil t)
+             (replace-match (match-string 1)))))
+        (t
+         (save-restriction
+           (narrow-to-region start end)
+           (beginning-of-buffer)
+           (while (re-search-forward "[^[:space:]]+" nil t)
+             (replace-match (format "/%s/" (match-string 0))))))))
+(define-key org-mode-map (kbd "C-c m /") 'my-org-italic-individual-words)
+
 (defvar my-org-codify-chars
   '((nil "*" "*") (1 "~" "~") (2 "/" "/") (3 "_" "_")
     (4 "*[" "]*") (5 "{{c1::" "}}")))
