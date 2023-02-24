@@ -606,14 +606,32 @@ function with no arguments called with point at the beginning of the heading"
   (interactive "r\nP")
   (cond (remove-p
          (save-restriction
-           (narrow-to-region start end)
-           (beginning-of-buffer)
+           (progn 
+             (goto-char start)
+             (skip-chars-backward "[:space:]")
+             (setq start (point)))
+           (progn 
+             (goto-char end)
+             (skip-chars-forward "^[:space:]")
+             (setq end (point)))
+           (narrow-to-region start end) (beginning-of-buffer)
            (while (re-search-forward "/\\([^[:space:]]+\\)/" nil t)
              (replace-match (match-string 1)))))
         (t
          (save-restriction
-           (narrow-to-region start end)
-           (beginning-of-buffer)
+           (if (region-active-p)
+               (progn
+                 (goto-char start)
+                 (skip-chars-backward "^[:space:]")
+                 (setq start (point))
+                 (goto-char end)
+                 (skip-chars-forward "^[:space:]")
+                 (setq end (point)))
+             (setq end (point))
+             (search-backward "/" (line-beginning-position))
+             (delete-char 1)
+             (setq start (point)))
+           (narrow-to-region start end) (beginning-of-buffer)
            (while (re-search-forward "[^[:space:]]+" nil t)
              (replace-match (format "/%s/" (match-string 0))))))))
 (define-key org-mode-map (kbd "C-c m /") 'my-org-italic-individual-words)
