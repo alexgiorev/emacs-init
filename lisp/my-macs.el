@@ -256,6 +256,7 @@ removed."
 
 ;; ════════════════════════════════════════
 ;; * lists
+
 (defun LIST-index (elt list &optional test)
   "Return the index in LIST where ELT first appears.
 The comparison is done with TEST, which defaults to `eq'."
@@ -490,7 +491,9 @@ WARNING: If the list is circular, this will loop forever"
 (defun my-same-line (pos1 pos2)
   (save-excursion
     (= (progn (goto-char pos1) (line-beginning-position))
-       (progn (goto-char pos2) (line-beginning-position)))))(defun my-buffer-overlay-substring (start end)
+       (progn (goto-char pos2) (line-beginning-position)))))
+
+(defun my-buffer-overlay-substring (start end)
   "Returns the overlay string at the region (START END).
 The format of an overlay string is a pair whose first element is a string and
 whose second element is a list of triples (START END PROPS)"
@@ -536,6 +539,7 @@ whose second element is a list of triples (START END PROPS)"
       (push (cons (car list1) (car list2)) result)
       (setq list1 (cdr list1) list2 (cdr list2)))
     (reverse result)))
+
 ;;════════════════════════════════════════
 ;; pvars
 

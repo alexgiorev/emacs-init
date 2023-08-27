@@ -282,7 +282,7 @@ add a backlink as a BACKLINK property."
   (outline-hide-subtree))
 
 (defvar my-wrap-entry-title
-  "*(BODY)*"
+  "*{════════════════════}*"
   "The title of the heading which is to wrap the entry of the current heading")
 
 (with-eval-after-load 'org
@@ -393,7 +393,7 @@ entries from the file."
         (type "GOAL(g)" "|" "GOAL_D")
         (type "FIND(f)" "FIND_L" "|" "FOUND")
         (type "PROVE(v)" "|" "PROVED")
-        (type "RETURN(\r)" "RETURN_L" "|" "RETURN_D")
+        (type "RETURN(\r)" "RETURN-soon" "RETURN-before-leaving" "RETURN_L" "|" "RETURN_D")
         (type "EXPLAIN(l)" "|" "EXPLAINED")
         (type "IDEA(i)" "|" "IDEA_DECL")
         (type "READ(r)" "READ_L(R)" "|" "READ_D")
@@ -1270,7 +1270,7 @@ of `org-todo-keywords-1'."
 
 (defvar my-org-misc-map (make-sparse-keymap))
 (progn
-  (define-key my-org-misc-map "i" 'my-org-fill-item-or-heading))
+  (define-key org-mode-map (kbd "C-;") 'my-org-fill-item-or-heading))
 (define-key org-mode-map "\C-cm" my-org-misc-map)
 
 (defvar my-org-custom-id-link-re
@@ -1382,15 +1382,15 @@ of `org-todo-keywords-1'."
                                org-todo-keywords-1
                                (my-alist-keys my-org-vars-alist)))))
     (if (eq 'bold (face-at-point))
-        (insert "[" (mapconcat 'identity (mapcar 'my-org-identifier-key tags) "][") "]")
-      (insert "*[" (mapconcat 'identity (mapcar 'my-org-identifier-key tags) "][") "]*"))))
+        (insert "{" (mapconcat 'identity (mapcar 'my-org-identifier-key tags) "}{") "}")
+      (insert "*{" (mapconcat 'identity (mapcar 'my-org-identifier-key tags) "}{") "}*"))))
 
 (defun my-org-identifier-new (&optional no-load)
   (interactive "P")
   (with-current-buffer "identifiers_list"
     (beginning-of-buffer
      (let (headings heading identifier)
-       (org-map-entries (lambda nil (push (cons (org-get-heading t t t t) (point)) headings)) "LEVEL=1")
+       (org-map-entries (lambda nil (push (cons (org-get-heading t t t t) (point)) headings)))
        (setq heading (completing-read "Heading: " (my-alist-keys headings) nil :require-match))
        (setq identifier (read-string "Identifier: "))
        (goto-char (cdr (assoc heading headings)))
@@ -1416,9 +1416,9 @@ of `org-todo-keywords-1'."
     (save-excursion
       (when (my-org-beginning-of-item)
         (goto-char (match-end 1)) ;; after the bullet
-        (if (looking-at (format "\\*(\\(%s\\))\\*" org-todo-regexp))
+        (if (looking-at (format "\\*{\\(%s\\)}\\*" org-todo-regexp))
             (replace-match state nil nil nil 1)
-          (insert "*(" state ")* "))
+          (insert "*{" state "}* "))
         (my-org-fill-item)))))
 
 (define-key my-org-misc-map "t" 'my-org-item-todo)
