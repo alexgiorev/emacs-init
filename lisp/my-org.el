@@ -282,7 +282,7 @@ add a backlink as a BACKLINK property."
   (outline-hide-subtree))
 
 (defvar my-wrap-entry-title
-  "*{════════════════════}*"
+  "*{--------------------}*"
   "The title of the heading which is to wrap the entry of the current heading")
 
 (with-eval-after-load 'org
@@ -393,7 +393,7 @@ entries from the file."
         (type "GOAL(g)" "|" "GOAL_D")
         (type "FIND(f)" "FIND_L" "|" "FOUND")
         (type "PROVE(v)" "|" "PROVED")
-        (type "RETURN(\r)" "RETURN-soon" "RETURN-before-leaving" "RETURN_L" "|" "RETURN_D")
+        (type "RETURN(\r)" "RETURN:soon" "RETURN:before-leaving" "RETURN_L" "|" "RETURN_D")
         (type "EXPLAIN(l)" "|" "EXPLAINED")
         (type "IDEA(i)" "|" "IDEA_DECL")
         (type "READ(r)" "READ_L(R)" "|" "READ_D")
@@ -637,8 +637,8 @@ function with no arguments called with point at the beginning of the heading"
 (define-key org-mode-map (kbd "C-c m /") 'my-org-italic-individual-words)
 
 (defvar my-org-codify-chars
-  '((nil "*" "*") (1 "~" "~") (2 "/" "/") (3 "_" "_")
-    (4 "*[" "]*") (5 "{{c1::" "}}")))
+  '((nil "*" "*") (1 "~" "~") (2 "/" "/") (3 "“" "”")
+    (4 "*{" "}*") (5 "*#" "*")))
 (defun my-org-codify (&optional arg)
   (interactive "P")
   (let* ((delimiters (cdr (assoc arg my-org-codify-chars)))
@@ -1221,11 +1221,12 @@ of `org-todo-keywords-1'."
                (end (min (point-max) (org-element-property :end element)))
                (indentation (current-indentation))
                (text (buffer-substring start end))
-               (fill-column my-org-fill-item-column))
+               (fill-column (- my-org-fill-item-column indentation)))
           (replace-region-contents
            start end
            (lambda nil
              (with-temp-buffer
+               (org-mode)
                (insert text)
                ;; Do a custom unfill.
                (save-excursion
@@ -1352,8 +1353,7 @@ of `org-todo-keywords-1'."
   (let* ((crm-separator ",")
          (tags (completing-read-multiple
                 "Tag: " (append (my-alist-keys my-org-identifiers-alist)
-                                org-todo-keywords-1
-                                (my-alist-keys my-org-vars-alist)))))
+                                org-todo-keywords-1))))
     (if arg
         (let* ((start (progn (skip-chars-backward "[[:word:]-]") (point)))
                (end (progn (skip-chars-forward "[[:word:]-]") (point)))
@@ -1370,8 +1370,7 @@ of `org-todo-keywords-1'."
   (let ((crm-separator ",")
         (tags (completing-read-multiple
                "Tag: " (append (my-alist-keys my-org-identifiers-alist)
-                               org-todo-keywords-1
-                               (my-alist-keys my-org-vars-alist)))))
+                               org-todo-keywords-1))))
     (insert "*(" (mapconcat 'identity (mapcar 'my-org-identifier-key tags) ")(") ")*")))
 
 (defun my-org-identifier-insert-bracket nil
@@ -1379,8 +1378,7 @@ of `org-todo-keywords-1'."
   (let ((crm-separator ",")
         (tags (completing-read-multiple
                "Tag: " (append (my-alist-keys my-org-identifiers-alist)
-                               org-todo-keywords-1
-                               (my-alist-keys my-org-vars-alist)))))
+                               org-todo-keywords-1))))
     (if (eq 'bold (face-at-point))
         (insert "{" (mapconcat 'identity (mapcar 'my-org-identifier-key tags) "}{") "}")
       (insert "*{" (mapconcat 'identity (mapcar 'my-org-identifier-key tags) "}{") "}*"))))
@@ -1412,16 +1410,21 @@ of `org-todo-keywords-1'."
 
 (defun my-org-item-todo nil
   (interactive)
-  (let ((state (org-fast-todo-selection)))
+  (let ((state (org-fast-todo-selection))
+        (move-to-end nil))
     (save-excursion
       (when (my-org-beginning-of-item)
         (goto-char (match-end 1)) ;; after the bullet
         (if (looking-at (format "\\*{\\(%s\\)}\\*" org-todo-regexp))
             (replace-match state nil nil nil 1)
+          (when (eolp) (setq move-to-end t))
           (insert "*{" state "}* "))
-        (my-org-fill-item)))))
+        (my-org-fill-item)))
+    (when move-to-end (end-of-line) (insert " "))))
 
 (define-key my-org-misc-map "t" 'my-org-item-todo)
+(define-key my-org-misc-map (kbd "TAB") 'indent-rigidly)
+
 
 ;;════════════════════════════════════════
 ;; misc_yanking_images
@@ -2557,6 +2560,28 @@ ELEMENT."
   (define-key my-org-face-map "i" 'org-PO-face-italic)
   (define-key my-org-face-map "\C-?" 'org-PO-remove-overlays))
 (define-key org-mode-map "\C-cf" my-org-face-map)
+
+;; Navigating items like I navigate headings.
+;; ════════════════════════════════════════
+
+(defun my-org-item-goto-parent nil
+  (interactive)
+  (push-mark)
+  (org-beginning-of-item)
+  (if (= (char-after) ?-)
+      (org-previous-visible-heading 1)
+    (progn
+      (org-beginning-of-item-list)
+      (re-search-backward org-list-full-item-re nil t)
+      (org-beginning-of-line))))
+
+(defun my-org-goto-parent nil
+  (interactive)
+  (if (org-on-heading-p)
+      (outline-up-heading 1)
+    (my-org-item-goto-parent)))
+
+(define-key org-mode-map "\C-c\C-u" 'my-org-goto-parent)
 
 ;; ════════════════════════════════════════
 (provide 'my-org)
