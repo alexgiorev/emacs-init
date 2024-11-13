@@ -143,6 +143,11 @@ add a backlink as a BACKLINK property."
               "\\(ﬀ\\|\\<Th\\>\\|ﬁ\\|ﬂ\\|ﬃ\\|fi\\|fl\\) "
               nil t)
         (replace-match (match-string 1)))
+      (dolist (α+β '(("ﬀ" "ff") ("ﬁ" "fi") ("ﬂ" "fl") ("ﬃ" "ffi")))
+        (let ((α (car α+β)) (β (cadr α+β)))
+          (beginning-of-buffer)
+          (while (search-forward α nil t)
+            (replace-match β))))
       (setq text (buffer-string)))
     (push-mark) (insert text)))
 
@@ -240,7 +245,39 @@ add a backlink as a BACKLINK property."
       (kill-ring-save (point-min) (point-max))))
   (deactivate-mark))
 
+(defun my-org-save-for-anki (start end)
+  (interactive "r")
+  (let* ((text (buffer-substring start end))
+         (bold "\\*.+?\\*")
+         (italic "/.+?/")
+         (underline "_.+?_")
+         (code "~.+?~")
+         (tag "\\[\\[\\(.+?\\)\\]\\[\\(.+?\\)\\]\\]")
+         (regexp (mapconcat (lambda (re) (concat "\\(?:" re "\\)"))
+                            (list bold italic underline code tag)
+                            "\\|")))
+    (with-temp-buffer
+      (setq text (string-replace "<" "&lt;" text))
+      (setq text (string-replace ">" "&gt;" text))
+      (setq text (string-replace (concat (make-string 40 ?-) "\n") "<hr>" text))
+      (setq text (string-replace "\n" "<br>" text))
+      (insert text) (beginning-of-buffer)
+      (while (re-search-forward regexp nil t)
+        (let* ((match (match-string 0))
+               (ch0 (aref match 0))
+               (repl nil))
+          (cond ((= ch0 ?*) (setq repl (concat "<b>" (substring match 1 -1) "</b>")))
+                ((= ch0 ?/) (setq repl (concat "<i>" (substring match 1 -1) "</i>")))
+                ((= ch0 ?_) (setq repl (concat "<u>" (substring match 1 -1) "</u>")))
+                ((= ch0 ?~) (setq repl (concat "<code>" (substring match 1 -1) "</code>")))
+                ((= ch0 91) (setq repl (format "<b><span concept=\"%s\">#</span>%s</b>"
+                                               (match-string 1) (match-string 2)))))
+          (replace-match repl)))
+      (kill-ring-save (point-min) (point-max)))
+    (deactivate-mark)))
+
 (define-key org-mode-map (kbd "C-c s d") 'my-org-save-for-discord)
+(define-key org-mode-map (kbd "C-c s a") 'my-org-save-for-anki)
 
 (defun my-org-yank-as-last-child (&optional tree)
   (interactive)
@@ -1236,9 +1273,9 @@ of `org-todo-keywords-1'."
                (unless unfill-p
                  (fill-region (point-min) (point-max))
                  (end-of-buffer) (beginning-of-line 0)
-                 (when (and (save-excursion (search-backward "\n" nil t))
-                            (>= 12 (- (line-end-position) (save-excursion (org-skip-whitespace) (point)))))
-                   (delete-horizontal-space) (delete-backward-char 1) (insert " "))
+                 ;; (when (and (save-excursion (search-backward "\n" nil t))
+                 ;;            (>= 12 (- (line-end-position) (save-excursion (org-skip-whitespace) (point)))))
+                 ;;   (delete-horizontal-space) (delete-backward-char 1) (insert " "))
                  ;; This is because when I'm using tags like *[READ]* the
                  ;; beginning "*" causes an indentation after filling
                  (indent-rigidly (point-min) (point-max) -30)
@@ -1443,15 +1480,12 @@ of `org-todo-keywords-1'."
 
 (defun my-org-yank-image nil
   (interactive)
-  (when (not (bolp)) (insert "\n"))
-  (insert "\n") (backward-char)
   (let* ((file (my-org-yank-image--filename))
          (command (my-org-yank-image--shell-command file))
-         (link (format "[[%s]]" file))
+         (link (format "[[%s][image]]" file))
          start end)
     (shell-command command)
-    (setq start (point)) (insert link) (setq end (point))
-    (org-display-inline-images nil nil start end)))
+    (setq start (point)) (insert link) (setq end (point))))
 
 (setq org-startup-with-inline-images t)
 
@@ -2570,10 +2604,9 @@ ELEMENT."
   (org-beginning-of-item)
   (if (= (char-after) ?-)
       (org-previous-visible-heading 1)
-    (progn
-      (org-beginning-of-item-list)
-      (re-search-backward org-list-full-item-re nil t)
-      (org-beginning-of-line))))
+    (org-beginning-of-item-list)
+    (re-search-backward org-list-full-item-re nil t)
+    (org-beginning-of-line)))
 
 (defun my-org-goto-parent nil
   (interactive)
@@ -2582,6 +2615,21 @@ ELEMENT."
     (my-org-item-goto-parent)))
 
 (define-key org-mode-map "\C-c\C-u" 'my-org-goto-parent)
+
+(defun my-org-item-next-visible nil
+  (loop
+    (re-search-forward org-list-full-item-re nil t)
+    (unless (invisible-p)
+      (org-beginning-of-line)
+      (end-loop))))
+
+(defun my-org-goto-next (arg)
+  (interactive "P")
+  (if arg (org-next-visible-heading 1)
+    (if (org-on-heading-p)
+        (org-next-visible-heading 1)
+      (re-search-forward org-list-full-item-re nil t)
+      (org-beginning-of-line))))
 
 ;; ════════════════════════════════════════
 (provide 'my-org)

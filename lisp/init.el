@@ -144,8 +144,8 @@
     (setq text-scale-mode-amount 1)
     (text-scale-mode text-scale-mode-amount)))
 
-(add-hook 'after-change-major-mode-hook
-          'my-text-size)
+;; (add-hook 'after-change-major-mode-hook
+;;           'my-text-size)
 
 (put 'set-goal-column 'disabled nil)
 
@@ -207,32 +207,7 @@
 
 (setq reverse-im-input-methods '("bulgarian-phonetic"))
 
-;; Just copied the lambda macro.
-(defmacro λ (&rest cdr)
-  "Return an anonymous function.
-Under dynamic binding, a call of the form (lambda ARGS DOCSTRING
-INTERACTIVE BODY) is self-quoting; the result of evaluating the
-lambda expression is the expression itself.  Under lexical
-binding, the result is a closure.  Regardless, the result is a
-function, i.e., it may be stored as the function value of a
-symbol, passed to `funcall' or `mapcar', etc.
-
-ARGS should take the same form as an argument list for a `defun'.
-DOCSTRING is an optional documentation string.
- If present, it should describe how to call the function.
- But documentation strings are usually not useful in nameless functions.
-INTERACTIVE should be a call to the function `interactive', which see.
-It may also be omitted.
-BODY should be a list of Lisp expressions.
-
-\(fn ARGS [DOCSTRING] [INTERACTIVE] BODY)"
-  (declare (doc-string 2) (indent defun)
-           (debug (&define lambda-list lambda-doc
-                           [&optional ("interactive" interactive)]
-                           def-body)))
-  ;; Note that this definition should not use backquotes; subr.el should not
-  ;; depend on backquote.el.
-  (list 'function (cons 'lambda cdr)))
+(add-hook 'prog-mode-hook (lambda () (buffer-face-set 'prog)))
 
 ;;════════════════════════════════════════
 
@@ -243,12 +218,19 @@ BODY should be a list of Lisp expressions.
 (add-hook
  'dired-mode-hook
  (lambda ()
-   (define-key dired-mode-map "\C-cx" 'my-dired-xdg-open)))
+   (define-key dired-mode-map "\C-cx" 'my-dired-xdg-open)
+   (define-key dired-mode-map "\C-ce" 'my-dired-evince-open)))
 
 (defun my-dired-xdg-open ()
   (interactive)
   (call-process "/usr/bin/xdg-open" nil 0 nil
                 (dired-get-filename)))
+
+(defun my-dired-evince-open ()
+  (interactive)
+  (call-process "/usr/bin/evince" nil 0 nil
+                (dired-get-filename)))
+
 
 ;;════════════════════════════════════════
 
@@ -475,16 +457,21 @@ current buffer"
 (set-register ?p "(point-min) (point-max)")
 (set-register ?u "*{UPDATE}* ")
 (set-register ?t "*{THROWN}* ")
+(set-register ?g "*{GENERAL}* ")
 (set-register ?m "*{me}* ")
 (set-register ?b "*{book}* ")
-(set-register ?a "*⟶*")
+(set-register ?a "⟶")
 (set-register ?c "*{comment}* ")
-(set-register ?. "[...]")
+(set-register ?. "<...>")
+(set-register ?< "≤")
 
 (defvar my-insert-math-char-alist
   '((?i . "∫") (?e . "ε") (?d . "δ")
     (?a . "α") (?b . "β") (?g . "γ")
-    (?v . "∀") (?x . "∃") (?l . "λ")))
+    (?v . "∀") (?x . "∃") (?l . "λ")
+    (?< . "≤") (?> . "≥")
+    (?= . "≈") (?\( . "〈") (?\) . "〉")
+    (?* . "⋅")))
 (defun my-insert-math-char nil
   (interactive)
   (let* ((code (read-char-exclusive))
